@@ -1,5 +1,6 @@
 import React from 'react'
-import { Box, Heading, Text, Button, VStack } from '@chakra-ui/react'
+import { Box, Heading, Text, Button, VStack, Link } from '@chakra-ui/react'
+import { Link as RouterLink } from 'react-router-dom'
 
 export const HomePage = () => {
   return (
@@ -11,8 +12,13 @@ export const HomePage = () => {
         AI-powered project management to help you finish what you start
       </Text>
       <Box>
-        <Button colorScheme='blue' size='lg'>
-          Get Started
+        <Button
+          colorScheme='blue'
+          size='lg'
+          as={RouterLink}
+          to='/projects/demo'
+        >
+          View Demo Project
         </Button>
       </Box>
 
