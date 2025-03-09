@@ -35,4 +35,20 @@ export interface KanbanColumn {
   limit?: number // Optional: for limiting number of tasks in a column
 }
 
+// AI Insight interfaces
+export interface AiInsight {
+  id: string
+  title: string
+  description: string
+  type: 'improvement' | 'feature' | 'pivot' | 'risk' | 'optimization'
+  createdAt: number
+  status: 'new' | 'viewed' | 'implemented' | 'dismissed' | 'saved'
+  // Optional suggested tasks based on this insight
+  suggestedTasks?: {
+    title: string
+    description: string
+    priority?: 'low' | 'medium' | 'high'
+  }[]
+}
+
 // More types will be added as we build features

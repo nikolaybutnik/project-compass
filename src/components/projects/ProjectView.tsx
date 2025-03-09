@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Box,
   Heading,
@@ -8,15 +8,22 @@ import {
   Tab,
   TabPanel,
   useToast,
+  Button,
+  Text,
 } from '@chakra-ui/react'
 import { useParams } from 'react-router-dom'
 import { KanbanBoard } from '../kanban/KanbanBoard'
 import { ProjectOverview } from './ProjectOverview'
-import { Project } from '../../types'
+import { AiInsights } from '../ai/AiInsights'
+import { Project, AiInsight, KanbanTask } from '../../types'
+import { generateInsights } from '../../services/ai/insightGenerator'
+import { v4 as uuidv4 } from 'uuid'
 
 export const ProjectView = () => {
   const { projectId } = useParams()
   const toast = useToast()
+
+  // Project state
   const [project, setProject] = useState<Project>({
     id: projectId || 'demo',
     title: 'Demo Project',
@@ -27,7 +34,105 @@ export const ProjectView = () => {
     updatedAt: Date.now(),
   })
 
+  // Mock data for tasks - will be replaced with real data from Firebase
+  const [tasks, setTasks] = useState<KanbanTask[]>([])
+
+  // AI insights state
+  const [insights, setInsights] = useState<AiInsight[]>([])
+  const [isLoadingInsights, setIsLoadingInsights] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+
   const [isLoading, setIsLoading] = useState(false)
+
+  // Re-enable insights generation with better error handling
+  useEffect(() => {
+    let isMounted = true
+
+    const loadInitialInsights = async () => {
+      try {
+        // Wrap in try/catch and check if component is mounted
+        const newInsights = await generateInsights(project, tasks)
+
+        // Only update state if component is still mounted
+        if (isMounted) {
+          setInsights((prev) => [...prev, ...newInsights])
+
+          if (newInsights.length > 0) {
+            toast({
+              title: `${newInsights.length} new AI insights available`,
+              status: 'info',
+              duration: 5000,
+            })
+          }
+        }
+      } catch (err) {
+        console.error('Error loading initial insights:', err)
+        if (isMounted) {
+          setError(
+            err instanceof Error
+              ? err
+              : new Error('Unknown error loading insights')
+          )
+        }
+      }
+    }
+
+    // Load initial insights
+    loadInitialInsights()
+
+    // Set up interval for periodic updates
+    const intervalId = setInterval(
+      () => {
+        if (isMounted) {
+          fetchInsights(true).catch((err) => {
+            console.error('Error in scheduled insights update:', err)
+          })
+        }
+      },
+      1000 * 60 * 30
+    ) // 30 minutes
+
+    // Clean up
+    return () => {
+      isMounted = false
+      clearInterval(intervalId)
+    }
+  }, [])
+
+  // Fetch AI-generated insights
+  const fetchInsights = async (silent = false) => {
+    if (!silent) setIsLoadingInsights(true)
+
+    try {
+      // Wrap in try-catch to prevent crashes
+      console.log('Fetching insights for project:', project.id)
+      const newInsights = await generateInsights(project, tasks)
+      console.log('Received insights:', newInsights.length)
+
+      setInsights((prev) => [...prev, ...newInsights])
+
+      if (!silent && newInsights.length > 0) {
+        toast({
+          title: `${newInsights.length} new AI insights available`,
+          status: 'info',
+          duration: 5000,
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching insights:', error)
+      setError(error instanceof Error ? error : new Error('Unknown error'))
+
+      if (!silent) {
+        toast({
+          title: 'Failed to generate insights',
+          status: 'error',
+          duration: 5000,
+        })
+      }
+    } finally {
+      if (!silent) setIsLoadingInsights(false)
+    }
+  }
 
   // This function would normally save to Firebase
   const updateProjectDescription = async (newDescription: string) => {
@@ -52,9 +157,140 @@ export const ProjectView = () => {
     }
   }
 
+  // Handle dismissing an insight
+  const handleDismissInsight = async (insightId: string) => {
+    try {
+      // Simulating API call
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      // Update local state
+      setInsights((prev) =>
+        prev.map((insight) =>
+          insight.id === insightId
+            ? { ...insight, status: 'dismissed' }
+            : insight
+        )
+      )
+
+      // In a real app, you would update Firebase here
+    } catch (error) {
+      console.error('Error dismissing insight:', error)
+      throw error
+    }
+  }
+
+  // Handle implementing an insight
+  const handleImplementInsight = async (insightId: string) => {
+    try {
+      // Simulating API call
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      // Update local state
+      setInsights((prev) =>
+        prev.map((insight) =>
+          insight.id === insightId
+            ? { ...insight, status: 'implemented' }
+            : insight
+        )
+      )
+
+      // In a real app, you would update Firebase here
+    } catch (error) {
+      console.error('Error implementing insight:', error)
+      throw error
+    }
+  }
+
+  // Handle creating a task from an insight
+  const handleCreateTask = async (task: Partial<KanbanTask>) => {
+    try {
+      // Simulating API call
+      await new Promise((resolve) => setTimeout(resolve, 800))
+
+      // Create new task
+      const newTask: KanbanTask = {
+        id: uuidv4(),
+        title: task.title || 'New Task',
+        description: task.description || '',
+        priority: task.priority || 'medium',
+        tags: task.tags || [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      }
+
+      // Add to tasks
+      setTasks((prev) => [...prev, newTask])
+
+      // In a real app, you would save to Firebase here
+    } catch (error) {
+      console.error('Error creating task:', error)
+      throw error
+    }
+  }
+
+  // Handle asking a follow-up question about an insight
+  const handleAskFollowUp = async (insightId: string, question: string) => {
+    // This would be implemented with AI chat capability
+    console.log(`Follow-up for insight ${insightId}: ${question}`)
+
+    // For now, just acknowledge the question
+    toast({
+      title: 'This feature is coming soon',
+      description: 'Follow-up questions will be implemented in a future update',
+      status: 'info',
+      duration: 3000,
+    })
+  }
+
+  // Handle marking an insight as viewed
+  const handleViewInsight = async (insightId: string) => {
+    try {
+      // Update local state
+      setInsights((prev) =>
+        prev.map((insight) =>
+          insight.id === insightId ? { ...insight, status: 'viewed' } : insight
+        )
+      )
+
+      // In a real app, you would update Firebase here
+    } catch (error) {
+      console.error('Error marking insight as viewed:', error)
+    }
+  }
+
+  // Handle saving an insight for later
+  const handleSaveInsight = async (insightId: string) => {
+    try {
+      // Simulating API call
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      // Update local state
+      setInsights((prev) =>
+        prev.map((insight) =>
+          insight.id === insightId ? { ...insight, status: 'saved' } : insight
+        )
+      )
+
+      // In a real app, you would update Firebase here
+    } catch (error) {
+      console.error('Error saving insight:', error)
+      throw error
+    }
+  }
+
   return (
     <Box>
       <Heading mb={6}>{project.title}</Heading>
+
+      {error && (
+        <Box p={4} mb={4} bg='red.100' color='red.800' borderRadius='md'>
+          <Heading size='md'>Error Loading Project</Heading>
+          <Text>{error.message}</Text>
+          <Button mt={2} onClick={() => setError(null)}>
+            Dismiss
+          </Button>
+        </Box>
+      )}
 
       <Tabs colorScheme='blue' variant='enclosed' isLazy>
         <TabList>
@@ -74,7 +310,29 @@ export const ProjectView = () => {
             />
           </TabPanel>
           <TabPanel>
-            <Box p={4}>AI suggestions and insights will go here</Box>
+            <Box position='relative'>
+              <Box mb={4} textAlign='right'>
+                <Button
+                  colorScheme='blue'
+                  size='sm'
+                  isLoading={isLoadingInsights}
+                  onClick={() => fetchInsights()}
+                >
+                  Generate New Insights
+                </Button>
+              </Box>
+
+              <AiInsights
+                project={project}
+                insights={insights}
+                onDismissInsight={handleDismissInsight}
+                onImplementInsight={handleImplementInsight}
+                onViewInsight={handleViewInsight}
+                onSaveInsight={handleSaveInsight}
+                onCreateTask={handleCreateTask}
+                onAskFollowUp={handleAskFollowUp}
+              />
+            </Box>
           </TabPanel>
         </TabPanels>
       </Tabs>
