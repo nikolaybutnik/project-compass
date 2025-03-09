@@ -106,27 +106,38 @@ function getSuggestedTask(type: AiInsight['type']): {
   description: string
   priority: 'low' | 'medium' | 'high'
 } {
-  const tasks = {
+  // Add explicit type for tasks
+  const tasks: Record<
+    AiInsight['type'],
+    {
+      title: string
+      description: string
+      priority: 'low' | 'medium' | 'high'
+    }
+  > = {
     improvement: {
-      title: 'Conduct usability testing',
-      description:
-        'Schedule sessions with 5-7 users to identify UI/UX pain points',
+      title: 'Implement improvement',
+      description: 'Work on this suggested improvement to enhance the project',
       priority: 'medium',
     },
     feature: {
-      title: 'Create feature specification',
-      description: 'Document requirements and user stories for the new feature',
-      priority: 'high',
+      title: 'Develop new feature',
+      description: 'Create this new feature to expand functionality',
+      priority: 'medium',
     },
     pivot: {
-      title: 'Research market opportunity',
-      description:
-        'Gather data on potential pivot direction and create analysis report',
+      title: 'Consider strategic pivot',
+      description: 'Evaluate this potential direction change',
+      priority: 'high',
+    },
+    risk: {
+      title: 'Address project risk',
+      description: 'Mitigate this identified risk to project success',
       priority: 'high',
     },
     optimization: {
-      title: 'Implement quick-add feature',
-      description: 'Create a globally accessible task creation component',
+      title: 'Optimize project',
+      description: 'Implement this optimization to improve performance',
       priority: 'medium',
     },
   }
