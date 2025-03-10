@@ -8,6 +8,7 @@ export interface User {
 // Project interfaces
 export interface Project {
   id: string
+  userId: string
   title: string
   description: string
   status: 'planning' | 'in-progress' | 'completed' | 'abandoned'

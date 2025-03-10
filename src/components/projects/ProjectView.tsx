@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   Heading,
@@ -33,6 +33,7 @@ export const ProjectView: React.FC = () => {
   // Project state, will be replaced with real data from Firebase
   const [project, setProject] = useState<Project>({
     id: projectId || 'demo',
+    userId: 'demo',
     title: 'Demo Project',
     description:
       'This is a sample project to demonstrate the features of Project Compass. The AI has analyzed your project and provided this initial description. Feel free to edit it to better reflect your goals.\n\nSome key aspects of your project:\n- Building a project management tool\n- Using AI to help users finish what they start\n- Implementing a Kanban board for task tracking\n- Providing personalized suggestions through AI',
