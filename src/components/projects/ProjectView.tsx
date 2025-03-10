@@ -18,12 +18,19 @@ import { AiInsights } from '../ai/AiInsights'
 import { Project, AiInsight, KanbanTask } from '../../types'
 import { generateInsights } from '../../services/ai/insightGenerator'
 import { v4 as uuidv4 } from 'uuid'
+import { ClickableToast } from '../common/ClickableToast'
 
-export const ProjectView = () => {
+enum ProjectViewTabs {
+  KANBAN = 0,
+  OVERVIEW = 1,
+  INSIGHTS = 2,
+}
+
+export const ProjectView: React.FC = () => {
   const { projectId } = useParams()
   const toast = useToast()
 
-  // Project state
+  // Project state, will be replaced with real data from Firebase
   const [project, setProject] = useState<Project>({
     id: projectId || 'demo',
     title: 'Demo Project',
@@ -36,13 +43,11 @@ export const ProjectView = () => {
 
   // Mock data for tasks - will be replaced with real data from Firebase
   const [tasks, setTasks] = useState<KanbanTask[]>([])
-
-  // AI insights state
   const [insights, setInsights] = useState<AiInsight[]>([])
   const [isLoadingInsights, setIsLoadingInsights] = useState(false)
   const [error, setError] = useState<Error | null>(null)
-
   const [isLoading, setIsLoading] = useState(false)
+  const [tabIndex, setTabIndex] = useState(ProjectViewTabs.KANBAN)
 
   // Re-enable insights generation with better error handling
   useEffect(() => {
@@ -50,19 +55,13 @@ export const ProjectView = () => {
 
     const loadInitialInsights = async () => {
       try {
-        // Wrap in try/catch and check if component is mounted
         const newInsights = await generateInsights(project, tasks)
 
-        // Only update state if component is still mounted
         if (isMounted) {
           setInsights((prev) => [...prev, ...newInsights])
 
           if (newInsights.length > 0) {
-            toast({
-              title: `${newInsights.length} new AI insights available`,
-              status: 'info',
-              duration: 5000,
-            })
+            showInsightNotification(newInsights.length)
           }
         }
       } catch (err) {
@@ -77,10 +76,9 @@ export const ProjectView = () => {
       }
     }
 
-    // Load initial insights
     loadInitialInsights()
 
-    // Set up interval for periodic updates
+    // Interval for periodic updates
     const intervalId = setInterval(
       () => {
         if (isMounted) {
@@ -92,31 +90,36 @@ export const ProjectView = () => {
       1000 * 60 * 30
     ) // 30 minutes
 
-    // Clean up
     return () => {
       isMounted = false
       clearInterval(intervalId)
     }
   }, [])
 
-  // Fetch AI-generated insights
+  const showInsightNotification = (count: number): void => {
+    toast({
+      duration: 10000,
+      render: ({ onClose }) => (
+        <ClickableToast
+          message={`${count} new AI insights available`}
+          type='info'
+          onClick={() => setTabIndex(ProjectViewTabs.INSIGHTS)}
+          onClose={onClose}
+        />
+      ),
+    })
+  }
+
   const fetchInsights = async (silent = false) => {
     if (!silent) setIsLoadingInsights(true)
 
     try {
-      // Wrap in try-catch to prevent crashes
-      console.log('Fetching insights for project:', project.id)
       const newInsights = await generateInsights(project, tasks)
-      console.log('Received insights:', newInsights.length)
 
       setInsights((prev) => [...prev, ...newInsights])
 
       if (!silent && newInsights.length > 0) {
-        toast({
-          title: `${newInsights.length} new AI insights available`,
-          status: 'info',
-          duration: 5000,
-        })
+        showInsightNotification(newInsights.length)
       }
     } catch (error) {
       console.error('Error fetching insights:', error)
@@ -292,7 +295,13 @@ export const ProjectView = () => {
         </Box>
       )}
 
-      <Tabs colorScheme='blue' variant='enclosed' isLazy>
+      <Tabs
+        colorScheme='blue'
+        variant='enclosed'
+        index={tabIndex}
+        onChange={setTabIndex}
+        isLazy
+      >
         <TabList>
           <Tab>Kanban Board</Tab>
           <Tab>Overview</Tab>
