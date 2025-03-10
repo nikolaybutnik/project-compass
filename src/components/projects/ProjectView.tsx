@@ -110,12 +110,13 @@ export const ProjectView: React.FC = () => {
     })
   }
 
-  const fetchInsights = async (silent = false) => {
-    if (!silent) setIsLoadingInsights(true)
+  const fetchInsights = async (silent: boolean = false) => {
+    if (!silent) {
+      setIsLoadingInsights(true)
+    }
 
     try {
       const newInsights = await generateInsights(project, tasks)
-
       setInsights((prev) => [...prev, ...newInsights])
 
       if (!silent && newInsights.length > 0) {
@@ -133,7 +134,9 @@ export const ProjectView: React.FC = () => {
         })
       }
     } finally {
-      if (!silent) setIsLoadingInsights(false)
+      if (!silent) {
+        setIsLoadingInsights(false)
+      }
     }
   }
 
