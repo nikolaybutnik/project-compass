@@ -141,6 +141,31 @@ export const ProjectView: React.FC = () => {
     }
   }
 
+  const clearInsights = () => {
+    console.log('Before clearing:', insights)
+
+    // Get only saved insights
+    const savedInsights = insights.filter(
+      (insight) => insight.status === 'saved'
+    )
+    console.log('Saved insights:', savedInsights)
+
+    // Force re-render by using a two-step state update
+    setInsights([])
+
+    // Use setTimeout to ensure the empty array renders first
+    setTimeout(() => {
+      setInsights(savedInsights)
+    }, 0)
+
+    toast({
+      title: 'Insights cleared',
+      description: `All non-saved insights have been removed. Kept ${savedInsights.length} saved insights.`,
+      status: 'info',
+      duration: 3000,
+    })
+  }
+
   // This function would normally save to Firebase
   const updateProjectDescription = async (newDescription: string) => {
     setIsLoading(true)
@@ -325,6 +350,14 @@ export const ProjectView: React.FC = () => {
           <TabPanel>
             <Box position='relative'>
               <Box mb={4} textAlign='right'>
+                <Button
+                  colorScheme='red'
+                  size='sm'
+                  mr={2}
+                  onClick={clearInsights}
+                >
+                  Clear Insights
+                </Button>
                 <Button
                   colorScheme='blue'
                   size='sm'

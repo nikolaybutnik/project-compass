@@ -230,11 +230,11 @@ export const AiInsights: React.FC<AiInsightsProps> = ({
     }
   }
 
-  if (activeInsights.length === 0) {
+  if (activeInsights.length === 0 && savedInsights.length === 0) {
     return (
       <Box textAlign='center' py={10}>
         <Heading size='md' mb={4}>
-          No Active AI Insights
+          No AI Insights
         </Heading>
         <Text color='gray.500'>
           AI insights will appear here periodically as your project progresses.
@@ -255,151 +255,165 @@ export const AiInsights: React.FC<AiInsightsProps> = ({
         work on your project.
       </Text>
 
-      <VStack spacing={4} align='stretch'>
-        {activeInsights.map((insight) => (
-          <Box
-            key={insight.id}
-            borderWidth='1px'
-            borderRadius='lg'
-            overflow='hidden'
-            bg={cardBg}
-            borderColor={borderColor}
-            boxShadow='sm'
+      {activeInsights.length > 0 && (
+        <>
+          <Heading size='sm' mb={4}>
+            Active Insights
+          </Heading>
+          <VStack
+            spacing={4}
+            align='stretch'
+            mb={savedInsights.length > 0 ? 10 : 0}
           >
-            <Flex
-              p={4}
-              onClick={() => toggleExpand(insight.id)}
-              cursor='pointer'
-              justifyContent='space-between'
-              alignItems='center'
-            >
-              <Box>
-                <HStack mb={1}>
-                  <Heading size='sm'>{insight.title}</Heading>
-                  <Badge colorScheme={insightTypeColors[insight.type]}>
-                    {insight.type}
-                  </Badge>
-                  {insight.status === 'new' && (
-                    <Badge colorScheme='purple'>New</Badge>
-                  )}
-                </HStack>
-                <Text fontSize='sm' color='gray.500'>
-                  Generated {formatDate(insight.createdAt)}
-                </Text>
-              </Box>
-              <IconButton
-                aria-label='Expand insight'
-                icon={
-                  expandedInsightId === insight.id ? (
-                    <ChevronUpIcon />
-                  ) : (
-                    <ChevronDownIcon />
-                  )
-                }
-                variant='ghost'
-                onClick={(e) => {
-                  e.stopPropagation()
-                  toggleExpand(insight.id)
-                }}
-              />
-            </Flex>
-
-            <Collapse in={expandedInsightId === insight.id} animateOpacity>
-              <Box p={4} pt={0}>
-                <Divider mb={4} />
-                <Text mb={4} whiteSpace='pre-wrap'>
-                  {insight.description}
-                </Text>
-
-                {insight.suggestedTasks &&
-                  insight.suggestedTasks.length > 0 && (
-                    <Box mt={4}>
-                      <Heading size='xs' mb={2}>
-                        Suggested Tasks
-                      </Heading>
-                      <VStack align='stretch' spacing={2}>
-                        {insight.suggestedTasks.map((task, index) => (
-                          <Box
-                            key={index}
-                            p={3}
-                            borderWidth='1px'
-                            borderRadius='md'
-                            borderColor={borderColor}
-                          >
-                            <Flex
-                              justifyContent='space-between'
-                              alignItems='center'
-                            >
-                              <Box>
-                                <Text fontWeight='bold'>{task.title}</Text>
-                                <Text fontSize='sm'>{task.description}</Text>
-                              </Box>
-                              <Tooltip label='Add to Kanban board'>
-                                <IconButton
-                                  aria-label='Create task'
-                                  icon={<AddIcon />}
-                                  size='sm'
-                                  colorScheme='blue'
-                                  isLoading={loadingInsightId === insight.id}
-                                  onClick={() =>
-                                    handleCreateTask(insight, index)
-                                  }
-                                />
-                              </Tooltip>
-                            </Flex>
-                          </Box>
-                        ))}
-                      </VStack>
-                    </Box>
-                  )}
-
-                <HStack spacing={2} mt={4} justifyContent='flex-end'>
-                  <Button
-                    size='sm'
-                    leftIcon={<AddIcon />}
-                    colorScheme='blue'
-                    isLoading={loadingInsightId === insight.id}
-                    onClick={() => handleConvertToTask(insight)}
-                  >
-                    Add to Kanban
-                  </Button>
-                  <Button
-                    size='sm'
-                    leftIcon={<ChatIcon />}
-                    variant='outline'
-                    onClick={() => handleAskFollowUp(insight.id)}
-                  >
-                    Ask Follow-up
-                  </Button>
-                  <Button
-                    size='sm'
-                    colorScheme='red'
+            {activeInsights.map((insight) => (
+              <Box
+                key={insight.id}
+                borderWidth='1px'
+                borderRadius='lg'
+                overflow='hidden'
+                bg={cardBg}
+                borderColor={borderColor}
+                boxShadow='sm'
+              >
+                <Flex
+                  p={4}
+                  onClick={() => toggleExpand(insight.id)}
+                  cursor='pointer'
+                  justifyContent='space-between'
+                  alignItems='center'
+                >
+                  <Box>
+                    <HStack mb={1}>
+                      <Heading size='sm'>{insight.title}</Heading>
+                      <Badge colorScheme={insightTypeColors[insight.type]}>
+                        {insight.type}
+                      </Badge>
+                      {insight.status === 'new' && (
+                        <Badge colorScheme='purple'>New</Badge>
+                      )}
+                    </HStack>
+                    <Text fontSize='sm' color='gray.500'>
+                      Generated {formatDate(insight.createdAt)}
+                    </Text>
+                  </Box>
+                  <IconButton
+                    aria-label='Expand insight'
+                    icon={
+                      expandedInsightId === insight.id ? (
+                        <ChevronUpIcon />
+                      ) : (
+                        <ChevronDownIcon />
+                      )
+                    }
                     variant='ghost'
-                    leftIcon={<CloseIcon />}
-                    isLoading={loadingInsightId === insight.id}
-                    onClick={() => handleDismiss(insight.id)}
-                  >
-                    Dismiss
-                  </Button>
-                  <Button
-                    size='sm'
-                    colorScheme='purple'
-                    leftIcon={<BsBookmark />}
-                    isLoading={loadingInsightId === insight.id}
-                    onClick={() => handleSave(insight.id)}
-                  >
-                    Save for Later
-                  </Button>
-                </HStack>
-              </Box>
-            </Collapse>
-          </Box>
-        ))}
-      </VStack>
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleExpand(insight.id)
+                    }}
+                  />
+                </Flex>
 
-      {/* Saved Insights Section */}
+                <Collapse in={expandedInsightId === insight.id} animateOpacity>
+                  <Box p={4} pt={0}>
+                    <Divider mb={4} />
+                    <Text mb={4} whiteSpace='pre-wrap'>
+                      {insight.description}
+                    </Text>
+
+                    {insight.suggestedTasks &&
+                      insight.suggestedTasks.length > 0 && (
+                        <Box mt={4}>
+                          <Heading size='xs' mb={2}>
+                            Suggested Tasks
+                          </Heading>
+                          <VStack align='stretch' spacing={2}>
+                            {insight.suggestedTasks.map((task, index) => (
+                              <Box
+                                key={index}
+                                p={3}
+                                borderWidth='1px'
+                                borderRadius='md'
+                                borderColor={borderColor}
+                              >
+                                <Flex
+                                  justifyContent='space-between'
+                                  alignItems='center'
+                                >
+                                  <Box>
+                                    <Text fontWeight='bold'>{task.title}</Text>
+                                    <Text fontSize='sm'>
+                                      {task.description}
+                                    </Text>
+                                  </Box>
+                                  <Tooltip label='Add to Kanban board'>
+                                    <IconButton
+                                      aria-label='Create task'
+                                      icon={<AddIcon />}
+                                      size='sm'
+                                      colorScheme='blue'
+                                      isLoading={
+                                        loadingInsightId === insight.id
+                                      }
+                                      onClick={() =>
+                                        handleCreateTask(insight, index)
+                                      }
+                                    />
+                                  </Tooltip>
+                                </Flex>
+                              </Box>
+                            ))}
+                          </VStack>
+                        </Box>
+                      )}
+
+                    <HStack spacing={2} mt={4} justifyContent='flex-end'>
+                      <Button
+                        size='sm'
+                        leftIcon={<AddIcon />}
+                        colorScheme='blue'
+                        isLoading={loadingInsightId === insight.id}
+                        onClick={() => handleConvertToTask(insight)}
+                      >
+                        Add to Kanban
+                      </Button>
+                      <Button
+                        size='sm'
+                        leftIcon={<ChatIcon />}
+                        variant='outline'
+                        onClick={() => handleAskFollowUp(insight.id)}
+                      >
+                        Ask Follow-up
+                      </Button>
+                      <Button
+                        size='sm'
+                        colorScheme='red'
+                        variant='ghost'
+                        leftIcon={<CloseIcon />}
+                        isLoading={loadingInsightId === insight.id}
+                        onClick={() => handleDismiss(insight.id)}
+                      >
+                        Dismiss
+                      </Button>
+                      <Button
+                        size='sm'
+                        colorScheme='purple'
+                        leftIcon={<BsBookmark />}
+                        isLoading={loadingInsightId === insight.id}
+                        onClick={() => handleSave(insight.id)}
+                      >
+                        Save for Later
+                      </Button>
+                    </HStack>
+                  </Box>
+                </Collapse>
+              </Box>
+            ))}
+          </VStack>
+        </>
+      )}
+
       {savedInsights.length > 0 && (
-        <Box mt={10}>
+        <Box mt={activeInsights.length > 0 ? 10 : 0}>
           <Heading size='md' mb={4}>
             Saved Insights
           </Heading>
@@ -415,7 +429,6 @@ export const AiInsights: React.FC<AiInsightsProps> = ({
                 borderColor={borderColor}
                 boxShadow='sm'
               >
-                {/* Header section with expand/collapse toggle */}
                 <Flex
                   p={4}
                   justifyContent='space-between'
@@ -451,7 +464,6 @@ export const AiInsights: React.FC<AiInsightsProps> = ({
                   />
                 </Flex>
 
-                {/* Expanded content */}
                 <Collapse in={expandedInsightId === insight.id}>
                   <Box p={4} pt={0}>
                     <Divider mb={4} />
@@ -460,7 +472,6 @@ export const AiInsights: React.FC<AiInsightsProps> = ({
                       Created: {formatDate(insight.createdAt)}
                     </Text>
 
-                    {/* Show suggested tasks if any */}
                     {insight.suggestedTasks &&
                       insight.suggestedTasks.length > 0 && (
                         <Box mb={4}>
@@ -507,7 +518,6 @@ export const AiInsights: React.FC<AiInsightsProps> = ({
                         </Box>
                       )}
 
-                    {/* Action buttons */}
                     <HStack spacing={2} mt={4} justifyContent='flex-end'>
                       <Button
                         size='sm'
