@@ -12,13 +12,13 @@ import {
   Text,
 } from '@chakra-ui/react'
 import { useParams } from 'react-router-dom'
-import { KanbanBoard } from '@/components/kanban/KanbanBoard'
-import { ProjectOverview } from '@/components/projects/ProjectOverview'
-import { AiInsights } from '@/components/ai/AiInsights'
-import { Project, AiInsight, KanbanTask } from '../../types'
-import { generateInsights } from '../../services/ai/insightGenerator'
+import { KanbanBoard } from '@/features/kanban/components/KanbanBoard'
+import { ProjectOverview } from '@/features/projects/components/ProjectOverview'
+import { AiInsights } from '@/features/ai/components/AiInsights'
+import { Project, AiInsight, KanbanTask } from '@/shared/types'
+import { generateInsights } from '@/features/ai/services/insightGenerator'
 import { v4 as uuidv4 } from 'uuid'
-import { ClickableToast } from '@/components/common/ClickableToast'
+import { ClickableToast } from '@/shared/components/ClickableToast'
 
 // TODO: this will become a view for a specific project
 

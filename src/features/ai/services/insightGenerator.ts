@@ -1,4 +1,4 @@
-import { AiInsight, Project, KanbanTask } from '../../types'
+import { AiInsight, Project, KanbanTask } from '@/shared/types'
 import { v4 as uuidv4 } from 'uuid'
 
 // This simulates AI-generated insights based on project data

@@ -9,7 +9,7 @@ import {
   Badge,
   useColorModeValue,
 } from '@chakra-ui/react'
-import { KanbanColumn } from '../../types'
+import { KanbanColumn } from '@/shared/types'
 
 // This is a simplified Kanban board without drag-and-drop functionality
 // We'll enhance this later

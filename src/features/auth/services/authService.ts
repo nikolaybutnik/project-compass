@@ -9,7 +9,7 @@ import {
   UserCredential,
   User,
 } from 'firebase/auth'
-import { app } from '@/config/firebase'
+import { app } from '@/shared/config/firebase'
 
 const auth = getAuth(app)
 const googleProvider = new GoogleAuthProvider()
@@ -49,3 +49,5 @@ export const onAuthStateChanged = (
 ): (() => void) => {
   return auth.onAuthStateChanged(callback)
 }
+
+export { auth }

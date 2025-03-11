@@ -18,5 +18,3 @@ const theme = extendTheme({
 })
 
 export default theme
-
-// More theme customization will be added later

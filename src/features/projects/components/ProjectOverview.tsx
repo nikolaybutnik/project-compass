@@ -12,7 +12,7 @@ import {
   Badge,
   Divider,
 } from '@chakra-ui/react'
-import { Project } from '../../types'
+import { Project } from '@/shared/types'
 
 // Maximum length for project description to keep it efficient for AI context
 const MAX_DESCRIPTION_LENGTH = 2000

@@ -1,16 +1,11 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { HomePage } from '@/pages/Home/HomePage'
-import { LoginPage } from '@/pages/Auth/LoginPage'
-import { ProjectsPage } from '@/pages/Projects/ProjectsPage'
-import { useAuth } from '@/hooks/useAuth'
-
-const ROUTES = {
-  HOME: '/',
-  LOGIN: '/login',
-  PROJECTS: '/projects',
-  PROJECT_DETAIL: '/projects/:projectId',
-}
+import { HomePage } from '@/features/home/pages/HomePage'
+import { LoginPage } from '@/features/auth/pages/LoginPage'
+import { ProjectsPage } from '@/features/projects/pages/ProjectsPage'
+import { AppLayout } from '@/shared/layouts/AppLayout'
+import { AuthLayout } from '@/shared/layouts/AuthLayout'
+import { useAuth } from '@/shared/hooks/useAuth'
 
 const AppRoutes: React.FC = () => {
   const { user, authLoading } = useAuth()
@@ -21,27 +16,25 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
-      {/* Public routes */}
-      <Route
-        path={ROUTES.HOME}
-        element={
-          user ? <Navigate to={ROUTES.PROJECTS} replace /> : <HomePage />
-        }
-      />
+      {/* Public and authenticated pages with full header */}
+      <Route element={<AppLayout />}>
+        <Route
+          path='/'
+          element={user ? <Navigate to='/projects' replace /> : <HomePage />}
+        />
+        <Route
+          path='/projects/:projectId'
+          element={user ? <ProjectsPage /> : <Navigate to='/login' replace />}
+        />
+      </Route>
 
-      {/* Auth routes */}
-      <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+      {/* Auth pages with minimal branding */}
+      <Route element={<AuthLayout />}>
+        <Route path='/login' element={<LoginPage />} />
+      </Route>
 
-      {/* Private/Protected routes */}
-      <Route
-        path={ROUTES.PROJECT_DETAIL}
-        element={
-          user ? <ProjectsPage /> : <Navigate to={ROUTES.LOGIN} replace />
-        }
-      />
-
-      {/* Catch-all route for 404s */}
-      <Route path='*' element={<Navigate to={ROUTES.HOME} replace />} />
+      {/* Catch-all */}
+      <Route path='*' element={<Navigate to='/' replace />} />
     </Routes>
   )
 }

@@ -18,7 +18,10 @@ import {
 } from '@chakra-ui/react'
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons'
 import { useNavigate } from 'react-router-dom'
-import { loginWithEmail, signUpWithEmail } from '@/services/auth/authService'
+import {
+  loginWithEmail,
+  signUpWithEmail,
+} from '@/features/auth/services/authService'
 
 export const LoginPage: React.FC = () => {
   const toast = useToast()

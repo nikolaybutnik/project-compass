@@ -23,7 +23,7 @@ import {
   ChatIcon,
 } from '@chakra-ui/icons'
 import { BsBookmark } from 'react-icons/bs'
-import { AiInsight, KanbanTask, Project } from '../../types'
+import { AiInsight, KanbanTask, Project } from '@/shared/types'
 
 interface AiInsightsProps {
   project: Project
