@@ -83,30 +83,23 @@ export const LoginPage: React.FC = () => {
     try {
       if (isLoginMode) {
         await loginWithEmail(email, password)
-        toast({
-          title: 'Login successful',
-          status: 'success',
-          duration: 3000,
-        })
       } else {
         await signUpWithEmail(email, password)
-        toast({
-          title: 'Account created successfully',
-          description: 'You are now signed in',
-          status: 'success',
-          duration: 3000,
-        })
       }
-      navigate('/projects/demo')
-    } catch (error) {
-      console.error(isLoginMode ? 'Login error:' : 'Signup error:', error)
+
       toast({
-        title: isLoginMode ? 'Login failed' : 'Signup failed',
-        description: isLoginMode
-          ? 'Invalid email or password'
-          : 'Could not create account. The email may already be in use.',
-        status: 'error',
+        title: isLoginMode ? 'Login successful' : 'Account created',
+        status: 'success',
         duration: 3000,
+      })
+
+      navigate('/projects')
+    } catch (error: any) {
+      toast({
+        title: 'Authentication error',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
       })
     } finally {
       setIsLoading(false)

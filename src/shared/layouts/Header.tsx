@@ -59,7 +59,7 @@ export const Header: React.FC = () => {
                   src={user.photoURL || undefined}
                 />
                 <Text fontSize='sm' display={{ base: 'none', md: 'block' }}>
-                  {user.email}
+                  {user.displayName}
                 </Text>
               </HStack>
               <Button

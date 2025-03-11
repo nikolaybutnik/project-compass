@@ -7,10 +7,17 @@ import { AppLayout } from '@/shared/layouts/AppLayout'
 import { AuthLayout } from '@/shared/layouts/AuthLayout'
 import { useAuth } from '@/shared/hooks/useAuth'
 
-const AppRoutes: React.FC = () => {
-  const { user, authLoading } = useAuth()
+const ROUTES = {
+  HOME: '/',
+  LOGIN: '/login',
+  // PROJECTS: '/projects',
+  PROJECT: '/projects/:projectId',
+}
 
-  if (authLoading) {
+const AppRoutes: React.FC = () => {
+  const { user, loading } = useAuth()
+
+  if (loading) {
     return null // or return a loading spinner component
   }
 
@@ -19,22 +26,31 @@ const AppRoutes: React.FC = () => {
       {/* Public and authenticated pages with full header */}
       <Route element={<AppLayout />}>
         <Route
-          path='/'
-          element={user ? <Navigate to='/projects' replace /> : <HomePage />}
+          path={ROUTES.HOME}
+          element={
+            user ? <Navigate to={ROUTES.PROJECT} replace /> : <HomePage />
+          }
         />
         <Route
-          path='/projects/:projectId'
-          element={user ? <ProjectsPage /> : <Navigate to='/login' replace />}
+          path={ROUTES.PROJECT}
+          element={
+            user ? <ProjectsPage /> : <Navigate to={ROUTES.LOGIN} replace />
+          }
         />
       </Route>
 
       {/* Auth pages with minimal branding */}
       <Route element={<AuthLayout />}>
-        <Route path='/login' element={<LoginPage />} />
+        <Route
+          path={ROUTES.LOGIN}
+          element={
+            user ? <Navigate to={ROUTES.PROJECT} replace /> : <LoginPage />
+          }
+        />
       </Route>
 
       {/* Catch-all */}
-      <Route path='*' element={<Navigate to='/' replace />} />
+      <Route path='*' element={<Navigate to={ROUTES.HOME} replace />} />
     </Routes>
   )
 }

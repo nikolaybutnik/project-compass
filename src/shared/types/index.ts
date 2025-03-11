@@ -1,8 +1,20 @@
+import { Timestamp } from 'firebase/firestore'
+
 // User interfaces
 export interface User {
-  uid: string
+  id: string
   email: string | null
   displayName: string | null
+  photoURL: string | null
+  activeProjectId: string | null
+  role: 'admin' | 'user'
+  lastLogin: Timestamp
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  preferences: {
+    theme: 'light' | 'dark'
+    language: 'en' | 'es'
+  }
 }
 
 // Project interfaces
