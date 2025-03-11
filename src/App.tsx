@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { SimpleLayout } from './layouts/SimpleLayout'
 import { HomePage } from './components/HomePage'
 import { ProjectView } from './components/projects/ProjectView'
+import { Login } from './components/login/Login'
 import theme from './config/theme'
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
           <Routes>
             <Route path='/' element={<HomePage />} />
             <Route path='/projects/:projectId' element={<ProjectView />} />
+            <Route path='/login' element={<Login />} />
             {/* Authentication routes will be added here */}
             {/* More project management routes will be added here */}
           </Routes>

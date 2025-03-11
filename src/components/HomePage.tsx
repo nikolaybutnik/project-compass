@@ -1,8 +1,8 @@
 import React from 'react'
-import { Box, Heading, Text, Button, VStack, Link } from '@chakra-ui/react'
+import { Heading, Text, Button, VStack, HStack } from '@chakra-ui/react'
 import { Link as RouterLink } from 'react-router-dom'
 
-export const HomePage = () => {
+export const HomePage: React.FC = () => {
   return (
     <VStack spacing={8} textAlign='center' py={10}>
       <Heading as='h1' size='2xl'>
@@ -11,7 +11,7 @@ export const HomePage = () => {
       <Text fontSize='xl' maxW='container.md' mx='auto'>
         AI-powered project management to help you finish what you start
       </Text>
-      <Box>
+      <HStack spacing={4}>
         <Button
           colorScheme='blue'
           size='lg'
@@ -20,7 +20,10 @@ export const HomePage = () => {
         >
           View Demo Project
         </Button>
-      </Box>
+        <Button colorScheme='green' size='lg' as={RouterLink} to='/login'>
+          Login / Sign Up
+        </Button>
+      </HStack>
 
       {/* Placeholder for project dashboard */}
       {/* 
