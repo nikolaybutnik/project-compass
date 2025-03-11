@@ -12,13 +12,15 @@ import {
   Text,
 } from '@chakra-ui/react'
 import { useParams } from 'react-router-dom'
-import { KanbanBoard } from '../kanban/KanbanBoard'
-import { ProjectOverview } from './ProjectOverview'
-import { AiInsights } from '../ai/AiInsights'
+import { KanbanBoard } from '@/components/kanban/KanbanBoard'
+import { ProjectOverview } from '@/components/projects/ProjectOverview'
+import { AiInsights } from '@/components/ai/AiInsights'
 import { Project, AiInsight, KanbanTask } from '../../types'
 import { generateInsights } from '../../services/ai/insightGenerator'
 import { v4 as uuidv4 } from 'uuid'
-import { ClickableToast } from '../common/ClickableToast'
+import { ClickableToast } from '@/components/common/ClickableToast'
+
+// TODO: this will become a view for a specific project
 
 enum ProjectViewTabs {
   KANBAN = 0,
@@ -26,7 +28,7 @@ enum ProjectViewTabs {
   INSIGHTS = 2,
 }
 
-export const ProjectView: React.FC = () => {
+export const ProjectsPage: React.FC = () => {
   const { projectId } = useParams()
   const toast = useToast()
 

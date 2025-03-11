@@ -20,7 +20,7 @@ import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons'
 import { useNavigate } from 'react-router-dom'
 import { loginWithEmail, signUpWithEmail } from '@/services/auth/authService'
 
-export const Login: React.FC = () => {
+export const LoginPage: React.FC = () => {
   const toast = useToast()
   const navigate = useNavigate()
 
@@ -94,7 +94,7 @@ export const Login: React.FC = () => {
           duration: 3000,
         })
       }
-      navigate('/projects')
+      navigate('/projects/demo')
     } catch (error) {
       console.error(isLoginMode ? 'Login error:' : 'Signup error:', error)
       toast({

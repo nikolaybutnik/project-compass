@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import {
   Box,
   Container,
@@ -13,8 +13,8 @@ import {
 } from '@chakra-ui/react'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { logout } from '@/services/auth/authService'
-import { User } from 'firebase/auth'
-import { auth } from '@/config/firebase'
+import { useAuth } from '@/hooks/useAuth'
+
 interface SimpleLayoutProps {
   children: React.ReactNode
 }
@@ -22,15 +22,7 @@ interface SimpleLayoutProps {
 export const SimpleLayout = ({ children }: SimpleLayoutProps): JSX.Element => {
   const navigate = useNavigate()
   const toast = useToast()
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setCurrentUser(user)
-    })
-
-    return () => unsubscribe()
-  }, [])
+  const { user } = useAuth()
 
   const handleLogout = async () => {
     try {
@@ -63,16 +55,16 @@ export const SimpleLayout = ({ children }: SimpleLayoutProps): JSX.Element => {
               </Heading>
             </Link>
 
-            {currentUser && (
+            {user && (
               <HStack spacing={4}>
                 <HStack>
                   <Avatar
                     size='sm'
-                    name={currentUser.displayName || undefined}
-                    src={currentUser.photoURL || undefined}
+                    name={user.displayName || undefined}
+                    src={user.photoURL || undefined}
                   />
                   <Text fontSize='sm' display={{ base: 'none', md: 'block' }}>
-                    {currentUser.email}
+                    {user.email}
                   </Text>
                 </HStack>
                 <Button

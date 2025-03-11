@@ -1,10 +1,19 @@
-// This will be implemented later with Firebase authentication
+import { useState, useEffect } from 'react'
+import { User } from 'firebase/auth'
+import { auth } from '@/config/firebase'
+
 export const useAuth = () => {
-  // Placeholder for authentication logic
-  return {
-    user: null,
-    login: async () => console.log('Login not implemented'),
-    register: async () => console.log('Register not implemented'),
-    logout: async () => console.log('Logout not implemented'),
-  }
+  const [user, setUser] = useState<User | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user)
+      setAuthLoading(false)
+    })
+
+    return () => unsubscribe()
+  }, [])
+
+  return { user, authLoading }
 }
