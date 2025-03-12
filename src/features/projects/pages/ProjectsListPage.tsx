@@ -21,6 +21,7 @@ import {
   Center,
   Alert,
   AlertIcon,
+  Flex,
 } from '@chakra-ui/react'
 import { AddIcon } from '@chakra-ui/icons'
 import { useNavigate } from 'react-router-dom'
@@ -49,7 +50,7 @@ export const ProjectsListPage: React.FC = () => {
 
       try {
         setLoading(true)
-        const userProjects = await getProjects(user.id)
+        const userProjects = await getProjects(user?.id)
         setProjects(userProjects)
       } catch (err) {
         console.error('Error loading projects:', err)
@@ -68,18 +69,102 @@ export const ProjectsListPage: React.FC = () => {
     console.log('projects', projects)
   }, [projects])
 
+  const handleCreateProject = async () => {
+    if (!user) return
+
+    try {
+      setIsCreating(true)
+      await createProject(user?.id, {
+        title: newProjectTitle,
+        description: newProjectDescription,
+      })
+      setNewProjectTitle('')
+      setNewProjectDescription('')
+      onClose()
+    } catch (err) {
+      console.error('Error creating project:', err)
+      setError(
+        err instanceof Error ? err : new Error('Failed to create project')
+      )
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
   return (
-    <>
-      <button
-        onClick={() => {
-          createProject(user?.id, {
-            title: newProjectTitle,
-            description: newProjectDescription,
-          })
-        }}
-      >
-        Add Project
-      </button>
-    </>
+    <Box p={5}>
+      <Flex justifyContent='space-between' alignItems='center' mb={6}>
+        <Heading>My Projects</Heading>
+        <Button leftIcon={<AddIcon />} colorScheme='blue' onClick={onOpen}>
+          New Project
+        </Button>
+      </Flex>
+
+      {loading ? (
+        <Center>
+          <Spinner size='xl' />
+        </Center>
+      ) : projects.length > 0 ? (
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+          {/* {projects.map((project) => (
+            <ProjectCard
+              key={project.id}
+              project={project}
+              onClick={() => navigate(`/projects/${project.id}`)}
+            />
+          ))} */}
+        </SimpleGrid>
+      ) : (
+        <Center flexDirection='column' py={10}>
+          <Text mb={4}>You don't have any projects yet.</Text>
+          <Button colorScheme='blue' onClick={onOpen}>
+            Create your first project
+          </Button>
+        </Center>
+      )}
+
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Create New Project</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <FormControl isRequired>
+              <FormLabel>Project Title</FormLabel>
+              <Input
+                placeholder='Enter a title for your project'
+                value={newProjectTitle}
+                onChange={(e) => setNewProjectTitle(e?.target?.value)}
+              />
+            </FormControl>
+
+            <FormControl mt={4}>
+              <FormLabel>Description</FormLabel>
+              <Textarea
+                placeholder="What's this project about? (optional)"
+                value={newProjectDescription}
+                onChange={(e) => setNewProjectDescription(e?.target?.value)}
+                resize='vertical'
+                rows={4}
+              />
+            </FormControl>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button variant='ghost' mr={3} onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              colorScheme='blue'
+              isLoading={isCreating}
+              isDisabled={!newProjectTitle.trim()}
+              onClick={handleCreateProject}
+            >
+              Create Project
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </Box>
   )
 }

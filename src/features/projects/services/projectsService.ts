@@ -20,9 +20,9 @@ const createProjectData = (
 ) => ({
   id,
   userId,
-  title: projectData.title || 'Untitled Project',
-  description: projectData.description || '',
-  status: projectData.status || 'planning',
+  title: projectData?.title,
+  description: projectData?.description || '',
+  status: 'planning',
   createdAt: serverTimestamp(),
   updatedAt: serverTimestamp(),
 })
