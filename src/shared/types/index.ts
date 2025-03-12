@@ -24,8 +24,8 @@ export interface Project {
   title: string
   description: string
   status: 'planning' | 'in-progress' | 'completed' | 'abandoned'
-  createdAt: number
-  updatedAt: number
+  createdAt: Timestamp
+  updatedAt: Timestamp
 }
 
 // Kanban interfaces
@@ -37,8 +37,8 @@ export interface KanbanTask {
   dueDate?: number
   assignee?: string
   tags?: string[]
-  createdAt?: number
-  updatedAt?: number
+  createdAt?: Timestamp
+  updatedAt?: Timestamp
 }
 
 export interface KanbanColumn {
@@ -54,7 +54,7 @@ export interface AiInsight {
   title: string
   description: string
   type: 'improvement' | 'feature' | 'pivot' | 'risk' | 'optimization'
-  createdAt: number
+  createdAt: Timestamp
   status: 'new' | 'viewed' | 'implemented' | 'dismissed' | 'saved'
   // Optional suggested tasks based on this insight
   suggestedTasks?: {

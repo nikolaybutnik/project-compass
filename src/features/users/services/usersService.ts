@@ -9,8 +9,24 @@ import { User as FirebaseUser } from 'firebase/auth'
 import { db } from '@/shared/config/firebase'
 import { User } from '@/shared/types'
 
-// Collection name
 const USERS_COLLECTION = 'users'
+
+const createUserData = (firebaseUser: FirebaseUser) => ({
+  id: firebaseUser.uid,
+  email: firebaseUser.email,
+  displayName:
+    firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+  photoURL: firebaseUser.photoURL,
+  activeProjectId: null,
+  role: 'user',
+  lastLogin: serverTimestamp(),
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp(),
+  preferences: {
+    theme: 'light',
+    language: 'en',
+  },
+})
 
 export const createOrUpdateUser = async (
   firebaseUser: FirebaseUser
@@ -21,25 +37,7 @@ export const createOrUpdateUser = async (
 
     if (!userSnap.exists()) {
       // New user - create full profile
-      const newUserData = {
-        id: firebaseUser.uid,
-        email: firebaseUser.email,
-        displayName:
-          firebaseUser.displayName ||
-          firebaseUser.email?.split('@')[0] ||
-          'User',
-        photoURL: firebaseUser.photoURL,
-        activeProjectId: null,
-        role: 'user',
-        lastLogin: serverTimestamp(),
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        preferences: {
-          theme: 'light',
-          language: 'en',
-        },
-      }
-
+      const newUserData = createUserData(firebaseUser)
       await setDoc(userRef, newUserData)
     } else {
       // Existing user - only update necessary fields
@@ -65,6 +63,10 @@ export const createOrUpdateUser = async (
     }
 
     const updatedDoc = await getDoc(userRef)
+    if (!updatedDoc.exists()) {
+      throw new Error('Failed to fetch user data after update')
+    }
+
     return updatedDoc.data() as User
   } catch (error) {
     console.error('Error creating/updating user:', error)
