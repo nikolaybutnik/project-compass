@@ -14,6 +14,7 @@ export default defineConfig({
     port: 3000,
     open: true,
     host: true,
+    hmr: true,
   },
   build: {
     outDir: 'dist',
@@ -23,6 +24,8 @@ export default defineConfig({
     // Reduce chunk size warnings threshold
     chunkSizeWarningLimit: 1600,
   },
+  // More visible error reporting
+  clearScreen: false,
   // Ensure .env files are properly loaded
   envPrefix: 'VITE_',
 })

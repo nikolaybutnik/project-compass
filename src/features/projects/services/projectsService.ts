@@ -2,16 +2,8 @@ import {
   collection,
   doc,
   getDoc,
-  getDocs,
   setDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  limit,
   serverTimestamp,
-  Timestamp,
 } from 'firebase/firestore'
 import { db } from '@/shared/config/firebase'
 import { Project } from '@/shared/types'

@@ -11,13 +11,13 @@ import {
   Button,
   Text,
 } from '@chakra-ui/react'
-import { useParams } from 'react-router-dom'
+// import { useParams } from 'react-router-dom'
 import { KanbanBoard } from '@/features/kanban/components/KanbanBoard'
 import { ProjectOverview } from '@/features/projects/components/ProjectOverview'
 import { AiInsights } from '@/features/ai/components/AiInsights'
 import { Project, AiInsight, KanbanTask } from '@/shared/types'
 import { generateInsights } from '@/features/ai/services/insightGenerator'
-import { v4 as uuidv4 } from 'uuid'
+// import { v4 as uuidv4 } from 'uuid'
 import { ClickableToast } from '@/shared/components/ClickableToast'
 
 // TODO: this will become a view for a specific project
@@ -29,21 +29,11 @@ enum ProjectViewTabs {
 }
 
 export const ProjectsPage: React.FC = () => {
-  const { projectId } = useParams()
+  // const { projectId } = useParams()
   const toast = useToast()
 
   // Project state, will be replaced with real data from Firebase
-  const [project, setProject] = useState<Project>({
-    id: projectId || 'demo',
-    userId: 'demo',
-    title: 'Demo Project',
-    description:
-      'This is a sample project to demonstrate the features of Project Compass. The AI has analyzed your project and provided this initial description. Feel free to edit it to better reflect your goals.\n\nSome key aspects of your project:\n- Building a project management tool\n- Using AI to help users finish what they start\n- Implementing a Kanban board for task tracking\n- Providing personalized suggestions through AI',
-    status: 'in-progress',
-    createdAt: Date.now() - 1000000,
-    updatedAt: Date.now(),
-  })
-
+  const [project, _] = useState<Project | null>(null)
   // Mock data for tasks - will be replaced with real data from Firebase
   const [tasks, setTasks] = useState<KanbanTask[]>([])
   const [insights, setInsights] = useState<AiInsight[]>([])
@@ -58,6 +48,7 @@ export const ProjectsPage: React.FC = () => {
 
     const loadInitialInsights = async () => {
       try {
+        if (!project) return
         const newInsights = await generateInsights(project, tasks)
 
         if (isMounted) {
@@ -119,6 +110,7 @@ export const ProjectsPage: React.FC = () => {
     }
 
     try {
+      if (!project) return
       const newInsights = await generateInsights(project, tasks)
       setInsights((prev) => [...prev, ...newInsights])
 
@@ -176,11 +168,11 @@ export const ProjectsPage: React.FC = () => {
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       // Update local state
-      setProject({
-        ...project,
-        description: newDescription,
-        updatedAt: Date.now(),
-      })
+      // setProject({
+      //   ...project,
+      //   description: newDescription,
+      //   updatedAt: Date.now(),
+      // })
 
       // In a real app, you would save to Firebase here
     } catch (error) {
@@ -242,18 +234,18 @@ export const ProjectsPage: React.FC = () => {
       await new Promise((resolve) => setTimeout(resolve, 800))
 
       // Create new task
-      const newTask: KanbanTask = {
-        id: uuidv4(),
-        title: task.title || 'New Task',
-        description: task.description || '',
-        priority: task.priority || 'medium',
-        tags: task.tags || [],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      }
+      // const newTask: KanbanTask = {
+      //   id: uuidv4(),
+      //   title: task.title || 'New Task',
+      //   description: task.description || '',
+      //   priority: task.priority || 'medium',
+      //   tags: task.tags || [],
+      //   createdAt: Date.now(),
+      //   updatedAt: Date.now(),
+      // }
 
       // Add to tasks
-      setTasks((prev) => [...prev, newTask])
+      // setTasks((prev) => [...prev, newTask])
 
       // In a real app, you would save to Firebase here
     } catch (error) {
@@ -314,7 +306,7 @@ export const ProjectsPage: React.FC = () => {
 
   return (
     <Box>
-      <Heading mb={6}>{project.title}</Heading>
+      <Heading mb={6}>{project?.title}</Heading>
 
       {error && (
         <Box p={4} mb={4} bg='red.100' color='red.800' borderRadius='md'>
@@ -345,7 +337,7 @@ export const ProjectsPage: React.FC = () => {
           </TabPanel>
           <TabPanel>
             <ProjectOverview
-              project={project}
+              project={project!}
               onUpdateDescription={updateProjectDescription}
             />
           </TabPanel>
@@ -371,7 +363,7 @@ export const ProjectsPage: React.FC = () => {
               </Box>
 
               <AiInsights
-                project={project}
+                project={project!}
                 insights={insights}
                 onDismissInsight={handleDismissInsight}
                 onImplementInsight={handleImplementInsight}
