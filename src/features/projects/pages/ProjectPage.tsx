@@ -11,16 +11,14 @@ import {
   Button,
   Text,
 } from '@chakra-ui/react'
-// import { useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { KanbanBoard } from '@/features/kanban/components/KanbanBoard'
-import { ProjectOverview } from '@/features/projects/components/ProjectOverview'
+import { ProjectOverviewTab } from '@/features/projects/components/ProjectOverviewTab'
 import { AiInsights } from '@/features/ai/components/AiInsights'
 import { Project, AiInsight, KanbanTask } from '@/shared/types'
 import { generateInsights } from '@/features/ai/services/insightGenerator'
 // import { v4 as uuidv4 } from 'uuid'
 import { ClickableToast } from '@/shared/components/ClickableToast'
-
-// TODO: this will become a view for a specific project
 
 enum ProjectViewTabs {
   KANBAN = 0,
@@ -28,12 +26,14 @@ enum ProjectViewTabs {
   INSIGHTS = 2,
 }
 
-export const ProjectsPage: React.FC = () => {
-  // const { projectId } = useParams()
+export const ProjectPage: React.FC = () => {
+  const { projectId } = useParams()
   const toast = useToast()
 
+  console.log('projectId', projectId)
+
   // Project state, will be replaced with real data from Firebase
-  const [project, _] = useState<Project | null>(null)
+  const [project, setProject] = useState<Project | null>(null)
   // Mock data for tasks - will be replaced with real data from Firebase
   const [tasks, setTasks] = useState<KanbanTask[]>([])
   const [insights, setInsights] = useState<AiInsight[]>([])
@@ -41,6 +41,13 @@ export const ProjectsPage: React.FC = () => {
   const [error, setError] = useState<Error | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [tabIndex, setTabIndex] = useState(ProjectViewTabs.KANBAN)
+
+  useEffect(() => {
+    if (projectId) {
+      // TODO: get project from Firebase
+      const project = null
+    }
+  }, [projectId])
 
   // Re-enable insights generation with better error handling
   useEffect(() => {
@@ -332,17 +339,15 @@ export const ProjectsPage: React.FC = () => {
         </TabList>
 
         <TabPanels>
+          <TabPanel>{/* <KanbanBoard /> */}</TabPanel>
           <TabPanel>
-            <KanbanBoard />
-          </TabPanel>
-          <TabPanel>
-            <ProjectOverview
-              project={project!}
+            {/* <ProjectOverviewTab
+              project={project}
               onUpdateDescription={updateProjectDescription}
-            />
+            /> */}
           </TabPanel>
           <TabPanel>
-            <Box position='relative'>
+            {/* <Box position='relative'>
               <Box mb={4} textAlign='right'>
                 <Button
                   colorScheme='red'
@@ -372,7 +377,7 @@ export const ProjectsPage: React.FC = () => {
                 onCreateTask={handleCreateTask}
                 onAskFollowUp={handleAskFollowUp}
               />
-            </Box>
+            </Box> */}
           </TabPanel>
         </TabPanels>
       </Tabs>

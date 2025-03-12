@@ -28,8 +28,9 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/shared/hooks/useAuth'
 import { Project } from '@/shared/types'
 import { createProject } from '@/features/projects/services/projectsService'
-// import { ProjectCard } from '@/features/projects/components/ProjectCard'
+import { ProjectCard } from '@/features/projects/components/ProjectCard'
 import { getProjects } from '@/features/projects/services/projectsService'
+import { ROUTES } from '@/shared/constants'
 
 export const ProjectsListPage: React.FC = () => {
   const navigate = useNavigate()
@@ -64,10 +65,6 @@ export const ProjectsListPage: React.FC = () => {
 
     loadProjects()
   }, [user])
-
-  useEffect(() => {
-    console.log('projects', projects)
-  }, [projects])
 
   const handleCreateProject = async () => {
     if (!user) return
@@ -104,15 +101,18 @@ export const ProjectsListPage: React.FC = () => {
         <Center>
           <Spinner size='xl' />
         </Center>
-      ) : projects.length > 0 ? (
+      ) : projects?.length ? (
         <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-          {/* {projects.map((project) => (
+          {projects?.map((project) => (
             <ProjectCard
-              key={project.id}
+              key={project?.id}
               project={project}
-              onClick={() => navigate(`/projects/${project.id}`)}
+              onClick={() =>
+                // TODO: refactor this to make it cleaner
+                navigate(`/projects/${project?.id}`)
+              }
             />
-          ))} */}
+          ))}
         </SimpleGrid>
       ) : (
         <Center flexDirection='column' py={10}>

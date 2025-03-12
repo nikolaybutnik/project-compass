@@ -11,25 +11,39 @@ import {
   FormLabel,
   Badge,
   Divider,
+  VStack,
+  HStack,
+  Skeleton,
 } from '@chakra-ui/react'
 import { Project } from '@/shared/types'
 
 // Maximum length for project description to keep it efficient for AI context
 const MAX_DESCRIPTION_LENGTH = 2000
 
-interface ProjectOverviewProps {
-  project: Project
+interface ProjectOverviewTabProps {
+  project: Project | null
   onUpdateDescription: (newDescription: string) => Promise<void>
 }
 
-export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
+export const ProjectOverviewTab: React.FC<ProjectOverviewTabProps> = ({
   project,
   onUpdateDescription,
 }) => {
-  const [description, setDescription] = useState(project.description)
+  const [description, setDescription] = useState(project?.description || '')
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const toast = useToast()
+
+  // Loading state while project data is being fetched
+  if (!project) {
+    return (
+      <Box p={5}>
+        <Skeleton height='40px' width='200px' mb={4} />
+        <Skeleton height='20px' width='150px' mb={2} />
+        <Skeleton height='100px' mb={4} />
+      </Box>
+    )
+  }
 
   const characterCount = description.length
   const isOverLimit = characterCount > MAX_DESCRIPTION_LENGTH
@@ -39,7 +53,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   }
 
   const handleCancel = (): void => {
-    setDescription(project.description)
+    setDescription(project.description || '')
     setIsEditing(false)
   }
 

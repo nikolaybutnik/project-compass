@@ -13,7 +13,7 @@ import { db } from '@/shared/config/firebase'
 import { Project } from '@/shared/types'
 import { COLLECTIONS } from '@/shared/constants'
 
-const createProjectData = (
+const createNewProjectData = (
   id: string,
   userId: string,
   projectData: Partial<Project>
@@ -37,7 +37,7 @@ export const createProject = async (
 
   try {
     const projectRef = doc(collection(db, COLLECTIONS.PROJECTS))
-    const newProject = createProjectData(projectRef.id, userId, projectData)
+    const newProject = createNewProjectData(projectRef.id, userId, projectData)
 
     await setDoc(projectRef, newProject)
 

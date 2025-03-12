@@ -2,7 +2,7 @@ import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { HomePage } from '@/features/home/pages/HomePage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
-import { ProjectsPage } from '@/features/projects/pages/ProjectsPage'
+import { ProjectPage } from '@/features/projects/pages/ProjectPage'
 import { AppLayout } from '@/shared/layouts/AppLayout'
 import { AuthLayout } from '@/shared/layouts/AuthLayout'
 import { useAuth } from '@/shared/hooks/useAuth'
@@ -35,7 +35,7 @@ const AppRoutes: React.FC = () => {
         <Route
           path={ROUTES.PROJECT}
           element={
-            user ? <ProjectsPage /> : <Navigate to={ROUTES.LOGIN} replace />
+            user ? <ProjectPage /> : <Navigate to={ROUTES.LOGIN} replace />
           }
         />
       </Route>
