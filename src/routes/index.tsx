@@ -6,13 +6,8 @@ import { ProjectsPage } from '@/features/projects/pages/ProjectsPage'
 import { AppLayout } from '@/shared/layouts/AppLayout'
 import { AuthLayout } from '@/shared/layouts/AuthLayout'
 import { useAuth } from '@/shared/hooks/useAuth'
-
-const ROUTES = {
-  HOME: '/',
-  LOGIN: '/login',
-  // PROJECTS: '/projects',
-  PROJECT: '/projects/:projectId',
-}
+import { ProjectsListPage } from '@/features/projects/pages/ProjectsListPage'
+import { ROUTES } from '@/shared/constants'
 
 const AppRoutes: React.FC = () => {
   const { user, loading } = useAuth()
@@ -29,6 +24,12 @@ const AppRoutes: React.FC = () => {
           path={ROUTES.HOME}
           element={
             user ? <Navigate to={ROUTES.PROJECT} replace /> : <HomePage />
+          }
+        />
+        <Route
+          path={ROUTES.PROJECTS}
+          element={
+            user ? <ProjectsListPage /> : <Navigate to={ROUTES.LOGIN} replace />
           }
         />
         <Route

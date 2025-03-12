@@ -20,6 +20,7 @@ import {
   FaEllipsisH,
 } from 'react-icons/fa'
 import { useAuth } from '@/shared/hooks/useAuth'
+import { ROUTES } from '@/shared/constants'
 
 interface SideMenuProps {
   onClose: () => void
@@ -45,7 +46,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ onClose }) => {
 
         <Button
           as={RouterLink}
-          to='/'
+          to={ROUTES.HOME}
           variant='ghost'
           justifyContent='flex-start'
           leftIcon={<Icon as={FaProjectDiagram} />}
@@ -76,7 +77,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ onClose }) => {
                 <ListItem key={project.id}>
                   <Button
                     as={RouterLink}
-                    to={`/projects/${project.id}`}
+                    to={`${ROUTES.PROJECT}/${project.id}`}
                     variant='ghost'
                     size='sm'
                     justifyContent='flex-start'
@@ -90,7 +91,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ onClose }) => {
               <ListItem>
                 <Button
                   as={RouterLink}
-                  to='/projects'
+                  to={ROUTES.PROJECTS}
                   variant='ghost'
                   size='sm'
                   justifyContent='flex-start'
@@ -113,7 +114,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ onClose }) => {
 
         <Button
           as={RouterLink}
-          to='/profile'
+          to={ROUTES.PROFILE}
           variant='ghost'
           justifyContent='flex-start'
           leftIcon={<Icon as={FaUser} />}

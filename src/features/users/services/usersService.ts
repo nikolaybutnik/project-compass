@@ -8,8 +8,7 @@ import {
 import { User as FirebaseUser } from 'firebase/auth'
 import { db } from '@/shared/config/firebase'
 import { User } from '@/shared/types'
-
-const USERS_COLLECTION = 'users'
+import { COLLECTIONS } from '@/shared/constants'
 
 const createUserData = (firebaseUser: FirebaseUser) => ({
   id: firebaseUser.uid,
@@ -32,7 +31,7 @@ export const createOrUpdateUser = async (
   firebaseUser: FirebaseUser
 ): Promise<User> => {
   try {
-    const userRef = doc(db, USERS_COLLECTION, firebaseUser.uid)
+    const userRef = doc(db, COLLECTIONS.USERS, firebaseUser.uid)
     const userSnap = await getDoc(userRef)
 
     if (!userSnap.exists()) {
