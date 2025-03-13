@@ -9,8 +9,9 @@ import { User as FirebaseUser } from 'firebase/auth'
 import { db } from '@/shared/config/firebase'
 import { User } from '@/shared/types'
 import { COLLECTIONS } from '@/shared/constants'
+import { UserDto } from '@/shared/types/dto'
 
-const createUserData = (firebaseUser: FirebaseUser) => ({
+const createUserData = (firebaseUser: FirebaseUser): UserDto => ({
   id: firebaseUser.uid,
   email: firebaseUser.email,
   displayName:

@@ -13,13 +13,14 @@ import { db } from '@/shared/config/firebase'
 import { AIProjectInstructions, Project, ProjectStatus } from '@/shared/types'
 import { COLLECTIONS } from '@/shared/constants'
 import { v4 as uuidv4 } from 'uuid'
+import { ProjectDto } from '@/shared/types/dto'
 
 const createNewProjectData = (
   id: string,
   userId: string,
   projectData: Partial<Project>,
   aiInstructions?: AIProjectInstructions
-) => {
+): ProjectDto => {
   const defaultKanban: Project['kanban'] = {
     columns: [
       {
@@ -75,9 +76,13 @@ export const createProject = async (
 
   try {
     const projectRef = doc(collection(db, COLLECTIONS.PROJECTS))
-    const newProject = createNewProjectData(projectRef?.id, userId, projectData)
+    const newProjectDto = createNewProjectData(
+      projectRef?.id,
+      userId,
+      projectData
+    )
 
-    await setDoc(projectRef, newProject)
+    await setDoc(projectRef, newProjectDto)
 
     const docSnap = await getDoc(projectRef)
     if (!docSnap?.exists()) {
