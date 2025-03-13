@@ -18,34 +18,55 @@ export interface User {
 }
 
 // Project interfaces
+export type ProjectStatus =
+  | 'planning'
+  | 'in-progress'
+  | 'completed'
+  | 'archived'
+
 export interface Project {
   id: string
   userId: string
   title: string
   description: string
-  status: 'planning' | 'in-progress' | 'completed' | 'abandoned'
+  kanban: {
+    columns: KanbanColumn[]
+    columnLimit?: number
+    totalTaskLimit?: number
+  }
+  status: ProjectStatus
   createdAt: Timestamp
   updatedAt: Timestamp
 }
 
-// Kanban interfaces
-export interface KanbanTask {
-  id: string
-  title: string
-  description: string
-  priority?: 'low' | 'medium' | 'high'
-  dueDate?: number
-  assignee?: string
-  tags?: string[]
-  createdAt?: Timestamp
-  updatedAt?: Timestamp
+export interface AIProjectInstructions {
+  kanban?: Project['kanban']
+  suggestions?: {
+    title?: string
+    status?: ProjectStatus
+    description?: string
+    timeline?: string
+  }
 }
 
+// Kanban interfaces
 export interface KanbanColumn {
   id: string
   title: string
   tasks: KanbanTask[]
-  limit?: number // Optional: for limiting number of tasks in a column
+  taskLimit?: number
+}
+
+export interface KanbanTask {
+  id: string
+  columnId: string
+  title: string
+  description: string
+  priority?: 'low' | 'medium' | 'high' | 'urgent'
+  dueDate?: Timestamp
+  tags?: string[]
+  createdAt: Timestamp
+  updatedAt: Timestamp
 }
 
 // AI Insight interfaces

@@ -23,14 +23,15 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   project,
   onClick,
 }) => {
-  const statusColorMap: Record<string, string> = {
+  const statusColorMap: Record<Project['status'], string> = {
     planning: 'gray',
     'in-progress': 'blue',
     completed: 'green',
-    abandoned: 'red',
+    archived: 'red',
   }
 
-  const getStatusColor = (status: string) => statusColorMap[status] || 'gray'
+  const getStatusColor = (status: Project['status']) =>
+    statusColorMap[status] || 'gray'
 
   const formatDate = (timestamp: Timestamp): string => {
     if (!timestamp) return 'Unknown'

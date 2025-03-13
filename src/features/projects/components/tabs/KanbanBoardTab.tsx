@@ -13,55 +13,12 @@ import { KanbanColumn } from '@/shared/types'
 
 // This is a simplified Kanban board without drag-and-drop functionality
 // We'll enhance this later
-export const KanbanBoard = () => {
+export const KanbanBoardTab = () => {
   const columnBg = useColorModeValue('gray.50', 'gray.700')
   const cardBg = useColorModeValue('white', 'gray.600')
 
   // Sample data - will be replaced with real data later
-  const columns: KanbanColumn[] = [
-    {
-      id: 'todo',
-      title: 'To Do',
-      tasks: [
-        {
-          id: '1',
-          title: 'Research competitors',
-          description: 'Look at similar products in the market',
-          priority: 'medium',
-        },
-        {
-          id: '2',
-          title: 'Create wireframes',
-          description: 'Draft initial UI concepts',
-          priority: 'high',
-        },
-      ],
-    },
-    {
-      id: 'doing',
-      title: 'In Progress',
-      tasks: [
-        {
-          id: '3',
-          title: 'Setup project structure',
-          description: 'Initialize the codebase and basic components',
-          priority: 'high',
-        },
-      ],
-    },
-    {
-      id: 'done',
-      title: 'Completed',
-      tasks: [
-        {
-          id: '4',
-          title: 'Project planning',
-          description: 'Define project scope and timeline',
-          priority: 'medium',
-        },
-      ],
-    },
-  ]
+  const columns: KanbanColumn[] = []
 
   return (
     <Box>
@@ -71,9 +28,9 @@ export const KanbanBoard = () => {
       </Text>
 
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
-        {columns.map((column) => (
+        {columns?.map((column) => (
           <Box
-            key={column.id}
+            key={column?.id}
             bg={columnBg}
             p={4}
             borderRadius='md'
@@ -85,7 +42,7 @@ export const KanbanBoard = () => {
             <VStack spacing={4} align='stretch'>
               {column.tasks.map((task) => (
                 <Box
-                  key={task.id}
+                  // key={task.id}
                   p={4}
                   bg={cardBg}
                   borderRadius='md'

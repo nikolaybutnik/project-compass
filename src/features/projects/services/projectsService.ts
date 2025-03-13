@@ -10,22 +10,60 @@ import {
   getDocs,
 } from 'firebase/firestore'
 import { db } from '@/shared/config/firebase'
-import { Project } from '@/shared/types'
+import { AIProjectInstructions, Project, ProjectStatus } from '@/shared/types'
 import { COLLECTIONS } from '@/shared/constants'
+import { v4 as uuidv4 } from 'uuid'
 
 const createNewProjectData = (
   id: string,
   userId: string,
-  projectData: Partial<Project>
-) => ({
-  id,
-  userId,
-  title: projectData?.title,
-  description: projectData?.description || '',
-  status: 'planning',
-  createdAt: serverTimestamp(),
-  updatedAt: serverTimestamp(),
-})
+  projectData: Partial<Project>,
+  aiInstructions?: AIProjectInstructions
+) => {
+  const defaultKanban: Project['kanban'] = {
+    columns: [
+      {
+        id: uuidv4(),
+        title: 'To Do',
+        tasks: [],
+      },
+      {
+        id: uuidv4(),
+        title: 'In Progress',
+        tasks: [],
+      },
+      {
+        id: uuidv4(),
+        title: 'Completed',
+        tasks: [],
+      },
+    ],
+  }
+
+  let title: string = projectData?.title || ''
+  let kanban: Project['kanban'] = defaultKanban
+  let status: ProjectStatus = 'planning'
+  let description: string = projectData?.description || ''
+
+  if (aiInstructions?.suggestions?.title)
+    title = aiInstructions.suggestions.title
+  if (aiInstructions?.kanban) kanban = aiInstructions.kanban
+  if (aiInstructions?.suggestions?.status)
+    status = aiInstructions.suggestions.status
+  if (aiInstructions?.suggestions?.description)
+    description = aiInstructions.suggestions.description
+
+  return {
+    id,
+    userId,
+    title,
+    description,
+    status,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    kanban,
+  }
+}
 
 export const createProject = async (
   userId: string | undefined,
@@ -37,12 +75,12 @@ export const createProject = async (
 
   try {
     const projectRef = doc(collection(db, COLLECTIONS.PROJECTS))
-    const newProject = createNewProjectData(projectRef.id, userId, projectData)
+    const newProject = createNewProjectData(projectRef?.id, userId, projectData)
 
     await setDoc(projectRef, newProject)
 
     const docSnap = await getDoc(projectRef)
-    if (!docSnap.exists()) {
+    if (!docSnap?.exists()) {
       throw new Error('Failed to create project')
     }
 
@@ -65,6 +103,26 @@ export const getProjects = async (userId: string): Promise<Project[]> => {
     return querySnapshot.docs.map((doc) => doc.data() as Project)
   } catch (error) {
     console.error('Error getting user projects:', error)
+    throw error
+  }
+}
+
+export const getProject = async (projectId: string): Promise<Project> => {
+  try {
+    if (!projectId) {
+      throw new Error('Project ID is required')
+    }
+
+    const projectRef = doc(db, COLLECTIONS.PROJECTS, projectId)
+    const docSnap = await getDoc(projectRef)
+
+    if (!docSnap.exists()) {
+      throw new Error(`Project with ID ${projectId} not found`)
+    }
+
+    return docSnap.data() as Project
+  } catch (error) {
+    console.error('Error getting project:', error)
     throw error
   }
 }
