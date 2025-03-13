@@ -346,7 +346,12 @@ export const ProjectPage: React.FC = () => {
 
         <TabPanels>
           <TabPanel>
-            <KanbanBoardTab />
+            <KanbanBoardTab
+              project={project}
+              isLoading={isLoading}
+              error={error}
+              onProjectUpdate={(updatedProject) => setProject(updatedProject)}
+            />
           </TabPanel>
           <TabPanel>
             {/* <ProjectOverviewTab
