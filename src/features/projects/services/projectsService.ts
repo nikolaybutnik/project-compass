@@ -117,7 +117,6 @@ export const getProject = async (projectId: string): Promise<Project> => {
     if (!projectId) {
       throw new Error('Project ID is required')
     }
-    console.log('projectId', projectId)
 
     const projectRef = doc(db, COLLECTIONS.PROJECTS, projectId)
     const docSnap = await getDoc(projectRef)

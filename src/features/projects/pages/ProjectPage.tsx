@@ -328,8 +328,6 @@ export const ProjectPage: React.FC = () => {
               project={project}
               isLoading={isLoading}
               error={error}
-              onProjectUpdate={() => {}}
-              // onProjectUpdate={(updatedProject) => setProject(updatedProject)}
             />
           </TabPanel>
           <TabPanel>

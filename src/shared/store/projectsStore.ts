@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { Project } from '@/shared/types'
+import { KanbanTask, Project } from '@/shared/types'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getProject,
@@ -8,6 +8,7 @@ import {
 import { AUTH_QUERY_KEYS, useAuthStore } from './authStore'
 import { updateActiveProjectId } from '@/features/users/services/usersService'
 import { createProject } from '@/features/projects/services/projectsService'
+import { addTask, deleteTask } from '@/features/projects/services/tasksService'
 export const QUERY_KEYS = {
   PROJECTS: 'projects',
   PROJECT: 'project',
@@ -67,7 +68,7 @@ export const useCreateProjectMutation = () => {
       projectData: Partial<Project>
     }) => createProject(userId, projectData),
     onSuccess: (newProject) => {
-      queryClient.invalidateQueries({
+      queryClient?.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECTS, newProject?.userId],
       })
     },
@@ -92,12 +93,56 @@ export const useSetActiveProjectMutation = () => {
       return { projectId, updatedUser }
     },
     onSuccess: ({ projectId, updatedUser }) => {
-      queryClient.setQueryData(
+      queryClient?.setQueryData(
         [AUTH_QUERY_KEYS.USER, updatedUser?.id],
         updatedUser
       )
-      useAuthStore.getState().setUser(updatedUser)
+      useAuthStore?.getState()?.setUser(updatedUser)
       setActiveProjectId(projectId)
+    },
+  })
+}
+
+// Add a new task to a project
+export const useAddTaskMutation = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      columnId,
+      taskData,
+    }: {
+      projectId: string
+      columnId: string
+      taskData: Partial<KanbanTask>
+    }) => addTask(projectId, columnId, taskData),
+    onSuccess: (updatedProject) => {
+      queryClient?.invalidateQueries({
+        queryKey: [QUERY_KEYS.PROJECT, updatedProject?.id],
+      })
+    },
+  })
+}
+
+// Delete a task from a project
+export const useDeleteTaskMutation = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      columnId,
+      taskId,
+    }: {
+      projectId: string
+      columnId: string
+      taskId: string
+    }) => deleteTask(projectId, columnId, taskId),
+    onSuccess: (updatedProject) => {
+      queryClient?.invalidateQueries({
+        queryKey: [QUERY_KEYS.PROJECT, updatedProject?.id],
+      })
     },
   })
 }

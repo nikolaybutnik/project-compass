@@ -14,20 +14,24 @@ import {
 import { KanbanTask, Project } from '@/shared/types'
 import { addTask, deleteTask } from '@/features/projects/services/tasksService'
 import { KanbanCard } from '@/features/projects/components/KanbanCard'
+import {
+  useAddTaskMutation,
+  useDeleteTaskMutation,
+} from '@/shared/store/projectsStore'
 
 interface KanbanBoardTabProps {
   project: Project | undefined
   isLoading: boolean
   error: Error | null
-  onProjectUpdate: (updatedProject: Project) => void
 }
 
 export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
   project,
   isLoading,
   error,
-  onProjectUpdate,
 }) => {
+  const addTaskMutation = useAddTaskMutation()
+  const deleteTaskMutation = useDeleteTaskMutation()
   const columnBg = useColorModeValue('gray.50', 'gray.700')
 
   if (isLoading) {
@@ -61,8 +65,11 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
         priority: 'medium',
         tags: ['frontend', 'backend'],
       }
-      const updatedProject = await addTask(project?.id, columnId, newTask)
-      onProjectUpdate(updatedProject)
+      await addTaskMutation.mutateAsync({
+        projectId: project?.id,
+        columnId,
+        taskData: newTask,
+      })
     } catch (error) {
       console.error('Error adding task:', error)
     }
@@ -73,8 +80,11 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     taskId: string
   ): Promise<void> => {
     try {
-      const updatedProject = await deleteTask(project?.id, columnId, taskId)
-      onProjectUpdate(updatedProject)
+      await deleteTaskMutation.mutateAsync({
+        projectId: project?.id,
+        columnId,
+        taskId,
+      })
     } catch (error) {
       console.error('Error deleting task', error)
     }
