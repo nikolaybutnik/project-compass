@@ -7,10 +7,17 @@ import {
   TabPanels,
   Tab,
   TabPanel,
+  Button,
+  Flex,
+  Text,
+  Badge,
+  useToast,
 } from '@chakra-ui/react'
 import { useParams } from 'react-router-dom'
 import { KanbanBoardTab } from '@/features/projects/components/tabs/KanbanBoardTab'
 import { useProjectQuery } from '@/shared/store/projectsStore'
+import { useAuth } from '@/shared/store/authStore'
+import { useSetActiveProjectMutation } from '@/shared/store/authStore'
 
 enum ProjectViewTabs {
   KANBAN = 0,
@@ -21,7 +28,12 @@ enum ProjectViewTabs {
 export const ProjectPage: React.FC = () => {
   const { projectId } = useParams()
   const { data: project, isLoading, error } = useProjectQuery(projectId || '')
-  // const toast = useToast()
+  const { user } = useAuth()
+  const setActiveProjectMutation = useSetActiveProjectMutation()
+  const toast = useToast()
+  const [isSettingActive, setIsSettingActive] = useState(false)
+
+  const isActiveProject = user?.activeProjectId === projectId
 
   // Project state, will be replaced with real data from Firebase
   // const [project, setProject] = useState<Project | null>(null)
@@ -32,6 +44,33 @@ export const ProjectPage: React.FC = () => {
   // const [error, setError] = useState<Error | null>(null)
   // const [isLoading, setIsLoading] = useState(false)
   const [tabIndex, setTabIndex] = useState(ProjectViewTabs.KANBAN)
+
+  const handleSetActiveProject = async () => {
+    if (!user || !projectId) return
+
+    setIsSettingActive(true)
+    try {
+      await setActiveProjectMutation.mutateAsync({
+        userId: user?.id,
+        projectId,
+      })
+      toast({
+        title: 'Project activated',
+        description: 'This is now your active project',
+        status: 'success',
+        duration: 3000,
+      })
+    } catch (error) {
+      console.error('Failed to set active project:', error)
+      toast({
+        title: 'Failed to set active project',
+        status: 'error',
+        duration: 3000,
+      })
+    } finally {
+      setIsSettingActive(false)
+    }
+  }
 
   // Re-enable insights generation with better error handling
   // useEffect(() => {
@@ -297,7 +336,31 @@ export const ProjectPage: React.FC = () => {
 
   return (
     <Box>
-      <Heading mb={6}>{project?.title}</Heading>
+      <Flex justify='space-between' align='center' mb={6}>
+        <Heading>{project?.title}</Heading>
+
+        {!isActiveProject && project && (
+          <Flex align='center' bg='blue.50' p={2} borderRadius='md'>
+            <Text color='blue.700' fontWeight='medium' mr={3}>
+              Set this as your active project for quick access
+            </Text>
+            <Button
+              colorScheme='blue'
+              size='sm'
+              onClick={handleSetActiveProject}
+              isLoading={isSettingActive}
+            >
+              Set as Active
+            </Button>
+          </Flex>
+        )}
+
+        {isActiveProject && (
+          <Badge colorScheme='green' p={2} borderRadius='md'>
+            Active Project
+          </Badge>
+        )}
+      </Flex>
 
       {/* {error && (
         <Box p={4} mb={4} bg='red.100' color='red.800' borderRadius='md'>

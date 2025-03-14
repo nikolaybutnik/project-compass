@@ -5,8 +5,6 @@ import {
   getProject,
   getProjects,
 } from '@/features/projects/services/projectsService'
-import { AUTH_QUERY_KEYS, useAuthStore } from './authStore'
-import { updateActiveProjectId } from '@/features/users/services/usersService'
 import { createProject } from '@/features/projects/services/projectsService'
 import { addTask, deleteTask } from '@/features/projects/services/tasksService'
 export const QUERY_KEYS = {
@@ -15,16 +13,12 @@ export const QUERY_KEYS = {
 }
 
 interface ProjectsState {
-  activeProjectId: string | null
   projects: Project[]
-  setActiveProjectId: (id: string | null) => void
   setProjects: (projects: Project[]) => void
 }
 
 export const useProjectsStore = create<ProjectsState>((set) => ({
-  activeProjectId: null,
   projects: [],
-  setActiveProjectId: (id) => set({ activeProjectId: id }),
   setProjects: (projects) => set({ projects }),
 }))
 
@@ -71,34 +65,6 @@ export const useCreateProjectMutation = () => {
       queryClient?.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECTS, newProject?.userId],
       })
-    },
-  })
-}
-
-// Update active project id
-export const useSetActiveProjectMutation = () => {
-  const queryClient = useQueryClient()
-  const user = useAuthStore((state) => state.user)
-  const setActiveProjectId = useProjectsStore(
-    (state) => state.setActiveProjectId
-  )
-
-  return useMutation({
-    mutationFn: async (projectId: string) => {
-      if (!user) {
-        throw new Error('User not authenticated')
-      }
-
-      const updatedUser = await updateActiveProjectId(user?.id, projectId)
-      return { projectId, updatedUser }
-    },
-    onSuccess: ({ projectId, updatedUser }) => {
-      queryClient?.setQueryData(
-        [AUTH_QUERY_KEYS.USER, updatedUser?.id],
-        updatedUser
-      )
-      useAuthStore?.getState()?.setUser(updatedUser)
-      setActiveProjectId(projectId)
     },
   })
 }

@@ -3,8 +3,12 @@ import { create } from 'zustand'
 import { User as AppUser } from '@/shared/types'
 import { User as FirebaseUser } from 'firebase/auth'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createOrUpdateUser } from '@/features/users/services/usersService'
+import {
+  createOrUpdateUser,
+  updateActiveProjectId,
+} from '@/features/users/services/usersService'
 import { auth } from '@/features/auth/services/authService'
+import { useProjectsStore } from './projectsStore'
 
 export const AUTH_QUERY_KEYS = {
   USER: 'user',
@@ -97,6 +101,35 @@ export const useInitAuth = () => {
   }, [])
 
   return useAuthStore()
+}
+
+// Update active project id
+export const useSetActiveProjectMutation = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      projectId,
+    }: {
+      userId: string
+      projectId: string
+    }) => {
+      if (!userId) {
+        throw new Error('User not authenticated')
+      }
+
+      const updatedUser = await updateActiveProjectId(userId, projectId)
+      return updatedUser
+    },
+    onSuccess: (updatedUser) => {
+      queryClient.setQueryData(
+        [AUTH_QUERY_KEYS.USER, updatedUser?.id],
+        updatedUser
+      )
+      useAuthStore?.getState()?.setUser(updatedUser)
+    },
+  })
 }
 
 // Hook for use with components

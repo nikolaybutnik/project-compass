@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import {
   Box,
   Container,
@@ -23,13 +23,13 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { logout } from '@/features/auth/services/authService'
 import { useAuth } from '@/shared/store/authStore'
 import { SideMenu } from '@/shared/components/SideMenu'
+import { useProjectsQuery } from '@/shared/store/projectsStore'
 
 export const Header: React.FC = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { isOpen, onOpen, onClose } = useDisclosure()
-
-  // TODO: need access to projects/current project
+  const { data: projects, isLoading, error } = useProjectsQuery(user?.id || '')
 
   const handleLogout = async () => {
     try {
