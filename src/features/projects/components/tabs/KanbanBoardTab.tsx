@@ -6,7 +6,6 @@ import {
   SimpleGrid,
   VStack,
   HStack,
-  Badge,
   useColorModeValue,
   Center,
   Spinner,
@@ -14,6 +13,8 @@ import {
 } from '@chakra-ui/react'
 import { KanbanTask, Project } from '@/shared/types'
 import { addTask, deleteTask } from '@/features/projects/services/tasksService'
+import { KanbanCard } from '@/features/projects/components/KanbanCard'
+
 interface KanbanBoardTabProps {
   project: Project | null
   isLoading: boolean
@@ -28,7 +29,6 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
   onProjectUpdate,
 }) => {
   const columnBg = useColorModeValue('gray.50', 'gray.700')
-  const cardBg = useColorModeValue('white', 'gray.600')
 
   if (isLoading) {
     return (
@@ -82,11 +82,6 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
 
   return (
     <Box>
-      <Heading mb={6}>Project Kanban Board</Heading>
-      <Text mb={8}>
-        Drag and drop tasks between columns to update their status.
-      </Text>
-
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
         {columns?.map((column) => (
           <Box
@@ -110,44 +105,11 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
             </HStack>
             <VStack spacing={4} align='stretch'>
               {column?.tasks?.map((task) => (
-                <Box
+                <KanbanCard
                   key={task?.id}
-                  p={4}
-                  bg={cardBg}
-                  borderRadius='md'
-                  boxShadow='sm'
-                  _hover={{ boxShadow: 'md' }}
-                >
-                  <HStack justify='space-between' mb={2}>
-                    <Heading size='sm'>{task?.title}</Heading>
-                    {task?.priority && (
-                      <Badge
-                        colorScheme={
-                          task?.priority === 'high'
-                            ? 'red'
-                            : task?.priority === 'medium'
-                              ? 'orange'
-                              : 'green'
-                        }
-                      >
-                        {task?.priority}
-                      </Badge>
-                    )}
-                  </HStack>
-                  <Text fontSize='sm' color='gray.500'>
-                    {task?.description}
-                  </Text>
-                  <HStack mt={2} justify='flex-end'>
-                    <Button
-                      size='xs'
-                      colorScheme='red'
-                      variant='ghost'
-                      onClick={() => handleDeleteTask(column?.id, task?.id)}
-                    >
-                      Delete
-                    </Button>
-                  </HStack>
-                </Box>
+                  task={task}
+                  onDelete={handleDeleteTask}
+                />
               ))}
             </VStack>
           </Box>
