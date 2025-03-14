@@ -19,18 +19,15 @@ import {
   Textarea,
   Spinner,
   Center,
-  Alert,
-  AlertIcon,
   Flex,
 } from '@chakra-ui/react'
 import { AddIcon } from '@chakra-ui/icons'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '@/shared/hooks/useAuth'
+import { useAuth } from '@/shared/store/authStore'
 import { Project } from '@/shared/types'
 import { createProject } from '@/features/projects/services/projectsService'
 import { ProjectCard } from '@/features/projects/components/ProjectCard'
 import { getProjects } from '@/features/projects/services/projectsService'
-import { ROUTES } from '@/shared/constants'
 
 export const ProjectsListPage: React.FC = () => {
   const navigate = useNavigate()

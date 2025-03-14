@@ -24,14 +24,6 @@ export const HomePage: React.FC = () => {
           Login / Sign Up
         </Button>
       </HStack>
-
-      {/* Placeholder for project dashboard */}
-      {/* 
-        Future features:
-        - Project cards
-        - AI project generation
-        - Kanban board
-      */}
     </VStack>
   )
 }

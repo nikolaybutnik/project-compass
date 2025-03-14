@@ -7,7 +7,7 @@ import {
 } from 'firebase/firestore'
 import { User as FirebaseUser } from 'firebase/auth'
 import { db } from '@/shared/config/firebase'
-import { User } from '@/shared/types'
+import { User as AppUser } from '@/shared/types'
 import { COLLECTIONS } from '@/shared/constants'
 import { UserDto } from '@/shared/types/dto'
 
@@ -30,7 +30,7 @@ const createUserData = (firebaseUser: FirebaseUser): UserDto => ({
 
 export const createOrUpdateUser = async (
   firebaseUser: FirebaseUser
-): Promise<User> => {
+): Promise<AppUser> => {
   try {
     const userRef = doc(db, COLLECTIONS.USERS, firebaseUser.uid)
     const userSnap = await getDoc(userRef)
@@ -41,7 +41,7 @@ export const createOrUpdateUser = async (
       await setDoc(userRef, newUserData)
     } else {
       // Existing user - only update necessary fields
-      const userData = userSnap.data() as User
+      const userData = userSnap?.data() as AppUser
       const updatedFields: Record<string, any> = {
         lastLogin: serverTimestamp(),
       }
@@ -63,13 +63,35 @@ export const createOrUpdateUser = async (
     }
 
     const updatedDoc = await getDoc(userRef)
-    if (!updatedDoc.exists()) {
+    if (!updatedDoc?.exists()) {
       throw new Error('Failed to fetch user data after update')
     }
 
-    return updatedDoc.data() as User
+    return updatedDoc?.data() as AppUser
   } catch (error) {
     console.error('Error creating/updating user:', error)
+    throw error
+  }
+}
+
+export const getUser = async (
+  userId: string | null
+): Promise<AppUser | null> => {
+  try {
+    if (!userId) {
+      throw new Error('User ID is required')
+    }
+
+    const userRef = doc(db, COLLECTIONS.USERS, userId)
+    const userSnap = await getDoc(userRef)
+
+    if (!userSnap?.exists()) {
+      return null
+    }
+
+    return userSnap?.data() as AppUser
+  } catch (error) {
+    console.error('Error fetching user:', error)
     throw error
   }
 }

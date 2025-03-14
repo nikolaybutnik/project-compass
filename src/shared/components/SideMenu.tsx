@@ -19,7 +19,7 @@ import {
   FaChevronRight,
   FaEllipsisH,
 } from 'react-icons/fa'
-import { useAuth } from '@/shared/hooks/useAuth'
+import { useAuth } from '@/shared/store/authStore'
 import { ROUTES } from '@/shared/constants'
 
 interface SideMenuProps {
@@ -30,7 +30,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ onClose }) => {
   const { user } = useAuth()
   const [isProjectsOpen, setIsProjectsOpen] = useState(true)
 
-  // Mock projects - replace with real data later
+  // TODO: Mock projects - replace with real data later
   const recentProjects = [
     { id: 'project1', name: 'Marketing Campaign' },
     { id: 'project2', name: 'Website Redesign' },

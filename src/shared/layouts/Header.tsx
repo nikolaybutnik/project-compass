@@ -21,7 +21,7 @@ import {
 import { HamburgerIcon } from '@chakra-ui/icons'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { logout } from '@/features/auth/services/authService'
-import { useAuth } from '@/shared/hooks/useAuth'
+import { useAuth } from '@/shared/store/authStore'
 import { SideMenu } from '@/shared/components/SideMenu'
 
 export const Header: React.FC = () => {
@@ -29,12 +29,7 @@ export const Header: React.FC = () => {
   const { user } = useAuth()
   const { isOpen, onOpen, onClose } = useDisclosure()
 
-  // Mock projects - replace with real data later
-  const recentProjects = [
-    { id: 'project1', name: 'Marketing Campaign' },
-    { id: 'project2', name: 'Website Redesign' },
-    { id: 'project3', name: 'Mobile App' },
-  ]
+  // TODO: need access to projects/current project
 
   const handleLogout = async () => {
     try {

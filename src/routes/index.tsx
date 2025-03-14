@@ -5,7 +5,7 @@ import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { ProjectPage } from '@/features/projects/pages/ProjectPage'
 import { AppLayout } from '@/shared/layouts/AppLayout'
 import { AuthLayout } from '@/shared/layouts/AuthLayout'
-import { useAuth } from '@/shared/hooks/useAuth'
+import { useAuth } from '@/shared/store/authStore'
 import { ProjectsListPage } from '@/features/projects/pages/ProjectsListPage'
 import { ROUTES } from '@/shared/constants'
 
