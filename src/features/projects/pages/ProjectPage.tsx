@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   Box,
   Heading,
@@ -7,19 +7,10 @@ import {
   TabPanels,
   Tab,
   TabPanel,
-  useToast,
-  Button,
-  Text,
 } from '@chakra-ui/react'
 import { useParams } from 'react-router-dom'
 import { KanbanBoardTab } from '@/features/projects/components/tabs/KanbanBoardTab'
-// import { ProjectOverviewTab } from '@/features/projects/components/ProjectOverviewTab'
-// import { AiInsights } from '@/features/ai/components/AiInsights'
-import { Project, AiInsight, KanbanTask } from '@/shared/types'
-// import { generateInsights } from '@/features/ai/services/insightGenerator'
-// import { v4 as uuidv4 } from 'uuid'
-// import { ClickableToast } from '@/shared/components/ClickableToast'
-import { getProject } from '../services/projectsService'
+import { useProjectQuery } from '@/shared/store/projectsStore'
 
 enum ProjectViewTabs {
   KANBAN = 0,
@@ -29,31 +20,18 @@ enum ProjectViewTabs {
 
 export const ProjectPage: React.FC = () => {
   const { projectId } = useParams()
+  const { data: project, isLoading, error } = useProjectQuery(projectId || '')
   // const toast = useToast()
 
   // Project state, will be replaced with real data from Firebase
-  const [project, setProject] = useState<Project | null>(null)
+  // const [project, setProject] = useState<Project | null>(null)
   // Mock data for tasks - will be replaced with real data from Firebase
   // const [tasks, setTasks] = useState<KanbanTask[]>([])
   // const [insights, setInsights] = useState<AiInsight[]>([])
   // const [isLoadingInsights, setIsLoadingInsights] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  // const [error, setError] = useState<Error | null>(null)
+  // const [isLoading, setIsLoading] = useState(false)
   const [tabIndex, setTabIndex] = useState(ProjectViewTabs.KANBAN)
-
-  useEffect(() => {
-    if (projectId) {
-      const loadProject = async () => {
-        try {
-          const project = await getProject(projectId)
-          setProject(project)
-        } catch (error) {
-          setError(error as Error)
-        }
-      }
-      loadProject()
-    }
-  }, [projectId])
 
   // Re-enable insights generation with better error handling
   // useEffect(() => {
@@ -321,7 +299,7 @@ export const ProjectPage: React.FC = () => {
     <Box>
       <Heading mb={6}>{project?.title}</Heading>
 
-      {error && (
+      {/* {error && (
         <Box p={4} mb={4} bg='red.100' color='red.800' borderRadius='md'>
           <Heading size='md'>Error Loading Project</Heading>
           <Text>{error.message}</Text>
@@ -329,7 +307,7 @@ export const ProjectPage: React.FC = () => {
             Dismiss
           </Button>
         </Box>
-      )}
+      )} */}
 
       <Tabs
         colorScheme='blue'
@@ -350,7 +328,8 @@ export const ProjectPage: React.FC = () => {
               project={project}
               isLoading={isLoading}
               error={error}
-              onProjectUpdate={(updatedProject) => setProject(updatedProject)}
+              onProjectUpdate={() => {}}
+              // onProjectUpdate={(updatedProject) => setProject(updatedProject)}
             />
           </TabPanel>
           <TabPanel>

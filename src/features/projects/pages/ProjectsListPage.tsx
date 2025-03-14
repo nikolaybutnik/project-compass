@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   Box,
   Heading,
@@ -24,62 +24,40 @@ import {
 import { AddIcon } from '@chakra-ui/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/shared/store/authStore'
-import { Project } from '@/shared/types'
-import { createProject } from '@/features/projects/services/projectsService'
 import { ProjectCard } from '@/features/projects/components/ProjectCard'
-import { getProjects } from '@/features/projects/services/projectsService'
+import {
+  useCreateProjectMutation,
+  useProjectsQuery,
+} from '@/shared/store/projectsStore'
 
 export const ProjectsListPage: React.FC = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { data: projects, isLoading, error } = useProjectsQuery(user?.id || '')
+  const createProjectMutation = useCreateProjectMutation()
   const { isOpen, onOpen, onClose } = useDisclosure()
-
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
 
   const [newProjectTitle, setNewProjectTitle] = useState('')
   const [newProjectDescription, setNewProjectDescription] = useState('')
   const [isCreating, setIsCreating] = useState(false)
-
-  useEffect(() => {
-    const loadProjects = async () => {
-      if (!user) return
-
-      try {
-        setLoading(true)
-        const userProjects = await getProjects(user?.id)
-        setProjects(userProjects)
-      } catch (err) {
-        console.error('Error loading projects:', err)
-        setError(
-          err instanceof Error ? err : new Error('Failed to load projects')
-        )
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadProjects()
-  }, [user])
 
   const handleCreateProject = async () => {
     if (!user) return
 
     try {
       setIsCreating(true)
-      await createProject(user?.id, {
-        title: newProjectTitle,
-        description: newProjectDescription,
+      await createProjectMutation.mutateAsync({
+        userId: user?.id,
+        projectData: {
+          title: newProjectTitle,
+          description: newProjectDescription,
+        },
       })
       setNewProjectTitle('')
       setNewProjectDescription('')
       onClose()
     } catch (err) {
       console.error('Error creating project:', err)
-      setError(
-        err instanceof Error ? err : new Error('Failed to create project')
-      )
     } finally {
       setIsCreating(false)
     }
@@ -94,7 +72,7 @@ export const ProjectsListPage: React.FC = () => {
         </Button>
       </Flex>
 
-      {loading ? (
+      {isLoading ? (
         <Center>
           <Spinner size='xl' />
         </Center>

@@ -105,7 +105,7 @@ export const getProjects = async (userId: string): Promise<Project[]> => {
     )
 
     const querySnapshot = await getDocs(projectsQuery)
-    return querySnapshot.docs.map((doc) => doc.data() as Project)
+    return querySnapshot?.docs?.map((doc) => doc?.data() as Project)
   } catch (error) {
     console.error('Error getting user projects:', error)
     throw error
@@ -117,15 +117,16 @@ export const getProject = async (projectId: string): Promise<Project> => {
     if (!projectId) {
       throw new Error('Project ID is required')
     }
+    console.log('projectId', projectId)
 
     const projectRef = doc(db, COLLECTIONS.PROJECTS, projectId)
     const docSnap = await getDoc(projectRef)
 
-    if (!docSnap.exists()) {
+    if (!docSnap?.exists()) {
       throw new Error(`Project with ID ${projectId} not found`)
     }
 
-    return docSnap.data() as Project
+    return docSnap?.data() as Project
   } catch (error) {
     console.error('Error getting project:', error)
     throw error

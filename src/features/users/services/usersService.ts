@@ -95,3 +95,32 @@ export const getUser = async (
     throw error
   }
 }
+
+export const updateActiveProjectId = async (
+  userId: string,
+  projectId: string
+): Promise<AppUser> => {
+  try {
+    const userRef = doc(db, COLLECTIONS.USERS, userId)
+    const userSnap = await getDoc(userRef)
+
+    if (!userSnap.exists()) {
+      throw new Error('User not found')
+    }
+
+    const userData = userSnap?.data() as AppUser
+    const updatedUser = {
+      ...userData,
+      activeProjectId: projectId,
+      updatedAt: serverTimestamp(),
+    }
+
+    await updateDoc(userRef, updatedUser)
+
+    const updatedDoc = await getDoc(userRef)
+    return updatedDoc?.data() as AppUser
+  } catch (error) {
+    console.error('Error updating active project ID:', error)
+    throw error
+  }
+}

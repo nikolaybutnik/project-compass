@@ -13,10 +13,8 @@ export const AUTH_QUERY_KEYS = {
 interface AuthState {
   user: AppUser | null
   firebaseUser: FirebaseUser | null
-
   isAuthLoading: boolean
   isProfileLoading: boolean
-
   error: Error | null
 
   signOut: () => Promise<void>

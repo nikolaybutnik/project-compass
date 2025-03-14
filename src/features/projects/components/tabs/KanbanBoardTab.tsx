@@ -16,7 +16,7 @@ import { addTask, deleteTask } from '@/features/projects/services/tasksService'
 import { KanbanCard } from '@/features/projects/components/KanbanCard'
 
 interface KanbanBoardTabProps {
-  project: Project | null
+  project: Project | undefined
   isLoading: boolean
   error: Error | null
   onProjectUpdate: (updatedProject: Project) => void
