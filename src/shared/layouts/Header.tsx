@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Box,
   Container,
@@ -23,17 +23,33 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/shared/store/authStore'
 import { SideMenu } from '@/shared/components/SideMenu'
 import { useProjectsQuery } from '@/shared/store/projectsStore'
+import { Project } from '@/shared/types'
+import { ROUTES } from '@/shared/constants'
 
 export const Header: React.FC = () => {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
   const { isOpen, onOpen, onClose } = useDisclosure()
-  const { data: projects, isLoading, error } = useProjectsQuery(user?.id || '')
+  const { data: projects } = useProjectsQuery(user?.id || '')
+
+  const [activeProject, setActiveProject] = useState<Project | null>(null)
+  const [latestThreeProjects, setLatestThreeProjects] = useState<Project[]>([])
+
+  useEffect(() => {
+    setActiveProject(
+      projects?.find((project) => project?.id === user?.activeProjectId) || null
+    )
+    setLatestThreeProjects(
+      projects
+        ?.filter((project) => project?.id !== user?.activeProjectId)
+        .slice(0, 3) || []
+    )
+  }, [projects, user])
 
   const handleLogout = async () => {
     try {
       await signOut()
-      navigate('/login')
+      navigate(ROUTES.LOGIN)
     } catch (error) {
       console.error('Logout error:', error)
     }
@@ -55,7 +71,11 @@ export const Header: React.FC = () => {
                   onClick={onOpen}
                 />
               )}
-              <Link as={RouterLink} to='/' _hover={{ textDecoration: 'none' }}>
+              <Link
+                as={RouterLink}
+                to={ROUTES.HOME}
+                _hover={{ textDecoration: 'none' }}
+              >
                 <Heading size='md' color='brand.500'>
                   Project Compass
                 </Heading>
@@ -67,11 +87,11 @@ export const Header: React.FC = () => {
                 <HStack>
                   <Avatar
                     size='sm'
-                    name={user.displayName || undefined}
-                    src={user.photoURL || undefined}
+                    name={user?.displayName || undefined}
+                    src={user?.photoURL || undefined}
                   />
                   <Text fontSize='sm' display={{ base: 'none', md: 'block' }}>
-                    {user.displayName}
+                    {user?.displayName}
                   </Text>
                 </HStack>
                 <Button
@@ -93,10 +113,14 @@ export const Header: React.FC = () => {
           <DrawerCloseButton />
           <DrawerHeader borderBottomWidth='1px'>Menu</DrawerHeader>
           <DrawerBody>
-            <SideMenu onClose={onClose} />
+            <SideMenu
+              onClose={onClose}
+              activeProject={activeProject}
+              latestThreeProjects={latestThreeProjects}
+            />
           </DrawerBody>
         </DrawerContent>
-      </Drawer>{' '}
+      </Drawer>
     </>
   )
 }

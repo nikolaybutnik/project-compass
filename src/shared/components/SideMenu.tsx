@@ -11,7 +11,7 @@ import {
   List,
   ListItem,
 } from '@chakra-ui/react'
-import { Link as RouterLink } from 'react-router-dom'
+import { generatePath, Link as RouterLink } from 'react-router-dom'
 import {
   FaUser,
   FaProjectDiagram,
@@ -19,23 +19,22 @@ import {
   FaChevronRight,
   FaEllipsisH,
 } from 'react-icons/fa'
-import { useAuth } from '@/shared/store/authStore'
 import { ROUTES } from '@/shared/constants'
+import { Project } from '@/shared/types'
 
 interface SideMenuProps {
+  activeProject: Project | null
+  latestThreeProjects: Project[] | []
   onClose: () => void
 }
 
-export const SideMenu: React.FC<SideMenuProps> = ({ onClose }) => {
-  const { user } = useAuth()
-  const [isProjectsOpen, setIsProjectsOpen] = useState(true)
-
-  // TODO: Mock projects - replace with real data later
-  const recentProjects = [
-    { id: 'project1', name: 'Marketing Campaign' },
-    { id: 'project2', name: 'Website Redesign' },
-    { id: 'project3', name: 'Mobile App' },
-  ]
+export const SideMenu: React.FC<SideMenuProps> = ({
+  activeProject,
+  latestThreeProjects,
+  onClose,
+}) => {
+  const appVersion = import.meta.env.VITE_APP_VERSION
+  const [areProjectsExpanded, setAreProjectsExpanded] = useState(true)
 
   return (
     <Flex direction='column' h='100%' justify='space-between'>
@@ -44,16 +43,18 @@ export const SideMenu: React.FC<SideMenuProps> = ({ onClose }) => {
           NAVIGATION
         </Text>
 
-        <Button
-          as={RouterLink}
-          to={ROUTES.HOME}
-          variant='ghost'
-          justifyContent='flex-start'
-          leftIcon={<Icon as={FaProjectDiagram} />}
-          onClick={onClose}
-        >
-          Name of Current Project
-        </Button>
+        {activeProject?.id && (
+          <Button
+            as={RouterLink}
+            to={generatePath(ROUTES.PROJECT, { projectId: activeProject?.id })}
+            variant='ghost'
+            justifyContent='flex-start'
+            leftIcon={<Icon as={FaProjectDiagram} />}
+            onClick={onClose}
+          >
+            {activeProject?.title}
+          </Button>
+        )}
 
         <Box>
           <Button
@@ -61,30 +62,32 @@ export const SideMenu: React.FC<SideMenuProps> = ({ onClose }) => {
             variant='ghost'
             display='flex'
             justifyContent='flex-start'
-            onClick={() => setIsProjectsOpen(!isProjectsOpen)}
+            onClick={() => setAreProjectsExpanded(!areProjectsExpanded)}
             leftIcon={<Icon as={FaProjectDiagram} />}
           >
             Projects
             <Icon
-              as={isProjectsOpen ? FaChevronDown : FaChevronRight}
+              as={areProjectsExpanded ? FaChevronDown : FaChevronRight}
               ml='auto'
             />
           </Button>
 
-          <Collapse in={isProjectsOpen} animateOpacity>
+          <Collapse in={areProjectsExpanded} animateOpacity>
             <List spacing={1} pl={6} mt={2}>
-              {recentProjects.map((project) => (
+              {latestThreeProjects?.map((project) => (
                 <ListItem key={project.id}>
                   <Button
                     as={RouterLink}
-                    to={`${ROUTES.PROJECT}/${project.id}`}
+                    to={generatePath(ROUTES.PROJECT, {
+                      projectId: project?.id,
+                    })}
                     variant='ghost'
                     size='sm'
                     justifyContent='flex-start'
                     w='100%'
                     onClick={onClose}
                   >
-                    {project.name}
+                    {project?.title}
                   </Button>
                 </ListItem>
               ))}
@@ -112,6 +115,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ onClose }) => {
           ACCOUNT
         </Text>
 
+        {/* TODO: NOT IMPLEMENTED YET */}
         <Button
           as={RouterLink}
           to={ROUTES.PROFILE}
@@ -126,7 +130,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ onClose }) => {
 
       <Box pt={6} pb={2}>
         <Text fontSize='xs' color='gray.500'>
-          Version 0.1.0
+          Version {appVersion}
         </Text>
       </Box>
     </Flex>

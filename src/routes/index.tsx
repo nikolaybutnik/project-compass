@@ -1,5 +1,5 @@
 import React from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, generatePath } from 'react-router-dom'
 import { HomePage } from '@/features/home/pages/HomePage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { ProjectPage } from '@/features/projects/pages/ProjectPage'
@@ -23,7 +23,20 @@ const AppRoutes: React.FC = () => {
         <Route
           path={ROUTES.HOME}
           element={
-            user ? <Navigate to={ROUTES.PROJECT} replace /> : <HomePage />
+            user ? (
+              user?.activeProjectId ? (
+                <Navigate
+                  to={generatePath(ROUTES.PROJECT, {
+                    projectId: user?.activeProjectId,
+                  })}
+                  replace
+                />
+              ) : (
+                <Navigate to={ROUTES.PROJECTS} replace />
+              )
+            ) : (
+              <HomePage />
+            )
           }
         />
         <Route
