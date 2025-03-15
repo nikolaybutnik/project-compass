@@ -19,7 +19,7 @@ import {
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons'
 import { useNavigate } from 'react-router-dom'
 import {
-  loginWithEmail,
+  signInWithEmail,
   signUpWithEmail,
 } from '@/features/auth/services/authService'
 
@@ -82,7 +82,7 @@ export const LoginPage: React.FC = () => {
 
     try {
       if (isLoginMode) {
-        await loginWithEmail(email, password)
+        await signInWithEmail(email, password)
       } else {
         await signUpWithEmail(email, password)
       }

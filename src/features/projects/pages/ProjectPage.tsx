@@ -17,7 +17,7 @@ import { useParams } from 'react-router-dom'
 import { KanbanBoardTab } from '@/features/projects/components/tabs/KanbanBoardTab'
 import { useProjectQuery } from '@/shared/store/projectsStore'
 import { useAuth } from '@/shared/store/authStore'
-import { useSetActiveProjectMutation } from '@/shared/store/authStore'
+import { useSetActiveProjectMutation } from '@/shared/store/usersStore'
 
 enum ProjectViewTabs {
   KANBAN = 0,

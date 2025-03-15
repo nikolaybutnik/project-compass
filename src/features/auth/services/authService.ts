@@ -8,20 +8,22 @@ import {
   sendPasswordResetEmail,
   UserCredential,
   User,
+  onAuthStateChanged,
 } from 'firebase/auth'
 import { app } from '@/shared/config/firebase'
 
+// Initialize Firebase Auth
 const auth = getAuth(app)
 const googleProvider = new GoogleAuthProvider()
 
-export const loginWithEmail = async (
+export const signInWithEmail = async (
   email: string,
   password: string
 ): Promise<UserCredential> => {
   return signInWithEmailAndPassword(auth, email, password)
 }
 
-export const loginWithGoogle = async (): Promise<UserCredential> => {
+export const signInWithGoogle = async (): Promise<UserCredential> => {
   return signInWithPopup(auth, googleProvider)
 }
 
@@ -32,7 +34,7 @@ export const signUpWithEmail = async (
   return createUserWithEmailAndPassword(auth, email, password)
 }
 
-export const logout = async (): Promise<void> => {
+export const signOutUser = async (): Promise<void> => {
   return signOut(auth)
 }
 
@@ -40,14 +42,8 @@ export const resetPassword = async (email: string): Promise<void> => {
   return sendPasswordResetEmail(auth, email)
 }
 
-export const getCurrentUser = (): User | null => {
-  return auth.currentUser
-}
-
-export const onAuthStateChanged = (
+export const subscribeToAuthState = (
   callback: (user: User | null) => void
 ): (() => void) => {
-  return auth.onAuthStateChanged(callback)
+  return onAuthStateChanged(auth, callback)
 }
-
-export { auth }

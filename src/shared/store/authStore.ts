@@ -3,27 +3,24 @@ import { create } from 'zustand'
 import { User as AppUser } from '@/shared/types'
 import { User as FirebaseUser } from 'firebase/auth'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { createOrUpdateUser } from '@/features/users/services/usersService'
 import {
-  createOrUpdateUser,
-  updateActiveProjectId,
-} from '@/features/users/services/usersService'
-import { auth } from '@/features/auth/services/authService'
-import { useProjectsStore } from './projectsStore'
+  signOutUser,
+  subscribeToAuthState,
+} from '@/features/auth/services/authService'
+import { USERS_QUERY_KEYS, useUsersStore } from '@/shared/store/usersStore'
 
 export const AUTH_QUERY_KEYS = {
-  USER: 'user',
+  AUTH_STATE: 'authState',
 }
 
 interface AuthState {
-  user: AppUser | null
   firebaseUser: FirebaseUser | null
   isAuthLoading: boolean
   isProfileLoading: boolean
   error: Error | null
 
   signOut: () => Promise<void>
-
-  setUser: (user: AppUser | null) => void
   setFirebaseUser: (firebaseUser: FirebaseUser | null) => void
   setIsAuthLoading: (isAuthLoading: boolean) => void
   setIsProfileLoading: (isProfileLoading: boolean) => void
@@ -31,7 +28,6 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
   firebaseUser: null,
   isAuthLoading: true,
   isProfileLoading: false,
@@ -39,7 +35,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signOut: async () => {
     try {
-      await auth.signOut()
+      await signOutUser()
+      set({ firebaseUser: null })
+      useUsersStore.getState().setCurrentUser(null)
     } catch (error) {
       set({
         error: error instanceof Error ? error : new Error('Unknown error'),
@@ -47,7 +45,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  setUser: (user) => set({ user }),
   setFirebaseUser: (firebaseUser) => set({ firebaseUser }),
   setIsAuthLoading: (isAuthLoading) => set({ isAuthLoading }),
   setIsProfileLoading: (isProfileLoading) => set({ isProfileLoading }),
@@ -57,20 +54,16 @@ export const useAuthStore = create<AuthState>((set) => ({
 // Init auth and sync with Firebase
 export const useInitAuth = () => {
   const queryClient = useQueryClient()
-  const {
-    setUser,
-    setFirebaseUser,
-    setIsAuthLoading,
-    setIsProfileLoading,
-    setError,
-  } = useAuthStore.getState()
+  const { setFirebaseUser, setIsAuthLoading, setIsProfileLoading, setError } =
+    useAuthStore.getState()
+  const { setCurrentUser } = useUsersStore.getState()
 
   const createOrUpdateUserMutation = useMutation({
     mutationFn: (firebaseUser: FirebaseUser) =>
       createOrUpdateUser(firebaseUser),
     onSuccess: (user) => {
-      queryClient.setQueryData([AUTH_QUERY_KEYS.USER, user?.id], user)
-      setUser(user)
+      queryClient.setQueryData([USERS_QUERY_KEYS.USER_PROFILE, user?.id], user)
+      setCurrentUser(user)
       setIsProfileLoading(false)
     },
     onError: (error) => {
@@ -84,7 +77,7 @@ export const useInitAuth = () => {
   })
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+    const unsubscribe = subscribeToAuthState((firebaseUser) => {
       setFirebaseUser(firebaseUser)
       setIsAuthLoading(false)
 
@@ -92,51 +85,29 @@ export const useInitAuth = () => {
         setIsProfileLoading(true)
         createOrUpdateUserMutation.mutate(firebaseUser)
       } else {
-        setUser(null)
+        setCurrentUser(null)
         setIsProfileLoading(false)
       }
-
-      return () => unsubscribe()
     })
+
+    return () => unsubscribe()
   }, [])
 
   return useAuthStore()
 }
 
-// Update active project id
-export const useSetActiveProjectMutation = () => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async ({
-      userId,
-      projectId,
-    }: {
-      userId: string
-      projectId: string
-    }) => {
-      if (!userId) {
-        throw new Error('User not authenticated')
-      }
-
-      const updatedUser = await updateActiveProjectId(userId, projectId)
-      return updatedUser
-    },
-    onSuccess: (updatedUser) => {
-      queryClient.setQueryData(
-        [AUTH_QUERY_KEYS.USER, updatedUser?.id],
-        updatedUser
-      )
-      useAuthStore?.getState()?.setUser(updatedUser)
-    },
-  })
-}
-
 // Hook for use with components
 export const useAuth = () => {
-  const { user, isAuthLoading, isProfileLoading, error, signOut } =
+  const { firebaseUser, isAuthLoading, isProfileLoading, error, signOut } =
     useAuthStore()
+  const { currentUser } = useUsersStore()
   const loading = isAuthLoading || isProfileLoading
 
-  return { user, loading, error, signOut }
+  return {
+    user: currentUser,
+    firebaseUser,
+    loading,
+    error,
+    signOut,
+  }
 }

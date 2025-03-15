@@ -20,20 +20,19 @@ import {
 } from '@chakra-ui/react'
 import { HamburgerIcon } from '@chakra-ui/icons'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
-import { logout } from '@/features/auth/services/authService'
 import { useAuth } from '@/shared/store/authStore'
 import { SideMenu } from '@/shared/components/SideMenu'
 import { useProjectsQuery } from '@/shared/store/projectsStore'
 
 export const Header: React.FC = () => {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { data: projects, isLoading, error } = useProjectsQuery(user?.id || '')
 
   const handleLogout = async () => {
     try {
-      await logout()
+      await signOut()
       navigate('/login')
     } catch (error) {
       console.error('Logout error:', error)
