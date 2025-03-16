@@ -9,6 +9,8 @@ import {
   useColorModeValue,
   Text,
 } from '@chakra-ui/react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 interface KanbanCardProps {
   task: KanbanTask
@@ -24,14 +26,36 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ task, onDelete }) => {
     urgent: 'purple',
   }
 
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task?.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 999 : 'auto',
+  }
+
   return (
     <Box
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
       key={task?.id}
+      id={`task-${task?.id}`}
       p={4}
       bg={cardBg}
       borderRadius='md'
       boxShadow='sm'
       _hover={{ boxShadow: 'md' }}
+      position={isDragging ? 'relative' : undefined}
     >
       <HStack justify='space-between' mb={2}>
         <Heading size='sm'>{task?.title}</Heading>

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Box,
   Heading,
@@ -11,8 +11,24 @@ import {
   Spinner,
   Button,
 } from '@chakra-ui/react'
+import {
+  DndContext,
+  closestCorners,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable'
+
 import { KanbanTask, Project } from '@/shared/types'
-import { addTask, deleteTask } from '@/features/projects/services/tasksService'
 import { KanbanCard } from '@/features/projects/components/KanbanCard'
 import {
   useAddTaskMutation,
@@ -33,6 +49,16 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
   const addTaskMutation = useAddTaskMutation()
   const deleteTaskMutation = useDeleteTaskMutation()
   const columnBg = useColorModeValue('gray.50', 'gray.700')
+
+  const [activelyDraggedTask, setActivelyDraggedTask] =
+    useState<KanbanTask | null>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   if (isLoading) {
     return (
@@ -90,12 +116,35 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     }
   }
 
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event
+    const taskId = active?.id
+
+    console.log('active', active)
+
+    for (const column of columns) {
+      const task = column.tasks.find((t) => t.id === taskId)
+      if (task) {
+        setActivelyDraggedTask(task)
+        break
+      }
+    }
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {}
+
   return (
-    <Box>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
         {columns?.map((column) => (
           <Box
             key={column?.id}
+            id={`column-${column?.id}`}
             bg={columnBg}
             p={4}
             borderRadius='md'
@@ -113,18 +162,27 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
                 + Add
               </Button>
             </HStack>
-            <VStack spacing={4} align='stretch'>
-              {column?.tasks?.map((task) => (
-                <KanbanCard
-                  key={task?.id}
-                  task={task}
-                  onDelete={handleDeleteTask}
-                />
-              ))}
-            </VStack>
+
+            <SortableContext items={column?.tasks?.map((t) => t?.id) || []}>
+              <VStack spacing={4} align='stretch'>
+                {column?.tasks?.map((task) => (
+                  <KanbanCard
+                    key={task?.id}
+                    task={task}
+                    onDelete={handleDeleteTask}
+                  />
+                ))}
+              </VStack>
+            </SortableContext>
           </Box>
         ))}
       </SimpleGrid>
-    </Box>
+
+      <DragOverlay>
+        {activelyDraggedTask ? (
+          <KanbanCard task={activelyDraggedTask} onDelete={handleDeleteTask} />
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   )
 }

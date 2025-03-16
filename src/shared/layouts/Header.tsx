@@ -42,7 +42,7 @@ export const Header: React.FC = () => {
     setLatestThreeProjects(
       projects
         ?.filter((project) => project?.id !== user?.activeProjectId)
-        .slice(0, 3) || []
+        ?.slice(0, 3) || []
     )
   }, [projects, user])
 

@@ -52,7 +52,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
             leftIcon={<Icon as={FaProjectDiagram} />}
             onClick={onClose}
           >
-            {activeProject?.title}
+            {activeProject?.title} Kanban
           </Button>
         )}
 
