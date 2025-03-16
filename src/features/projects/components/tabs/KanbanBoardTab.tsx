@@ -6,14 +6,12 @@ import {
   SimpleGrid,
   VStack,
   HStack,
-  useColorModeValue,
   Center,
   Spinner,
   Button,
 } from '@chakra-ui/react'
 import {
   DndContext,
-  closestCorners,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -21,25 +19,26 @@ import {
   DragEndEvent,
   DragStartEvent,
   DragOverlay,
+  rectIntersection,
 } from '@dnd-kit/core'
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-} from '@dnd-kit/sortable'
+import { SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 
 import { KanbanTask, Project } from '@/shared/types'
-import { KanbanCard } from '@/features/projects/components/KanbanCard'
+import { KanbanCard } from '@/features/projects/components/kanban/KanbanCard'
 import {
   useAddTaskMutation,
   useDeleteTaskMutation,
 } from '@/shared/store/projectsStore'
+import { KanbanColumn } from '@/features/projects/components/kanban/kanbanColumn'
 
 interface KanbanBoardTabProps {
   project: Project | undefined
   isLoading: boolean
   error: Error | null
 }
+
+// TODO: Consider putting interact buttons behind a modal, andfigure
+// out how to handle card click which will eventually open an edit modal
 
 export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
   project,
@@ -48,7 +47,6 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
 }) => {
   const addTaskMutation = useAddTaskMutation()
   const deleteTaskMutation = useDeleteTaskMutation()
-  const columnBg = useColorModeValue('gray.200', 'gray.700')
 
   const [activelyDraggedTask, setActivelyDraggedTask] =
     useState<KanbanTask | null>(null)
@@ -132,87 +130,67 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
 
-    if (!over || !activelyDraggedTask) return
+    if (!over || !activelyDraggedTask) {
+      setActivelyDraggedTask(null)
+      return
+    }
 
     const activeTaskId = active?.id?.toString()
     const draggedOverItemId = over?.id?.toString()
-
     let sourceColumnId: string | null = null
-    let sourceColumnIndex: number = -1
-
     let targetColumnId: string | null = null
-    let targetColumnIndex: number = -1
 
-    columns?.forEach((column, index) => {
+    columns.forEach((column) => {
       if (column?.tasks?.some((task) => task?.id === activeTaskId)) {
         sourceColumnId = column?.id
-        sourceColumnIndex = index
+        return
       }
     })
 
     if (draggedOverItemId?.startsWith('column-')) {
       targetColumnId = draggedOverItemId.replace('column-', '')
-      targetColumnIndex = columns?.findIndex(
-        (col) => col?.id === targetColumnId
-      )
     } else {
+      columns?.forEach((column) => {
+        if (column?.tasks?.some((task) => task?.id === draggedOverItemId)) {
+          targetColumnId = column?.id
+          return
+        }
+      })
     }
 
-    // console.log(over)
-
-    console.log('targetColumnIndex', targetColumnIndex)
-    console.log('targetColumnId', targetColumnId)
+    setActivelyDraggedTask(null)
   }
 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={rectIntersection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} h='100%'>
         {columns?.map((column) => (
-          <Box
+          <KanbanColumn
             key={column?.id}
-            id={`column-${column?.id}`}
-            bg={columnBg}
-            p={4}
-            display='flex'
-            flexDirection='column'
-            borderRadius='md'
-            minH='400px'
-            data-droppable='true'
+            column={column}
+            onAddTask={handleAddTask}
           >
-            <HStack justify='space-between' mb={4}>
-              <Heading size='md' mb={4}>
-                {column?.title}
-              </Heading>
-              <Button
-                size='sm'
-                colorScheme='blue'
-                onClick={() => handleAddTask(column?.id)}
-              >
-                + Add
-              </Button>
-            </HStack>
-
             <SortableContext items={column?.tasks?.map((t) => t?.id) || []}>
-              <VStack spacing={4} align='stretch'>
+              <VStack spacing={4} align='stretch' flex='1' overflow='auto'>
                 {column?.tasks?.map((task) => (
                   <KanbanCard
                     key={task?.id}
-                    task={task}
+                    task={{ ...task, columnId: column.id }}
                     onDelete={handleDeleteTask}
                   />
                 ))}
               </VStack>
             </SortableContext>
-          </Box>
+          </KanbanColumn>
         ))}
       </SimpleGrid>
 
-      <DragOverlay>
+      <DragOverlay zIndex={999}>
         {activelyDraggedTask ? (
           <KanbanCard task={activelyDraggedTask} onDelete={handleDeleteTask} />
         ) : null}
