@@ -48,7 +48,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
 }) => {
   const addTaskMutation = useAddTaskMutation()
   const deleteTaskMutation = useDeleteTaskMutation()
-  const columnBg = useColorModeValue('gray.50', 'gray.700')
+  const columnBg = useColorModeValue('gray.200', 'gray.700')
 
   const [activelyDraggedTask, setActivelyDraggedTask] =
     useState<KanbanTask | null>(null)
@@ -120,10 +120,8 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     const { active } = event
     const taskId = active?.id
 
-    console.log('active', active)
-
     for (const column of columns) {
-      const task = column.tasks.find((t) => t.id === taskId)
+      const task = column?.tasks?.find((t) => t?.id === taskId)
       if (task) {
         setActivelyDraggedTask(task)
         break
@@ -131,7 +129,40 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     }
   }
 
-  const handleDragEnd = (event: DragEndEvent) => {}
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (!over || !activelyDraggedTask) return
+
+    const activeTaskId = active?.id?.toString()
+    const draggedOverItemId = over?.id?.toString()
+
+    let sourceColumnId: string | null = null
+    let sourceColumnIndex: number = -1
+
+    let targetColumnId: string | null = null
+    let targetColumnIndex: number = -1
+
+    columns?.forEach((column, index) => {
+      if (column?.tasks?.some((task) => task?.id === activeTaskId)) {
+        sourceColumnId = column?.id
+        sourceColumnIndex = index
+      }
+    })
+
+    if (draggedOverItemId?.startsWith('column-')) {
+      targetColumnId = draggedOverItemId.replace('column-', '')
+      targetColumnIndex = columns?.findIndex(
+        (col) => col?.id === targetColumnId
+      )
+    } else {
+    }
+
+    // console.log(over)
+
+    console.log('targetColumnIndex', targetColumnIndex)
+    console.log('targetColumnId', targetColumnId)
+  }
 
   return (
     <DndContext
@@ -140,15 +171,18 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} h='100%'>
         {columns?.map((column) => (
           <Box
             key={column?.id}
             id={`column-${column?.id}`}
             bg={columnBg}
             p={4}
+            display='flex'
+            flexDirection='column'
             borderRadius='md'
             minH='400px'
+            data-droppable='true'
           >
             <HStack justify='space-between' mb={4}>
               <Heading size='md' mb={4}>

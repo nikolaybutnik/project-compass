@@ -335,7 +335,7 @@ export const ProjectPage: React.FC = () => {
   // }
 
   return (
-    <Box>
+    <>
       <Flex justify='space-between' align='center' mb={6}>
         <Heading>{project?.title}</Heading>
 
@@ -375,6 +375,9 @@ export const ProjectPage: React.FC = () => {
       <Tabs
         colorScheme='blue'
         variant='enclosed'
+        display='flex'
+        flexDirection='column'
+        flex='1'
         index={tabIndex}
         onChange={setTabIndex}
         isLazy
@@ -385,21 +388,21 @@ export const ProjectPage: React.FC = () => {
           <Tab>AI Insights</Tab>
         </TabList>
 
-        <TabPanels>
-          <TabPanel>
+        <TabPanels display='flex' flex='1'>
+          <TabPanel flex='1'>
             <KanbanBoardTab
               project={project}
               isLoading={isLoading}
               error={error}
             />
           </TabPanel>
-          <TabPanel>
+          <TabPanel flex='1'>
             {/* <ProjectOverviewTab
               project={project}
               onUpdateDescription={updateProjectDescription}
             /> */}
           </TabPanel>
-          <TabPanel>
+          <TabPanel flex='1'>
             {/* <Box position='relative'>
               <Box mb={4} textAlign='right'>
                 <Button
@@ -434,6 +437,6 @@ export const ProjectPage: React.FC = () => {
           </TabPanel>
         </TabPanels>
       </Tabs>
-    </Box>
+    </>
   )
 }

@@ -22,6 +22,7 @@ import {
   signInWithEmail,
   signUpWithEmail,
 } from '@/features/auth/services/authService'
+import { ROUTES } from '@/shared/constants'
 
 export const LoginPage: React.FC = () => {
   const toast = useToast()
@@ -93,7 +94,7 @@ export const LoginPage: React.FC = () => {
         duration: 3000,
       })
 
-      navigate('/projects')
+      navigate(ROUTES.HOME)
     } catch (error: any) {
       toast({
         title: 'Authentication error',
