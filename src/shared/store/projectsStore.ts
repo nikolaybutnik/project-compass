@@ -6,7 +6,11 @@ import {
   getProjects,
 } from '@/features/projects/services/projectsService'
 import { createProject } from '@/features/projects/services/projectsService'
-import { addTask, deleteTask } from '@/features/projects/services/tasksService'
+import {
+  addTask,
+  deleteTask,
+  moveTask,
+} from '@/features/projects/services/tasksService'
 export const QUERY_KEYS = {
   PROJECTS: 'projects',
   PROJECT: 'project',
@@ -105,6 +109,30 @@ export const useDeleteTaskMutation = () => {
       columnId: string
       taskId: string
     }) => deleteTask(projectId, columnId, taskId),
+    onSuccess: (updatedProject) => {
+      queryClient?.invalidateQueries({
+        queryKey: [QUERY_KEYS.PROJECT, updatedProject?.id],
+      })
+    },
+  })
+}
+
+// Move a task from one column to another
+export const useMoveTaskMutation = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      sourceColumnId,
+      targetColumnId,
+      taskId,
+    }: {
+      projectId: string
+      sourceColumnId: string
+      targetColumnId: string
+      taskId: string
+    }) => moveTask(projectId, sourceColumnId, targetColumnId, taskId),
     onSuccess: (updatedProject) => {
       queryClient?.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECT, updatedProject?.id],

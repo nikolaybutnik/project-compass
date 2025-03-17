@@ -5,10 +5,8 @@ import {
   Text,
   SimpleGrid,
   VStack,
-  HStack,
   Center,
   Spinner,
-  Button,
 } from '@chakra-ui/react'
 import {
   DndContext,
@@ -28,8 +26,9 @@ import { KanbanCard } from '@/features/projects/components/kanban/KanbanCard'
 import {
   useAddTaskMutation,
   useDeleteTaskMutation,
+  useMoveTaskMutation,
 } from '@/shared/store/projectsStore'
-import { KanbanColumn } from '@/features/projects/components/kanban/kanbanColumn'
+import { KanbanColumn } from '@/features/projects/components/kanban/KanbanColumn'
 
 interface KanbanBoardTabProps {
   project: Project | undefined
@@ -47,6 +46,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
 }) => {
   const addTaskMutation = useAddTaskMutation()
   const deleteTaskMutation = useDeleteTaskMutation()
+  const moveTaskMutation = useMoveTaskMutation()
 
   const [activelyDraggedTask, setActivelyDraggedTask] =
     useState<KanbanTask | null>(null)
@@ -140,7 +140,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     let sourceColumnId: string | null = null
     let targetColumnId: string | null = null
 
-    columns.forEach((column) => {
+    columns?.forEach((column) => {
       if (column?.tasks?.some((task) => task?.id === activeTaskId)) {
         sourceColumnId = column?.id
         return
@@ -155,6 +155,15 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
           targetColumnId = column?.id
           return
         }
+      })
+    }
+
+    if (sourceColumnId && targetColumnId && sourceColumnId !== targetColumnId) {
+      moveTaskMutation.mutateAsync({
+        projectId: project?.id,
+        sourceColumnId,
+        targetColumnId,
+        taskId: activeTaskId,
       })
     }
 

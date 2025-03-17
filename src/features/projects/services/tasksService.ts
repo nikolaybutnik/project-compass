@@ -106,3 +106,78 @@ export const deleteTask = async (
     throw error
   }
 }
+
+export const moveTask = async (
+  projectId: string,
+  sourceColumnId: string,
+  targetColumnId: string,
+  taskId: string
+) => {
+  try {
+    const projectRef = doc(db, COLLECTIONS.PROJECTS, projectId)
+    const projectSnap = await getDoc(projectRef)
+
+    if (!projectSnap?.exists()) {
+      throw new Error('Project not found')
+    }
+
+    const project = projectSnap?.data() as Project
+
+    const sourceColumn = project?.kanban?.columns?.find(
+      (col) => col?.id === sourceColumnId
+    )
+
+    if (!sourceColumn) {
+      throw new Error(`Source column with ID ${sourceColumnId} not found`)
+    }
+
+    const taskToMove = sourceColumn?.tasks?.find((task) => task?.id === taskId)
+
+    if (!taskToMove) {
+      throw new Error(`Task with ID ${taskId} not found in source column`)
+    }
+
+    const updatedColumns = project?.kanban?.columns?.map((col) => {
+      if (col?.id === sourceColumnId) {
+        return {
+          ...col,
+          tasks: col?.tasks?.filter((task) => task?.id !== taskToMove?.id),
+        }
+      }
+
+      // TODO: figure out if it's possible to automatically reorder tasks in
+      // target column if dropped new task on existing one.
+      if (col?.id === targetColumnId) {
+        const now = Timestamp.now()
+
+        return {
+          ...col,
+          tasks: [
+            ...col?.tasks,
+            {
+              ...taskToMove,
+              columnId: targetColumnId,
+              updatedAt: now,
+            },
+          ],
+        }
+      }
+
+      return col
+    })
+
+    await updateDoc(projectRef, {
+      'kanban.columns': updatedColumns,
+      updatedAt: serverTimestamp(),
+    })
+
+    const updatedProjectSnap = await getDoc(projectRef)
+    return updatedProjectSnap?.data() as Project
+  } catch (error) {
+    console.error('Error moving task:', error)
+    throw error
+  }
+}
+
+// TODO: implement
+export const reorderTasks = () => {}
