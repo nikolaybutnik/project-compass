@@ -12,14 +12,6 @@ export const HomePage: React.FC = () => {
         AI-powered project management to help you finish what you start
       </Text>
       <HStack spacing={4}>
-        <Button
-          colorScheme='blue'
-          size='lg'
-          as={RouterLink}
-          to='/projects/demo'
-        >
-          View Demo Project
-        </Button>
         <Button colorScheme='green' size='lg' as={RouterLink} to='/login'>
           Login / Sign Up
         </Button>

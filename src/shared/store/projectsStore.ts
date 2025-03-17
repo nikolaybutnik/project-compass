@@ -11,6 +11,7 @@ import {
   deleteTask,
   moveTask,
 } from '@/features/projects/services/tasksService'
+import { Timestamp } from 'firebase/firestore'
 export const QUERY_KEYS = {
   PROJECTS: 'projects',
   PROJECT: 'project',
@@ -133,9 +134,69 @@ export const useMoveTaskMutation = () => {
       targetColumnId: string
       taskId: string
     }) => moveTask(projectId, sourceColumnId, targetColumnId, taskId),
-    onSuccess: (updatedProject) => {
-      queryClient?.invalidateQueries({
-        queryKey: [QUERY_KEYS.PROJECT, updatedProject?.id],
+    onMutate: async ({ projectId, sourceColumnId, targetColumnId, taskId }) => {
+      await queryClient.cancelQueries({
+        queryKey: [QUERY_KEYS.PROJECT, projectId],
+      })
+
+      const previousProjectSnapshot = queryClient.getQueryData([
+        QUERY_KEYS.PROJECT,
+        projectId,
+      ])
+
+      // Optimistically update the columns in the cache
+      queryClient.setQueryData(
+        [QUERY_KEYS.PROJECT, projectId],
+        (oldProject: Project) => {
+          let taskToMove: KanbanTask | undefined
+          const updatedColumns = oldProject?.kanban?.columns?.map((col) => {
+            if (col?.id === sourceColumnId) {
+              taskToMove = col?.tasks?.find((task) => task?.id === taskId)
+              return {
+                ...col,
+                tasks: col?.tasks?.filter((task) => task?.id === taskId),
+              }
+            }
+
+            if (col?.id === targetColumnId) {
+              const now = Timestamp.now()
+              return {
+                ...col,
+                tasks: [
+                  ...col?.tasks,
+                  { ...taskToMove, columnId: targetColumnId, updatedAt: now },
+                ],
+              }
+            }
+
+            return col
+          })
+
+          return {
+            ...oldProject,
+            kanban: {
+              ...oldProject?.kanban,
+              columns: updatedColumns,
+            },
+          }
+        }
+      )
+
+      // This object is passed to onError as 'context' in case the mutation fails
+      return { previousProjectSnapshot }
+    },
+    onError: (err, variables, context) => {
+      // If mutation fails, roll back to previous state
+      queryClient.setQueryData(
+        [QUERY_KEYS.PROJECT, variables.projectId],
+        context?.previousProjectSnapshot
+      )
+      console.error('Error moving task:', err)
+    },
+    onSettled: (data, err, variables) => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.PROJECT, variables?.projectId],
       })
     },
   })

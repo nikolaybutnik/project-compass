@@ -22,13 +22,14 @@ import {
   Flex,
 } from '@chakra-ui/react'
 import { AddIcon } from '@chakra-ui/icons'
-import { useNavigate } from 'react-router-dom'
+import { generatePath, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/shared/store/authStore'
 import { ProjectCard } from '@/features/projects/components/ProjectCard'
 import {
   useCreateProjectMutation,
   useProjectsQuery,
 } from '@/shared/store/projectsStore'
+import { ROUTES } from '@/shared/constants'
 
 export const ProjectsListPage: React.FC = () => {
   const navigate = useNavigate()
@@ -83,8 +84,9 @@ export const ProjectsListPage: React.FC = () => {
               key={project?.id}
               project={project}
               onClick={() =>
-                // TODO: refactor this to make it cleaner
-                navigate(`/projects/${project?.id}`)
+                navigate(
+                  generatePath(ROUTES.PROJECT, { projectId: project?.id })
+                )
               }
             />
           ))}

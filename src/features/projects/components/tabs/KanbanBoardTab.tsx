@@ -18,6 +18,9 @@ import {
   DragStartEvent,
   DragOverlay,
   rectIntersection,
+  closestCenter,
+  defaultDropAnimationSideEffects,
+  MeasuringStrategy,
 } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 
@@ -159,7 +162,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     }
 
     if (sourceColumnId && targetColumnId && sourceColumnId !== targetColumnId) {
-      moveTaskMutation.mutateAsync({
+      moveTaskMutation.mutate({
         projectId: project?.id,
         sourceColumnId,
         targetColumnId,
@@ -176,6 +179,11 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
       collisionDetection={rectIntersection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      measuring={{
+        droppable: {
+          strategy: MeasuringStrategy.Always,
+        },
+      }}
     >
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} h='100%'>
         {columns?.map((column) => (
@@ -199,7 +207,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
         ))}
       </SimpleGrid>
 
-      <DragOverlay zIndex={999}>
+      <DragOverlay zIndex={999} dropAnimation={null}>
         {activelyDraggedTask ? (
           <KanbanCard task={activelyDraggedTask} onDelete={handleDeleteTask} />
         ) : null}
