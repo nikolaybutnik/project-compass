@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import {
   Box,
   Heading,
@@ -18,7 +18,6 @@ import {
   DragStartEvent,
   DragOverlay,
   rectIntersection,
-  closestCenter,
   defaultDropAnimationSideEffects,
   MeasuringStrategy,
 } from '@dnd-kit/core'
@@ -50,6 +49,8 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
   const addTaskMutation = useAddTaskMutation()
   const deleteTaskMutation = useDeleteTaskMutation()
   const moveTaskMutation = useMoveTaskMutation()
+
+  const lastValidDropRef = useRef(false)
 
   const [activelyDraggedTask, setActivelyDraggedTask] =
     useState<KanbanTask | null>(null)
@@ -134,6 +135,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     const { active, over } = event
 
     if (!over || !activelyDraggedTask) {
+      lastValidDropRef.current = false
       setActivelyDraggedTask(null)
       return
     }
@@ -162,12 +164,16 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     }
 
     if (sourceColumnId && targetColumnId && sourceColumnId !== targetColumnId) {
+      lastValidDropRef.current = true
       moveTaskMutation.mutate({
         projectId: project?.id,
         sourceColumnId,
         targetColumnId,
         taskId: activeTaskId,
       })
+    } else {
+      // TODO: handle a case of same column drop (reorder)
+      // We'll need to disable the animation only if items in the column are being reordered
     }
 
     setActivelyDraggedTask(null)
@@ -197,7 +203,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
                 {column?.tasks?.map((task) => (
                   <KanbanCard
                     key={task?.id}
-                    task={{ ...task, columnId: column.id }}
+                    task={{ ...task, columnId: column?.id }}
                     onDelete={handleDeleteTask}
                   />
                 ))}
@@ -207,7 +213,18 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
         ))}
       </SimpleGrid>
 
-      <DragOverlay zIndex={999} dropAnimation={null}>
+      <DragOverlay
+        zIndex={999}
+        dropAnimation={
+          lastValidDropRef.current
+            ? null
+            : {
+                duration: 350,
+                easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+                sideEffects: defaultDropAnimationSideEffects({}),
+              }
+        }
+      >
         {activelyDraggedTask ? (
           <KanbanCard task={activelyDraggedTask} onDelete={handleDeleteTask} />
         ) : null}
