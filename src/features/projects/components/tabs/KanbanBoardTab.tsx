@@ -31,6 +31,7 @@ import {
   useMoveTaskMutation,
 } from '@/shared/store/projectsStore'
 import { KanbanColumn } from '@/features/projects/components/kanban/KanbanColumn'
+import { CreateTaskModal } from '@/features/projects/components/kanban/CreateTaskModal'
 
 interface KanbanBoardTabProps {
   project: Project | undefined
@@ -52,6 +53,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
 
   const lastValidDropRef = useRef(false)
 
+  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
   const [activelyDraggedTask, setActivelyDraggedTask] =
     useState<KanbanTask | null>(null)
 
@@ -85,22 +87,26 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
 
   const columns = project?.kanban?.columns || []
 
-  const handleAddTask = async (columnId: string): Promise<void> => {
-    try {
-      const newTask: Partial<KanbanTask> = {
-        title: 'New Task Title',
-        description: 'New Task Description',
-        priority: 'medium',
-        tags: ['frontend', 'backend'],
-      }
-      await addTaskMutation.mutateAsync({
-        projectId: project?.id,
-        columnId,
-        taskData: newTask,
-      })
-    } catch (error) {
-      console.error('Error adding task:', error)
-    }
+  // const handleAddTask = async (columnId: string): Promise<void> => {
+  //   try {
+  //     const newTask: Partial<KanbanTask> = {
+  //       title: 'New Task Title',
+  //       description: 'New Task Description',
+  //       priority: 'medium',
+  //       tags: ['frontend', 'backend'],
+  //     }
+  //     await addTaskMutation.mutateAsync({
+  //       projectId: project?.id,
+  //       columnId,
+  //       taskData: newTask,
+  //     })
+  //   } catch (error) {
+  //     console.error('Error adding task:', error)
+  //   }
+  // }
+
+  const handleNewTaskSubmit = (taskData: Partial<KanbanTask>) => {
+    console.log('New task data:', taskData)
   }
 
   const handleDeleteTask = async (
@@ -196,7 +202,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
           <KanbanColumn
             key={column?.id}
             column={column}
-            onAddTask={handleAddTask}
+            onAddTask={handleNewTaskSubmit}
           >
             <SortableContext items={column?.tasks?.map((t) => t?.id) || []}>
               <VStack spacing={4} align='stretch' flex='1' overflow='auto'>
@@ -212,6 +218,12 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
           </KanbanColumn>
         ))}
       </SimpleGrid>
+
+      <CreateTaskModal
+        isOpen={isAddTaskModalOpen}
+        onClose={() => setIsAddTaskModalOpen(false)}
+        onSubmit={handleNewTaskSubmit}
+      />
 
       <DragOverlay
         zIndex={999}
