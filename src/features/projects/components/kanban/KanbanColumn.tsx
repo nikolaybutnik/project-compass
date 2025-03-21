@@ -12,7 +12,7 @@ import { KanbanColumn as KanbanColumnType, KanbanTask } from '@/shared/types'
 
 interface KanbanColumnProps {
   column: KanbanColumnType
-  onAddTask: (taskData: Partial<KanbanTask>) => void
+  onAddTask: (columnId: string) => void
   children: React.ReactNode
 }
 
@@ -22,7 +22,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   children,
 }: {
   column: KanbanColumnType
-  onAddTask: (taskData: Partial<KanbanTask>) => void
+  onAddTask: (columnId: string) => void
   children: React.ReactNode
 }) => {
   const columnBg = useColorModeValue('gray.200', 'gray.700')
@@ -54,7 +54,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
         <Button
           size='sm'
           colorScheme='blue'
-          // onClick={() => onAddTask(column?.id)}
+          onClick={() => onAddTask(column?.id)}
         >
           + Add
         </Button>

@@ -24,6 +24,13 @@ export type ProjectStatus =
   | 'completed'
   | 'archived'
 
+export enum TaskPriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  URGENT = 'urgent',
+}
+
 export interface Project {
   id: string
   userId: string
@@ -61,8 +68,8 @@ export interface KanbanTask {
   id: string
   columnId: string
   title: string
-  description: string
-  priority?: 'low' | 'medium' | 'high' | 'urgent'
+  description?: string
+  priority?: TaskPriority
   dueDate?: Timestamp
   tags?: string[]
   createdAt: Timestamp
@@ -81,7 +88,7 @@ export interface AiInsight {
   suggestedTasks?: {
     title: string
     description: string
-    priority?: 'low' | 'medium' | 'high'
+    priority?: TaskPriority
   }[]
 }
 
