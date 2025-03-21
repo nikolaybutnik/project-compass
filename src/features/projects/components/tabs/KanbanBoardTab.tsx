@@ -39,8 +39,7 @@ interface KanbanBoardTabProps {
   error: Error | null
 }
 
-// TODO: Consider putting interact buttons behind a modal, andfigure
-// out how to handle card click which will eventually open an edit modal
+// TODO: figure out how to handle card click which will eventually open an edit modal
 
 export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
   project,
@@ -93,23 +92,16 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     setIsAddTaskModalOpen(true)
   }
 
-  const handleNewTaskSubmit = (taskData: Partial<KanbanTask>) => {
-    console.log('New task data:', taskData)
-    //   try {
-    //     const newTask: Partial<KanbanTask> = {
-    //       title: 'New Task Title',
-    //       description: 'New Task Description',
-    //       priority: 'medium',
-    //       tags: ['frontend', 'backend'],
-    //     }
-    //     await addTaskMutation.mutateAsync({
-    //       projectId: project?.id,
-    //       columnId,
-    //       taskData: newTask,
-    //     })
-    //   } catch (error) {
-    //     console.error('Error adding task:', error)
-    //   }
+  const handleNewTaskSubmit = async (taskData: Partial<KanbanTask>) => {
+    try {
+      await addTaskMutation.mutateAsync({
+        projectId: project?.id || '',
+        columnId: activeColumnId || '',
+        taskData: taskData,
+      })
+    } catch (error) {
+      console.error('Error adding task:', error)
+    }
   }
 
   const handleDeleteTask = async (
@@ -203,7 +195,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} h='100%'>
         {columns?.map((column) => (
           <KanbanColumn
-            key={column?.id}
+            key={`column-${column?.id || Math.random()}`}
             column={column}
             onAddTask={() => handleAddTask(column?.id)}
           >
@@ -211,7 +203,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
               <VStack spacing={4} align='stretch' flex='1' overflow='auto'>
                 {column?.tasks?.map((task) => (
                   <KanbanCard
-                    key={task?.id}
+                    key={`task-${task?.id || Math.random()}`}
                     task={{ ...task, columnId: column?.id }}
                     onDelete={handleDeleteTask}
                   />

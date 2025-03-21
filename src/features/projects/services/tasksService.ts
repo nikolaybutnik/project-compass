@@ -7,7 +7,7 @@ import {
   Timestamp,
 } from 'firebase/firestore'
 import { COLLECTIONS } from '@/shared/constants'
-import { KanbanTask, Project } from '@/shared/types'
+import { KanbanTask, Project, TaskPriority } from '@/shared/types'
 import { v4 as uuidv4 } from 'uuid'
 import { KanbanTaskDto } from '@/shared/types/dto'
 
@@ -40,7 +40,7 @@ export const addTask = async (
       columnId,
       title: taskData?.title || '',
       description: taskData?.description || '',
-      priority: taskData?.priority || 'low',
+      priority: taskData?.priority || TaskPriority.LOW,
       tags: taskData?.tags || [],
       createdAt: now,
       updatedAt: now,
