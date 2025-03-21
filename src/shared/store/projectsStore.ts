@@ -149,23 +149,34 @@ export const useMoveTaskMutation = () => {
         [QUERY_KEYS.PROJECT, projectId],
         (oldProject: Project) => {
           let taskToMove: KanbanTask | undefined
-          const updatedColumns = oldProject?.kanban?.columns?.map((col) => {
+
+          for (const col of oldProject?.kanban?.columns || []) {
             if (col?.id === sourceColumnId) {
               taskToMove = col?.tasks?.find((task) => task?.id === taskId)
+              break
+            }
+          }
+
+          if (!taskToMove) return oldProject
+
+          const taskCopy: KanbanTask = {
+            ...taskToMove,
+            columnId: targetColumnId,
+            updatedAt: Timestamp.now(),
+          }
+
+          const updatedColumns = oldProject?.kanban?.columns?.map((col) => {
+            if (col?.id === sourceColumnId) {
               return {
                 ...col,
-                tasks: col?.tasks?.filter((task) => task?.id === taskId),
+                tasks: col?.tasks?.filter((task) => task?.id !== taskId) || [],
               }
             }
 
             if (col?.id === targetColumnId) {
-              const now = Timestamp.now()
               return {
                 ...col,
-                tasks: [
-                  ...col?.tasks,
-                  { ...taskToMove, columnId: targetColumnId, updatedAt: now },
-                ],
+                tasks: [...(col?.tasks || []), taskCopy],
               }
             }
 
