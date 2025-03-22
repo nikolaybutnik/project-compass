@@ -212,3 +212,22 @@ export const useMoveTaskMutation = () => {
     },
   })
 }
+
+// Reorder tasks within a column
+export const useReorderTasksMutation = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      columnId,
+      taskId,
+      newIndex,
+    }: {
+      projectId: string
+      columnId: string
+      taskId: string
+      newIndex: number
+    }) => {},
+  })
+}

@@ -29,6 +29,7 @@ import {
   useAddTaskMutation,
   useDeleteTaskMutation,
   useMoveTaskMutation,
+  useReorderTasksMutation,
 } from '@/shared/store/projectsStore'
 import { KanbanColumn } from '@/features/projects/components/kanban/KanbanColumn'
 import { CreateTaskModal } from '@/features/projects/components/kanban/CreateTaskModal'
@@ -49,7 +50,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
   const addTaskMutation = useAddTaskMutation()
   const deleteTaskMutation = useDeleteTaskMutation()
   const moveTaskMutation = useMoveTaskMutation()
-
+  const reorderTasksMutation = useReorderTasksMutation()
   const lastValidDropRef = useRef(false)
 
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
@@ -173,8 +174,23 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
         taskId: activeTaskId,
       })
     } else {
-      // TODO: handle a case of same column drop (reorder)
-      // We'll need to disable the animation only if items in the column are being reordered
+      const activeColumn = columns?.find(
+        (c) => c?.id === activelyDraggedTask?.columnId
+      )
+      const draggedOverTaskIndex = activeColumn?.tasks?.findIndex(
+        (task) => task?.id === over?.id
+      )
+
+      if (draggedOverTaskIndex !== undefined && draggedOverTaskIndex !== -1) {
+        lastValidDropRef.current = true
+
+        reorderTasksMutation.mutate({
+          projectId: project?.id,
+          columnId: activelyDraggedTask?.columnId,
+          taskId: activeTaskId,
+          newIndex: draggedOverTaskIndex,
+        })
+      } else lastValidDropRef.current = false
     }
 
     setActivelyDraggedTask(null)

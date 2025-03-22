@@ -179,5 +179,25 @@ export const moveTask = async (
   }
 }
 
-// TODO: implement
-export const reorderTasks = () => {}
+export const reorderTasks = async (
+  projectId: string,
+  columnId: string,
+  taskId: string,
+  newIndex: number
+): Promise<Project> => {
+  try {
+    const projectRef = doc(db, COLLECTIONS.PROJECTS, projectId)
+    const projectSnap = await getDoc(projectRef)
+
+    if (!projectSnap?.exists()) {
+      throw new Error('Project not found')
+    }
+
+    const project = projectSnap?.data() as Project
+
+    return project
+  } catch (error) {
+    console.error('Error reordering task:', error)
+    throw error
+  }
+}
