@@ -20,6 +20,7 @@ import {
   rectIntersection,
   defaultDropAnimationSideEffects,
   MeasuringStrategy,
+  DragOverEvent,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -277,11 +278,76 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     draggedTaskForOverlay.current = null
   }
 
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event
+
+    if (!over || !active || !activelyDraggedTask) return
+
+    const activeTaskId = active?.id?.toString()
+    const overId = over?.id?.toString()
+
+    if (activeTaskId === overId) return
+
+    const isOverColumn = overId?.startsWith('column-')
+    const sourceColumnId = localColumns?.find((col) =>
+      col?.tasks?.some((task) => task?.id === activeTaskId)
+    )?.id
+    const targetColumnId = isOverColumn
+      ? overId?.replace('column-', '')
+      : localColumns?.find((col) =>
+          col?.tasks?.some((task) => task?.id === overId)
+        )?.id
+
+    if (sourceColumnId === targetColumnId) return
+
+    // Update column preview if dragging between columns and over a task
+    if (sourceColumnId && targetColumnId) {
+      const previewColumns = JSON.parse(JSON.stringify(localColumns))
+      // Note: the objects found using the .find method are references to the original objects
+      // in previewColumns, so mutating these affects the original.
+      const sourceCol = previewColumns?.find(
+        (col: KanbanColumnType) => col.id === sourceColumnId
+      )
+      const targetCol = previewColumns?.find(
+        (col: KanbanColumnType) => col.id === targetColumnId
+      )
+
+      // Find and remove task from source
+      const taskToMove = sourceCol?.tasks?.find(
+        (t: KanbanTask) => t?.id === activeTaskId
+      )
+      sourceCol.tasks = sourceCol?.tasks?.filter(
+        (t: KanbanTask) => t?.id !== activeTaskId
+      )
+
+      // Insert task at preview position or end of column
+      if (!isOverColumn) {
+        const overTaskIndex = targetCol?.tasks?.findIndex(
+          (task: KanbanTask) => task?.id === overId
+        )
+
+        if (overTaskIndex !== -1) {
+          targetCol.tasks.splice(overTaskIndex, 0, {
+            ...taskToMove,
+            columnId: targetColumnId,
+          })
+        } else {
+          targetCol.tasks.push({ ...taskToMove, columnId: targetColumnId })
+        }
+      } else {
+        targetCol.tasks.push({ ...taskToMove, columnId: targetColumnId })
+      }
+
+      setLocalColumns(previewColumns)
+    }
+  }
+
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={rectIntersection}
       onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
       measuring={{
         droppable: {
