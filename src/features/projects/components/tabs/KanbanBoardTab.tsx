@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   Box,
   Heading,
@@ -27,7 +27,11 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 
-import { KanbanTask, Project } from '@/shared/types'
+import {
+  KanbanTask,
+  Project,
+  KanbanColumn as KanbanColumnType,
+} from '@/shared/types'
 import { KanbanCard } from '@/features/projects/components/kanban/KanbanCard'
 import {
   useAddTaskMutation,
@@ -59,9 +63,12 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
 
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
   const [activeColumnId, setActiveColumnId] = useState<string | null>(null)
-  const [disableDropAnimation, setDisableDropAnimation] = useState(false)
   const [activelyDraggedTask, setActivelyDraggedTask] =
     useState<KanbanTask | null>(null)
+  const draggedTaskForOverlay = useRef<KanbanTask | null>(null)
+  const [localColumns, setLocalColumns] = useState<KanbanColumnType[] | null>(
+    null
+  )
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -69,6 +76,14 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
       coordinateGetter: sortableKeyboardCoordinates,
     })
   )
+
+  useEffect(() => {
+    if (project?.kanban?.columns) {
+      setLocalColumns(JSON.parse(JSON.stringify(project.kanban.columns)))
+    }
+  }, [project?.kanban?.columns])
+
+  const displayColumns = localColumns || project?.kanban?.columns || []
 
   if (isLoading) {
     return (
@@ -90,8 +105,6 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
   if (!project) {
     return <Text>No project data available.</Text>
   }
-
-  const columns = project?.kanban?.columns || []
 
   const handleAddTask = async (columnId: string): Promise<void> => {
     setActiveColumnId(columnId)
@@ -129,10 +142,11 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     const { active } = event
     const taskId = active?.id
 
-    for (const column of columns) {
+    for (const column of displayColumns) {
       const task = column?.tasks?.find((t) => t?.id === taskId)
       if (task) {
         setActivelyDraggedTask(task)
+        draggedTaskForOverlay.current = task
         break
       }
     }
@@ -142,8 +156,8 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     const { active, over } = event
 
     if (!over || !activelyDraggedTask) {
-      setDisableDropAnimation(false)
       setActivelyDraggedTask(null)
+      draggedTaskForOverlay.current = null
       return
     }
 
@@ -152,7 +166,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     let sourceColumnId: string | null = null
     let targetColumnId: string | null = null
 
-    columns?.forEach((column) => {
+    displayColumns?.forEach((column) => {
       if (column?.tasks?.some((task) => task?.id === activeTaskId)) {
         sourceColumnId = column?.id
         return
@@ -162,7 +176,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     if (draggedOverItemId?.startsWith('column-')) {
       targetColumnId = draggedOverItemId.replace('column-', '')
     } else {
-      columns?.forEach((column) => {
+      displayColumns?.forEach((column) => {
         if (column?.tasks?.some((task) => task?.id === draggedOverItemId)) {
           targetColumnId = column?.id
           return
@@ -171,18 +185,45 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     }
 
     if (sourceColumnId && targetColumnId && sourceColumnId !== targetColumnId) {
-      // Moving tasks between columns
-      setDisableDropAnimation(true)
+      const updatedColumns = localColumns?.map((column) => {
+        if (column?.id === sourceColumnId) {
+          return {
+            ...column,
+            tasks: column?.tasks?.filter((t) => t?.id !== activeTaskId),
+          }
+        }
 
-      moveTaskMutation.mutate({
-        projectId: project?.id,
-        sourceColumnId,
-        targetColumnId,
-        taskId: activeTaskId,
+        if (column?.id === targetColumnId && activelyDraggedTask) {
+          return {
+            ...column,
+            tasks: [
+              ...column?.tasks,
+              { ...activelyDraggedTask, columnId: targetColumnId },
+            ],
+          }
+        }
+
+        return column
       })
+
+      setLocalColumns(updatedColumns || [])
+
+      moveTaskMutation.mutate(
+        {
+          projectId: project?.id,
+          sourceColumnId,
+          targetColumnId,
+          taskId: activeTaskId,
+        },
+        {
+          onSettled: () => {
+            setActivelyDraggedTask(null)
+            draggedTaskForOverlay.current = null
+          },
+        }
+      )
     } else {
-      // Moving tasks within the same column
-      const activeColumn = columns?.find(
+      const activeColumn = displayColumns?.find(
         (c) => c?.id === activelyDraggedTask?.columnId
       )
       const draggedOverTaskIndex = activeColumn?.tasks?.findIndex(
@@ -190,20 +231,50 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
       )
 
       if (draggedOverTaskIndex !== undefined && draggedOverTaskIndex !== -1) {
-        setDisableDropAnimation(true)
+        if (localColumns && activelyDraggedTask) {
+          const updatedColumns = localColumns.map((column) => {
+            if (column?.id === activelyDraggedTask.columnId) {
+              const currentTasks = [...column.tasks]
+              const currentIndex = currentTasks.findIndex(
+                (t) => t.id === activelyDraggedTask.id
+              )
 
-        reorderTasksMutation.mutate({
-          projectId: project?.id,
-          columnId: activelyDraggedTask?.columnId,
-          taskId: activeTaskId,
-          newIndex: draggedOverTaskIndex,
-        })
-      } else {
-        setDisableDropAnimation(false)
+              if (currentIndex === -1) return column
+
+              const [taskToMove] = currentTasks.splice(currentIndex, 1)
+
+              currentTasks.splice(draggedOverTaskIndex, 0, taskToMove)
+
+              return {
+                ...column,
+                tasks: currentTasks,
+              }
+            }
+            return column
+          })
+
+          setLocalColumns(updatedColumns)
+        }
+
+        reorderTasksMutation.mutate(
+          {
+            projectId: project?.id,
+            columnId: activelyDraggedTask?.columnId,
+            taskId: activeTaskId,
+            newIndex: draggedOverTaskIndex,
+          },
+          {
+            onSettled: () => {
+              setActivelyDraggedTask(null)
+              draggedTaskForOverlay.current = null
+            },
+          }
+        )
       }
     }
 
     setActivelyDraggedTask(null)
+    draggedTaskForOverlay.current = null
   }
 
   return (
@@ -219,7 +290,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
       }}
     >
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} h='100%'>
-        {columns?.map((column) => (
+        {displayColumns.map((column) => (
           <KanbanColumn
             key={`column-${column?.id || Math.random()}`}
             column={column}
@@ -254,28 +325,24 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
 
       <DragOverlay
         zIndex={999}
-        dropAnimation={
-          disableDropAnimation
-            ? null
-            : {
-                duration: 250,
-                easing: 'cubic-bezier(0.2, 0, 0.2, 1)',
-                sideEffects: defaultDropAnimationSideEffects({
-                  styles: {
-                    active: {
-                      opacity: '0.5',
-                    },
-                  },
-                }),
-              }
-        }
+        dropAnimation={{
+          duration: 250,
+          easing: 'cubic-bezier(0.2, 0, 0.2, 1)',
+          sideEffects: defaultDropAnimationSideEffects({
+            styles: {
+              active: {
+                opacity: '0.5',
+              },
+            },
+          }),
+        }}
         style={{
           touchAction: 'none',
         }}
       >
-        {activelyDraggedTask ? (
+        {activelyDraggedTask || draggedTaskForOverlay.current ? (
           <KanbanCard
-            task={activelyDraggedTask}
+            task={activelyDraggedTask || draggedTaskForOverlay.current!}
             onDelete={handleDeleteTask}
             isDragOverlay={true}
           />
