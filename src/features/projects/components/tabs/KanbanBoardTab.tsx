@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useState } from 'react'
 import {
   Box,
   Heading,
@@ -21,7 +21,11 @@ import {
   defaultDropAnimationSideEffects,
   MeasuringStrategy,
 } from '@dnd-kit/core'
-import { SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
 
 import { KanbanTask, Project } from '@/shared/types'
 import { KanbanCard } from '@/features/projects/components/kanban/KanbanCard'
@@ -33,6 +37,7 @@ import {
 } from '@/shared/store/projectsStore'
 import { KanbanColumn } from '@/features/projects/components/kanban/KanbanColumn'
 import { CreateTaskModal } from '@/features/projects/components/kanban/CreateTaskModal'
+import { v4 as uuidv4 } from 'uuid'
 
 interface KanbanBoardTabProps {
   project: Project | undefined
@@ -51,10 +56,10 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
   const deleteTaskMutation = useDeleteTaskMutation()
   const moveTaskMutation = useMoveTaskMutation()
   const reorderTasksMutation = useReorderTasksMutation()
-  const lastValidDropRef = useRef(false)
 
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
   const [activeColumnId, setActiveColumnId] = useState<string | null>(null)
+  const [disableDropAnimation, setDisableDropAnimation] = useState(false)
   const [activelyDraggedTask, setActivelyDraggedTask] =
     useState<KanbanTask | null>(null)
 
@@ -137,7 +142,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     const { active, over } = event
 
     if (!over || !activelyDraggedTask) {
-      lastValidDropRef.current = false
+      setDisableDropAnimation(false)
       setActivelyDraggedTask(null)
       return
     }
@@ -166,7 +171,9 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     }
 
     if (sourceColumnId && targetColumnId && sourceColumnId !== targetColumnId) {
-      lastValidDropRef.current = true
+      // Moving tasks between columns
+      setDisableDropAnimation(true)
+
       moveTaskMutation.mutate({
         projectId: project?.id,
         sourceColumnId,
@@ -174,6 +181,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
         taskId: activeTaskId,
       })
     } else {
+      // Moving tasks within the same column
       const activeColumn = columns?.find(
         (c) => c?.id === activelyDraggedTask?.columnId
       )
@@ -182,7 +190,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
       )
 
       if (draggedOverTaskIndex !== undefined && draggedOverTaskIndex !== -1) {
-        lastValidDropRef.current = true
+        setDisableDropAnimation(true)
 
         reorderTasksMutation.mutate({
           projectId: project?.id,
@@ -190,7 +198,9 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
           taskId: activeTaskId,
           newIndex: draggedOverTaskIndex,
         })
-      } else lastValidDropRef.current = false
+      } else {
+        setDisableDropAnimation(false)
+      }
     }
 
     setActivelyDraggedTask(null)
@@ -215,7 +225,10 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
             column={column}
             onAddTask={() => handleAddTask(column?.id)}
           >
-            <SortableContext items={column?.tasks?.map((t) => t?.id) || []}>
+            <SortableContext
+              items={column?.tasks?.map((t) => t?.id) || []}
+              strategy={verticalListSortingStrategy}
+            >
               <VStack spacing={4} align='stretch' flex='1' overflow='auto'>
                 {column?.tasks?.map((task) => (
                   <KanbanCard
@@ -242,17 +255,30 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
       <DragOverlay
         zIndex={999}
         dropAnimation={
-          lastValidDropRef.current
+          disableDropAnimation
             ? null
             : {
-                duration: 350,
-                easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
-                sideEffects: defaultDropAnimationSideEffects({}),
+                duration: 250,
+                easing: 'cubic-bezier(0.2, 0, 0.2, 1)',
+                sideEffects: defaultDropAnimationSideEffects({
+                  styles: {
+                    active: {
+                      opacity: '0.5',
+                    },
+                  },
+                }),
               }
         }
+        style={{
+          touchAction: 'none',
+        }}
       >
         {activelyDraggedTask ? (
-          <KanbanCard task={activelyDraggedTask} onDelete={handleDeleteTask} />
+          <KanbanCard
+            task={activelyDraggedTask}
+            onDelete={handleDeleteTask}
+            isDragOverlay={true}
+          />
         ) : null}
       </DragOverlay>
     </DndContext>

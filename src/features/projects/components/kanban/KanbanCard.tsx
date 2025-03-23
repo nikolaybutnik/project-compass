@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { KanbanTask } from '@/shared/types'
 import {
   Badge,
@@ -15,9 +15,16 @@ import { CSS } from '@dnd-kit/utilities'
 interface KanbanCardProps {
   task: KanbanTask
   onDelete: (columnId: string, taskId: string) => void
+  isDragOverlay?: boolean
 }
 
-export const KanbanCard: React.FC<KanbanCardProps> = ({ task, onDelete }) => {
+export const KanbanCard: React.FC<KanbanCardProps> = ({
+  task,
+  onDelete,
+  isDragOverlay = false,
+}) => {
+  const [isHovered, setIsHovered] = useState(false)
+
   const cardBg = useColorModeValue('white', 'gray.600')
   const badgeColorMap = {
     high: 'red',
@@ -42,6 +49,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ task, onDelete }) => {
     transition,
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 999 : 'auto',
+    cursor: isDragOverlay ? 'grabbing' : isHovered ? 'grab' : 'grabbing',
   }
 
   const handleTaskDelete = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -64,6 +72,8 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ task, onDelete }) => {
         boxShadow='sm'
         _hover={{ boxShadow: 'md' }}
         position={isDragging ? 'relative' : undefined}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         <HStack justify='space-between' mb={2}>
           <Heading size='sm'>{task?.title}</Heading>
