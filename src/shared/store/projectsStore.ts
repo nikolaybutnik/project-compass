@@ -10,6 +10,7 @@ import {
   addTask,
   deleteTask,
   moveTask,
+  reorderTasks,
 } from '@/features/projects/services/tasksService'
 import { Timestamp } from 'firebase/firestore'
 export const QUERY_KEYS = {
@@ -228,6 +229,62 @@ export const useReorderTasksMutation = () => {
       columnId: string
       taskId: string
       newIndex: number
-    }) => {},
+    }) => reorderTasks(projectId, columnId, taskId, newIndex),
+    onMutate: async ({ projectId, columnId, taskId, newIndex }) => {
+      await queryClient.cancelQueries({
+        queryKey: [QUERY_KEYS.PROJECT, projectId],
+      })
+
+      const previousProjectSnapshot = queryClient.getQueryData([
+        QUERY_KEYS.PROJECT,
+        projectId,
+      ])
+
+      queryClient.setQueryData(
+        [QUERY_KEYS.PROJECT, projectId],
+        (oldProject: Project) => {
+          const updatedColumns = oldProject?.kanban?.columns?.map((col) => {
+            if (col?.id === columnId) {
+              const tasks = [...(col?.tasks || [])]
+              const taskIndex = tasks?.findIndex((task) => task?.id === taskId)
+
+              if (taskIndex !== -1) {
+                const [taskToMove] = tasks?.splice(taskIndex, 1)
+                tasks?.splice(newIndex, 0, {
+                  ...taskToMove,
+                  updatedAt: Timestamp.now(),
+                })
+
+                return { ...col, tasks }
+              }
+            }
+
+            return col
+          })
+
+          return {
+            ...oldProject,
+            kanban: {
+              ...oldProject?.kanban,
+              columns: updatedColumns,
+            },
+          }
+        }
+      )
+
+      return { previousProjectSnapshot }
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(
+        [QUERY_KEYS.PROJECT, variables?.projectId],
+        context?.previousProjectSnapshot
+      )
+      console.error('Error reordering tasks:', err)
+    },
+    onSettled: (data, err, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.PROJECT, variables?.projectId],
+      })
+    },
   })
 }

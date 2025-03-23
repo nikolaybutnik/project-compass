@@ -145,8 +145,6 @@ export const moveTask = async (
         }
       }
 
-      // TODO: figure out if it's possible to automatically reorder tasks in
-      // target column if dropped new task on existing one.
       if (col?.id === targetColumnId) {
         const now = Timestamp.now()
 
@@ -194,8 +192,39 @@ export const reorderTasks = async (
     }
 
     const project = projectSnap?.data() as Project
+    const columns = project?.kanban?.columns || []
+    const columnIndex = columns?.findIndex((col) => col?.id === columnId)
 
-    return project
+    if (columnIndex === -1) {
+      throw new Error(`Column with ID ${columnId} not found`)
+    }
+
+    const tasks = [...(columns[columnIndex]?.tasks || [])]
+    const taskIndex = tasks?.findIndex((task) => task?.id === taskId)
+
+    if (taskIndex === -1) {
+      throw new Error(`Task with ID ${taskId} not found in column`)
+    }
+
+    const [taskToMove] = tasks?.splice(taskIndex, 1)
+    tasks?.splice(newIndex, 0, {
+      ...taskToMove,
+      updatedAt: Timestamp.now(),
+    })
+
+    const updatedColumns = columns?.map((col) => {
+      if (col?.id === columnId) {
+        return { ...col, tasks }
+      } else return col
+    })
+
+    await updateDoc(projectRef, {
+      'kanban.columns': updatedColumns,
+      updatedAt: serverTimestamp(),
+    })
+
+    const updatedProjectSnap = await getDoc(projectRef)
+    return updatedProjectSnap?.data() as Project
   } catch (error) {
     console.error('Error reordering task:', error)
     throw error
