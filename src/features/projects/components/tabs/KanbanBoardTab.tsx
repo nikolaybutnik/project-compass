@@ -114,6 +114,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
                       key={`${isPreview ? 'preview-' : ''}task-${task?.id}-in-${col?.id}`}
                       task={{ ...task, columnId: col?.id }}
                       onDelete={handleDeleteTask}
+                      isPreview={isPreview}
                     />
                   )
                 })}

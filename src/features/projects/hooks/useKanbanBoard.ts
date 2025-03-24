@@ -299,7 +299,8 @@ export function useKanbanBoard(project: Project | undefined) {
       }
     }
 
-    if (sourceColumnId === targetColumnId) return
+    // Clear any existing previews
+    setDragPreviewItems([])
 
     if (sourceColumnId && targetColumnId) {
       const previewColumns = JSON.parse(JSON.stringify(localColumns))
@@ -318,36 +319,24 @@ export function useKanbanBoard(project: Project | undefined) {
 
       if (!taskToMove) return
 
+      setDragPreviewItems([`${taskToMove.id}-in-${targetColumnId}`])
+
       if (!isOverColumn) {
         const overTaskIndex = targetCol.tasks.findIndex(
           (task: KanbanTask) => task.id === overId
         )
         if (overTaskIndex !== -1) {
-          // Store the ID of this preview task
-          setDragPreviewItems([
-            ...dragPreviewItems,
-            `${taskToMove?.id}-in-${targetColumnId}`,
-          ])
-
           targetCol.tasks.splice(overTaskIndex, 0, {
             ...taskToMove,
             columnId: targetColumnId,
           })
         } else {
-          setDragPreviewItems([
-            ...dragPreviewItems,
-            `${taskToMove.id}-in-${targetColumnId}`,
-          ])
           targetCol.tasks.push({
             ...taskToMove,
             columnId: targetColumnId,
           })
         }
       } else {
-        setDragPreviewItems([
-          ...dragPreviewItems,
-          `${taskToMove.id}-in-${targetColumnId}`,
-        ])
         targetCol.tasks.push({
           ...taskToMove,
           columnId: targetColumnId,

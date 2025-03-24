@@ -16,12 +16,14 @@ interface KanbanCardProps {
   task: KanbanTask
   onDelete: (columnId: string, taskId: string) => void
   isDragOverlay?: boolean
+  isPreview?: boolean
 }
 
 export const KanbanCard: React.FC<KanbanCardProps> = ({
   task,
   onDelete,
   isDragOverlay = false,
+  isPreview = false,
 }) => {
   const [isHovered, setIsHovered] = useState(false)
 
@@ -49,7 +51,11 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
     transition,
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 999 : 'auto',
-    cursor: isDragOverlay ? 'grabbing' : isHovered ? 'grab' : 'grabbing',
+    cursor: isDragOverlay ? 'grabbing' : 'grab',
+    ...(isPreview && {
+      border: '2px dashed blue',
+      background: cardBg,
+    }),
   }
 
   const handleTaskDelete = (e: React.MouseEvent<HTMLButtonElement>) => {
