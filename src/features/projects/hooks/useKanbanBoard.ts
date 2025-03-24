@@ -322,7 +322,53 @@ export function useKanbanBoard(project: Project | undefined) {
   // }
   //   }
 
-  const handleDragOver = (event: DragOverEvent) => {}
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event
+
+    if (!over || !active || !activelyDraggedTask) return
+
+    const activeTaskId = active?.id?.toString()
+    const overId = over?.id?.toString()
+
+    if (activeTaskId === overId) return
+
+    const isOverColumn = overId?.startsWith('column-')
+    const sourceColumnId = activelyDraggedTask?.columnId
+    let targetColumnId: string = ''
+
+    if (isOverColumn) {
+      targetColumnId = overId?.replace('column-', '')
+    } else {
+      for (const column of localColumns || []) {
+        if (column?.tasks?.some((task) => task?.id === overId)) {
+          targetColumnId = column?.id
+          break
+        }
+      }
+    }
+
+    if (sourceColumnId === targetColumnId) return
+
+    if (sourceColumnId && targetColumnId) {
+      const previewColumns = JSON.parse(JSON.stringify(localColumns))
+      const sourceCol = previewColumns?.find(
+        (col: KanbanColumn) => col?.id === sourceColumnId
+      )
+      const targetCol = previewColumns?.find(
+        (col: KanbanColumn) => col?.id === targetColumnId
+      )
+
+      if (!sourceCol || !targetCol) return
+
+      const taskToMove = sourceCol?.tasks?.find(
+        (task: KanbanTask) => task?.id === activeTaskId
+      )
+
+      if (!taskToMove) return
+
+      console.log('taskToMove', taskToMove)
+    }
+  }
 
   const closeAddTaskModal = () => {
     setIsAddTaskModalOpen(false)
