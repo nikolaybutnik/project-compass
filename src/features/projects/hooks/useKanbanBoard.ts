@@ -299,50 +299,70 @@ export function useKanbanBoard(project: Project | undefined) {
       }
     }
 
-    // Clear any existing previews
-    setDragPreviewItems([])
+    // These are the situations we need to handle:
+    // 1. The task is being dragged over a column that it doesn't belong to
+    // 2. The task is being dragged over within the same column
+    // 3. The task is being dragged over other tasks in different columns
 
-    if (sourceColumnId && targetColumnId) {
-      const previewColumns = JSON.parse(JSON.stringify(localColumns))
-      const sourceCol = previewColumns?.find(
-        (col: KanbanColumn) => col?.id === sourceColumnId
-      )
-      const targetCol = previewColumns?.find(
-        (col: KanbanColumn) => col?.id === targetColumnId
-      )
-
-      if (!sourceCol || !targetCol) return
-
-      const taskToMove = sourceCol?.tasks?.find(
-        (task: KanbanTask) => task?.id === activeTaskId
-      )
-
-      if (!taskToMove) return
-
-      setDragPreviewItems([`${taskToMove.id}-in-${targetColumnId}`])
-
-      if (!isOverColumn) {
-        const overTaskIndex = targetCol.tasks.findIndex(
-          (task: KanbanTask) => task.id === overId
+    if (isOverColumn && sourceColumnId === targetColumnId) {
+      console.log('The task is being dragged within origin column')
+    }
+    if (sourceColumnId !== targetColumnId) {
+      const isDraggingOverTask = !isOverColumn && overId !== activeTaskId
+      if (isDraggingOverTask) {
+        console.log(
+          'The task is being dragged over a task in a different column'
         )
-        if (overTaskIndex !== -1) {
-          targetCol.tasks.splice(overTaskIndex, 0, {
-            ...taskToMove,
-            columnId: targetColumnId,
-          })
-        } else {
-          targetCol.tasks.push({
-            ...taskToMove,
-            columnId: targetColumnId,
-          })
-        }
       } else {
-        targetCol.tasks.push({
-          ...taskToMove,
-          columnId: targetColumnId,
-        })
+        console.log(
+          "The task is being dragged over a column that it doesn't belong to"
+        )
       }
     }
+
+    // setDragPreviewItems([])
+
+    // if (sourceColumnId && targetColumnId) {
+    //   const previewColumns = JSON.parse(JSON.stringify(localColumns))
+    //   const sourceCol = previewColumns?.find(
+    //     (col: KanbanColumn) => col?.id === sourceColumnId
+    //   )
+    //   const targetCol = previewColumns?.find(
+    //     (col: KanbanColumn) => col?.id === targetColumnId
+    //   )
+
+    //   if (!sourceCol || !targetCol) return
+
+    //   const taskToMove = sourceCol?.tasks?.find(
+    //     (task: KanbanTask) => task?.id === activeTaskId
+    //   )
+
+    //   if (!taskToMove) return
+
+    // setDragPreviewItems([`${taskToMove?.id}-in-${targetColumnId}`])
+
+    // if (!isOverColumn) {
+    //   const overTaskIndex = targetCol.tasks.findIndex(
+    //     (task: KanbanTask) => task.id === overId
+    //   )
+    //   if (overTaskIndex !== -1) {
+    //     targetCol.tasks.splice(overTaskIndex, 0, {
+    //       ...taskToMove,
+    //       columnId: targetColumnId,
+    //     })
+    //   } else {
+    //     targetCol.tasks.push({
+    //       ...taskToMove,
+    //       columnId: targetColumnId,
+    //     })
+    //   }
+    // } else {
+    //   targetCol.tasks.push({
+    //     ...taskToMove,
+    //     columnId: targetColumnId,
+    //   })
+    // }
+    // }
   }
 
   const closeAddTaskModal = () => {
@@ -356,6 +376,7 @@ export function useKanbanBoard(project: Project | undefined) {
     isAddTaskModalOpen,
     activelyDraggedTask,
     activeColumnId,
+    dragPreviewItems,
 
     // DND handlers
     sensors,
@@ -370,8 +391,5 @@ export function useKanbanBoard(project: Project | undefined) {
 
     // Modal handlers
     closeAddTaskModal,
-
-    // New state
-    dragPreviewItems,
   }
 }
