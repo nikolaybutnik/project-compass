@@ -124,18 +124,27 @@ export const useMoveTaskMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       projectId,
       sourceColumnId,
       targetColumnId,
       taskId,
+      targetIndex,
     }: {
       projectId: string
       sourceColumnId: string
       targetColumnId: string
       taskId: string
-    }) => moveTask(projectId, sourceColumnId, targetColumnId, taskId),
-    onMutate: async ({ projectId, sourceColumnId, targetColumnId, taskId }) => {
+      targetIndex?: number
+    }) =>
+      moveTask(projectId, sourceColumnId, targetColumnId, taskId, targetIndex),
+    onMutate: async ({
+      projectId,
+      sourceColumnId,
+      targetColumnId,
+      taskId,
+      targetIndex,
+    }) => {
       await queryClient.cancelQueries({
         queryKey: [QUERY_KEYS.PROJECT, projectId],
       })
@@ -175,9 +184,18 @@ export const useMoveTaskMutation = () => {
             }
 
             if (col?.id === targetColumnId) {
-              return {
-                ...col,
-                tasks: [...(col?.tasks || []), taskCopy],
+              if (targetIndex !== undefined) {
+                const newTasks = [...(col?.tasks || [])]
+                newTasks?.splice(targetIndex, 0, taskCopy)
+                return {
+                  ...col,
+                  tasks: newTasks,
+                }
+              } else {
+                return {
+                  ...col,
+                  tasks: [...(col?.tasks || []), taskCopy],
+                }
               }
             }
 

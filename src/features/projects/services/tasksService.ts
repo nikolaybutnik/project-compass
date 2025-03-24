@@ -111,7 +111,8 @@ export const moveTask = async (
   projectId: string,
   sourceColumnId: string,
   targetColumnId: string,
-  taskId: string
+  taskId: string,
+  targetIndex?: number
 ) => {
   try {
     const projectRef = doc(db, COLLECTIONS.PROJECTS, projectId)
@@ -147,17 +148,23 @@ export const moveTask = async (
 
       if (col?.id === targetColumnId) {
         const now = Timestamp.now()
+        const updatedTask = {
+          ...taskToMove,
+          columnId: targetColumnId,
+          updatedAt: now,
+        }
+
+        const updatedTasks = [...col?.tasks]
+
+        if (targetIndex !== undefined) {
+          updatedTasks?.splice(targetIndex, 0, updatedTask)
+        } else {
+          updatedTasks?.push(updatedTask)
+        }
 
         return {
           ...col,
-          tasks: [
-            ...col?.tasks,
-            {
-              ...taskToMove,
-              columnId: targetColumnId,
-              updatedAt: now,
-            },
-          ],
+          tasks: updatedTasks,
         }
       }
 
