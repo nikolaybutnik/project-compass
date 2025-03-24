@@ -41,6 +41,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     isAddTaskModalOpen,
     activelyDraggedTask,
     activeColumnId,
+    dragPreviewItems,
 
     // DND handlers
     sensors,
@@ -103,13 +104,19 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
               strategy={verticalListSortingStrategy}
             >
               <VStack spacing={4} align='stretch' flex='1' overflow='auto'>
-                {col?.tasks?.map((task) => (
-                  <KanbanCard
-                    key={`task-${task?.id || Math.random()}-column-${col?.id || Math.random()}`}
-                    task={{ ...task, columnId: col?.id }}
-                    onDelete={handleDeleteTask}
-                  />
-                ))}
+                {col?.tasks?.map((task) => {
+                  const isPreview = dragPreviewItems?.includes(
+                    `${task?.id}-in-${col?.id}`
+                  )
+
+                  return (
+                    <KanbanCard
+                      key={`${isPreview ? 'preview-' : ''}task-${task?.id}-in-${col?.id}`}
+                      task={{ ...task, columnId: col?.id }}
+                      onDelete={handleDeleteTask}
+                    />
+                  )
+                })}
               </VStack>
             </SortableContext>
           </KanbanColumn>
