@@ -30,9 +30,9 @@ export function useKanbanBoard(project: Project | undefined) {
   const draggedTaskForOverlay = useRef<KanbanTask | null>(null)
   const [localColumns, setLocalColumns] = useState<KanbanColumn[] | null>(null)
 
-  // This array tracks which tasks are being shown as previews in
-  // columns they don't originally belong to.
-  const [dragPreviewItems, setDragPreviewItems] = useState<string[]>([])
+  // Tracks tasks that are being shown as previews when dragging a task.
+  // Format: {taskId}-in-{columnId}
+  const [dragPreviewItemIds, setDragPreviewItemIds] = useState<string[]>([])
 
   // Mutations
   const addTaskMutation = useAddTaskMutation()
@@ -237,7 +237,7 @@ export function useKanbanBoard(project: Project | undefined) {
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
-    setDragPreviewItems([])
+    setDragPreviewItemIds([])
 
     const { active, over } = event
 
@@ -304,21 +304,24 @@ export function useKanbanBoard(project: Project | undefined) {
     // 2. The task is being dragged over within the same column
     // 3. The task is being dragged over other tasks in different columns
 
-    if (isOverColumn && sourceColumnId === targetColumnId) {
-      console.log('The task is being dragged within origin column')
-    }
+    const previewColumns = JSON.parse(JSON.stringify(localColumns))
+    let previewItemId = `${activeTaskId}-in-${targetColumnId}`
+    // Clear preview if dragged task leaves original column
     if (sourceColumnId !== targetColumnId) {
-      const isDraggingOverTask = !isOverColumn && overId !== activeTaskId
-      if (isDraggingOverTask) {
-        console.log(
-          'The task is being dragged over a task in a different column'
-        )
-      } else {
-        console.log(
-          "The task is being dragged over a column that it doesn't belong to"
-        )
-      }
+      setDragPreviewItemIds([])
+      console.log('cleared preview')
     }
+
+    if (sourceColumnId === targetColumnId) {
+      setDragPreviewItemIds([previewItemId])
+    } else if (sourceColumnId !== targetColumnId) {
+      // When dragged task changes columns:
+      // 1. setDragPreviewItemIds with new previewItemId
+      // 2. Add task with previewItemId to previewColumns
+      // 3. OPTIONALLY remove task from original column in previewColumns
+    }
+
+    setLocalColumns(previewColumns)
 
     // setDragPreviewItems([])
 
@@ -376,7 +379,7 @@ export function useKanbanBoard(project: Project | undefined) {
     isAddTaskModalOpen,
     activelyDraggedTask,
     activeColumnId,
-    dragPreviewItems,
+    dragPreviewItemIds,
 
     // DND handlers
     sensors,

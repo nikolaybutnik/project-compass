@@ -16,6 +16,7 @@ interface KanbanCardProps {
   task: KanbanTask
   onDelete: (columnId: string, taskId: string) => void
   isDragOverlay?: boolean
+  disabled?: boolean
   isPreview?: boolean
 }
 
@@ -23,6 +24,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
   task,
   onDelete,
   isDragOverlay = false,
+  disabled = false,
   isPreview = false,
 }) => {
   const [isHovered, setIsHovered] = useState(false)
@@ -100,6 +102,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
             colorScheme='red'
             variant='ghost'
             onMouseDown={handleTaskDelete}
+            isDisabled={disabled}
           >
             Delete
           </Button>

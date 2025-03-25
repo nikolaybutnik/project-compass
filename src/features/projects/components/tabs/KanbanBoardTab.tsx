@@ -40,8 +40,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     columns,
     isAddTaskModalOpen,
     activelyDraggedTask,
-    activeColumnId,
-    dragPreviewItems,
+    dragPreviewItemIds,
 
     // DND handlers
     sensors,
@@ -105,7 +104,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
             >
               <VStack spacing={4} align='stretch' flex='1' overflow='auto'>
                 {col?.tasks?.map((task) => {
-                  const isPreview = dragPreviewItems?.includes(
+                  const isPreview = dragPreviewItemIds?.includes(
                     `${task?.id}-in-${col?.id}`
                   )
 
@@ -114,6 +113,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
                       key={`${isPreview ? 'preview-' : ''}task-${task?.id}-in-${col?.id}`}
                       task={{ ...task, columnId: col?.id }}
                       onDelete={handleDeleteTask}
+                      disabled={isPreview}
                       isPreview={isPreview}
                     />
                   )
@@ -151,6 +151,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
           <KanbanCard
             task={activelyDraggedTask}
             onDelete={handleDeleteTask}
+            disabled={true}
             isDragOverlay={true}
           />
         ) : null}
