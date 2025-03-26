@@ -110,7 +110,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
 
                   return (
                     <KanbanCard
-                      key={`${isPreview ? 'preview-' : ''}task-${task?.id}-in-${col?.id}`}
+                      key={`${isPreview ? 'preview-' : ''}${task?.id}-in-${col?.id}`}
                       task={{ ...task, columnId: col?.id }}
                       onDelete={handleDeleteTask}
                       disabled={isPreview}
