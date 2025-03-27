@@ -21,6 +21,9 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 
 export function useKanbanBoard(project: Project | undefined) {
+  // Refs
+  const previousTargetColRef = useRef<string | null>(null)
+
   // State management
   const [isUpdating, setIsUpdating] = useState(false)
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
@@ -91,7 +94,7 @@ export function useKanbanBoard(project: Project | undefined) {
     const { active } = event
     const taskId = active?.id
     for (const column of localColumns || []) {
-      const task = column?.tasks?.find((t) => t?.id === taskId)
+      const task = column?.tasks?.find((task) => task?.id === taskId)
       if (task) {
         setActivelyDraggedTask({ ...task, columnId: column.id })
         draggedTaskForOverlay.current = { ...task, columnId: column.id }
@@ -102,7 +105,9 @@ export function useKanbanBoard(project: Project | undefined) {
 
   const resetDragState = () => {
     setActivelyDraggedTask(null)
+    setDragPreviewItemIds([])
     draggedTaskForOverlay.current = null
+    previousTargetColRef.current = null
   }
 
   const identifyDragElements = (
@@ -299,76 +304,44 @@ export function useKanbanBoard(project: Project | undefined) {
       }
     }
 
-    // These are the situations we need to handle:
-    // 1. The task is being dragged over a column that it doesn't belong to
-    // 2. The task is being dragged over within the same column
-    // 3. The task is being dragged over other tasks in different columns
+    if (
+      previousTargetColRef.current &&
+      previousTargetColRef.current !== targetColumnId
+    ) {
+      console.log('cleared preview')
+      setDragPreviewItemIds([])
+      // TODO: remove task from target column
+    }
 
     const previewColumns: KanbanColumn[] = localColumns?.map((col) => ({
       ...col,
       tasks: [...col?.tasks],
     }))
-    let previewTaskId = `${activeTaskId}-in-${targetColumnId}`
-    // Clear preview if dragged task leaves original column
-    if (sourceColumnId !== targetColumnId) {
-      setDragPreviewItemIds([])
-      console.log('cleared preview')
-    }
+    // const draggedTaskInOriginalColId = `${activeTaskId}-in-${sourceColumnId}`
+    let draggedTaskId = `${activeTaskId}-in-${targetColumnId}`
+
+    previousTargetColRef.current = targetColumnId
 
     if (sourceColumnId === targetColumnId) {
-      setDragPreviewItemIds([previewTaskId])
+      setDragPreviewItemIds([draggedTaskId])
     } else if (sourceColumnId !== targetColumnId) {
       // When dragged task changes columns:
       // 1. setDragPreviewItemIds with new previewItemId
       // 2. Add task with previewItemId to previewColumns
       // 3. OPTIONALLY remove task from original column in previewColumns
+      const targetCol = previewColumns?.find(
+        (col) => col?.id === targetColumnId
+      )
+      setDragPreviewItemIds([draggedTaskId])
+      // if (targetCol) {
+      //   targetCol.tasks.push({
+      //     ...activelyDraggedTask,
+      //     columnId: targetColumnId,
+      //   })
+      // }
     }
 
     setLocalColumns(previewColumns)
-
-    // setDragPreviewItems([])
-
-    // if (sourceColumnId && targetColumnId) {
-    //   const previewColumns = JSON.parse(JSON.stringify(localColumns))
-    //   const sourceCol = previewColumns?.find(
-    //     (col: KanbanColumn) => col?.id === sourceColumnId
-    //   )
-    //   const targetCol = previewColumns?.find(
-    //     (col: KanbanColumn) => col?.id === targetColumnId
-    //   )
-
-    //   if (!sourceCol || !targetCol) return
-
-    //   const taskToMove = sourceCol?.tasks?.find(
-    //     (task: KanbanTask) => task?.id === activeTaskId
-    //   )
-
-    //   if (!taskToMove) return
-
-    // setDragPreviewItems([`${taskToMove?.id}-in-${targetColumnId}`])
-
-    // if (!isOverColumn) {
-    //   const overTaskIndex = targetCol.tasks.findIndex(
-    //     (task: KanbanTask) => task.id === overId
-    //   )
-    //   if (overTaskIndex !== -1) {
-    //     targetCol.tasks.splice(overTaskIndex, 0, {
-    //       ...taskToMove,
-    //       columnId: targetColumnId,
-    //     })
-    //   } else {
-    //     targetCol.tasks.push({
-    //       ...taskToMove,
-    //       columnId: targetColumnId,
-    //     })
-    //   }
-    // } else {
-    //   targetCol.tasks.push({
-    //     ...taskToMove,
-    //     columnId: targetColumnId,
-    //   })
-    // }
-    // }
   }
 
   const closeAddTaskModal = () => {
