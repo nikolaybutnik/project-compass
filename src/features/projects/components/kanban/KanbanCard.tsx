@@ -18,6 +18,7 @@ interface KanbanCardProps {
   isDragOverlay?: boolean
   disabled?: boolean
   isPreview?: boolean
+  style?: React.CSSProperties
 }
 
 export const KanbanCard: React.FC<KanbanCardProps> = ({
@@ -26,9 +27,8 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
   isDragOverlay = false,
   disabled = false,
   isPreview = false,
+  style = {},
 }) => {
-  const [isHovered, setIsHovered] = useState(false)
-
   const cardBg = useColorModeValue('white', 'gray.600')
   const badgeColorMap = {
     high: 'red',
@@ -48,7 +48,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
     id: task?.id,
   })
 
-  const style = {
+  const cardStyle = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
@@ -58,6 +58,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
       border: '2px dashed blue',
       background: cardBg,
     }),
+    ...style,
   }
 
   const handleTaskDelete = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -69,7 +70,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
     <>
       <Box
         ref={setNodeRef}
-        style={style}
+        style={cardStyle}
         {...attributes}
         {...listeners}
         key={task?.id}
@@ -80,8 +81,6 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
         boxShadow='sm'
         _hover={{ boxShadow: 'md' }}
         position={isDragging ? 'relative' : undefined}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
       >
         <HStack justify='space-between' mb={2}>
           <Heading size='sm'>{task?.title}</Heading>

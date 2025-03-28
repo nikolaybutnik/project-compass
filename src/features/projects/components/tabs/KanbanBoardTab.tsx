@@ -104,9 +104,20 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
             >
               <VStack spacing={4} align='stretch' flex='1' overflow='auto'>
                 {col?.tasks?.map((task) => {
-                  const isPreview = dragPreviewItemIds?.includes(
-                    `${task?.id}-in-${col?.id}`
-                  )
+                  const isDraggingWithinColumn =
+                    activelyDraggedTask?.id === task?.id &&
+                    activelyDraggedTask?.columnId === col?.id
+
+                  const isCrossColumnSource =
+                    isDraggingWithinColumn &&
+                    activelyDraggedTask !== null &&
+                    dragPreviewItemIds?.some((id) =>
+                      id?.includes(`preview-${activelyDraggedTask?.id}-in-`)
+                    )
+
+                  const isPreview =
+                    isDraggingWithinColumn ||
+                    dragPreviewItemIds?.includes(`${task?.id}-in-${col?.id}`)
 
                   return (
                     <KanbanCard
@@ -115,6 +126,11 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
                       onDelete={handleDeleteTask}
                       disabled={isPreview}
                       isPreview={isPreview}
+                      style={
+                        isCrossColumnSource
+                          ? { border: '2px dashed orange' }
+                          : undefined
+                      }
                     />
                   )
                 })}
