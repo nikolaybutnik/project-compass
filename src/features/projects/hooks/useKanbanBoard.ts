@@ -1,11 +1,10 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   DragEndEvent,
-  DragStartEvent,
   DragOverEvent,
   Active,
   Over,
@@ -19,23 +18,21 @@ import {
   useReorderTasksMutation,
 } from '@/shared/store/projectsStore'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { useDragAndDrop } from './useDragAndDrop'
 
 export function useKanbanBoard(project: Project | undefined) {
-  // Refs
-  const previousTargetColRef = useRef<string | null>(null)
-
   // State management
   const [isUpdating, setIsUpdating] = useState(false)
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
   const [activeColumnId, setActiveColumnId] = useState<string | null>(null)
-  const [activelyDraggedTask, setActivelyDraggedTask] =
-    useState<KanbanTask | null>(null)
-  const draggedTaskForOverlay = useRef<KanbanTask | null>(null)
   const [localColumns, setLocalColumns] = useState<KanbanColumn[]>([])
 
-  // Tracks tasks that are being shown as previews when dragging a task.
-  // Format: {taskId}-in-{columnId}
-  const [dragPreviewItemIds, setDragPreviewItemIds] = useState<string[]>([])
+  const {
+    state: dragState,
+    overlay: draggedTaskForOverlay,
+    handlers: { handleDragStart, resetDragState },
+    dispatch,
+  } = useDragAndDrop(localColumns)
 
   // Mutations
   const addTaskMutation = useAddTaskMutation()
@@ -96,26 +93,6 @@ export function useKanbanBoard(project: Project | undefined) {
     } catch (error) {
       console.error('Error deleting task', error)
     }
-  }
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event
-    const taskId = active?.id
-    for (const column of localColumns || []) {
-      const task = column?.tasks?.find((task) => task?.id === taskId)
-      if (task) {
-        setActivelyDraggedTask({ ...task, columnId: column.id })
-        draggedTaskForOverlay.current = { ...task, columnId: column.id }
-        break
-      }
-    }
-  }
-
-  const resetDragState = () => {
-    setActivelyDraggedTask(null)
-    setDragPreviewItemIds([])
-    draggedTaskForOverlay.current = null
-    previousTargetColRef.current = null
   }
 
   const identifyDragElements = (
@@ -179,12 +156,12 @@ export function useKanbanBoard(project: Project | undefined) {
         }
       }
 
-      if (col?.id === targetColumnId && activelyDraggedTask) {
+      if (col?.id === targetColumnId && dragState.activeTask) {
         return {
           ...col,
           tasks: [
             ...filteredTasks,
-            { ...activelyDraggedTask, columnId: targetColumnId },
+            { ...dragState.activeTask, columnId: targetColumnId },
           ],
         }
       }
@@ -255,26 +232,18 @@ export function useKanbanBoard(project: Project | undefined) {
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
-    setDragPreviewItemIds([])
-
     const { active, over } = event
 
-    if (!over || !activelyDraggedTask) {
-      resetDragState()
-      return
-    }
+    resetDragState()
+
+    if (!over || !dragState.activeTask) return
 
     const {
       activeTaskId,
       sourceColumnId,
       targetColumnId,
       draggedOverTaskIndex,
-    } = identifyDragElements(
-      active,
-      over,
-      localColumns || [],
-      activelyDraggedTask
-    )
+    } = identifyDragElements(active, over, localColumns, dragState.activeTask)
 
     if (sourceColumnId && targetColumnId && sourceColumnId !== targetColumnId) {
       handleCrossColumnMove(sourceColumnId, targetColumnId, activeTaskId)
@@ -288,65 +257,54 @@ export function useKanbanBoard(project: Project | undefined) {
         draggedOverTaskIndex
       )
     }
-
-    resetDragState()
   }
 
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event
+    if (!over || !active || !dragState.activeTask) return
 
-    if (!over || !active || !activelyDraggedTask) return
-
-    const activeTaskId = active?.id?.toString()
-    const overId = over?.id?.toString()
-
-    const isOverColumn = overId?.startsWith('column-')
-    const sourceColumnId = activelyDraggedTask?.columnId
+    const activeTaskId = active.id.toString()
+    const overId = over.id.toString()
+    const sourceColumnId = dragState.activeTask.columnId
     const isOverOriginalPosition = activeTaskId === overId
-    let targetColumnId: string = ''
 
-    if (isOverColumn) {
-      targetColumnId = overId?.replace('column-', '')
-    } else {
-      for (const column of localColumns || []) {
-        if (column?.tasks?.some((task) => task?.id === overId)) {
-          targetColumnId = column?.id
-          break
-        }
-      }
-    }
+    const targetColumnId = overId.startsWith('column-')
+      ? overId.replace('column-', '')
+      : localColumns.find((column) =>
+          column.tasks?.some((task) => task.id === overId)
+        )?.id || ''
 
-    // ALWAYS clean up previews first
-    setDragPreviewItemIds([])
+    dispatch({ type: 'CLEAR_PREVIEWS' })
 
-    // Return early if we're in the same column, no target, or over original position
     if (
-      sourceColumnId === targetColumnId ||
       !targetColumnId ||
+      sourceColumnId === targetColumnId ||
       isOverOriginalPosition
     ) {
       setLocalColumns(cleanColumns)
       return
     }
 
-    // Create preview only on cross-column drags
-    if (sourceColumnId !== targetColumnId) {
-      const targetCol = cleanColumns?.find((col) => col?.id === targetColumnId)
-      if (targetCol && activelyDraggedTask) {
-        const previewTask = {
-          ...activelyDraggedTask,
-          id: `preview-${activelyDraggedTask?.id}`,
-          columnId: targetColumnId,
-        }
-        targetCol?.tasks?.push(previewTask)
-
-        setDragPreviewItemIds([
-          `preview-${activelyDraggedTask?.id}-in-${targetColumnId}`,
-        ])
+    const targetCol = cleanColumns?.find((col) => col.id === targetColumnId)
+    if (targetCol && dragState.activeTask) {
+      const previewTask = {
+        ...dragState.activeTask,
+        id: `preview-${dragState.activeTask.id}`,
+        columnId: targetColumnId,
       }
 
-      setLocalColumns(cleanColumns)
+      // TODO: instead of pushing, insert and live preview the tasks
+      targetCol.tasks.push(previewTask)
+
+      dispatch({
+        type: 'SET_PREVIEW',
+        payload: {
+          previewId: `preview-${dragState.activeTask.id}-in-${targetColumnId}`,
+        },
+      })
     }
+
+    setLocalColumns(cleanColumns)
   }
 
   const closeAddTaskModal = () => {
@@ -358,9 +316,8 @@ export function useKanbanBoard(project: Project | undefined) {
     // States
     columns: localColumns || [],
     isAddTaskModalOpen,
-    activelyDraggedTask,
-    activeColumnId,
-    dragPreviewItemIds,
+    dragState,
+    draggedTaskForOverlay,
 
     // DND handlers
     sensors,

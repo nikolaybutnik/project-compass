@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React from 'react'
 import {
   Box,
   Heading,
@@ -39,8 +39,8 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     // States
     columns,
     isAddTaskModalOpen,
-    activelyDraggedTask,
-    dragPreviewItemIds,
+    dragState,
+    draggedTaskForOverlay,
 
     // DND handlers
     sensors,
@@ -104,33 +104,40 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
             >
               <VStack spacing={4} align='stretch' flex='1' overflow='auto'>
                 {col?.tasks?.map((task) => {
+                  const isBeingDragged = dragState.activeTask?.id === task.id
+                  const isInActiveColumn =
+                    dragState.activeTask?.columnId === col.id
                   const isDraggingWithinColumn =
-                    activelyDraggedTask?.id === task?.id &&
-                    activelyDraggedTask?.columnId === col?.id
+                    isBeingDragged && isInActiveColumn
 
+                  const previewId = `preview-${dragState.activeTask?.id}-in-`
+                  const hasCrossColumnPreview =
+                    dragState.dragPreviewItemIds?.some((id) =>
+                      id?.includes(previewId)
+                    )
                   const isCrossColumnSource =
                     isDraggingWithinColumn &&
-                    activelyDraggedTask !== null &&
-                    dragPreviewItemIds?.some((id) =>
-                      id?.includes(`preview-${activelyDraggedTask?.id}-in-`)
-                    )
+                    dragState.activeTask &&
+                    hasCrossColumnPreview
 
                   const isPreview =
                     isDraggingWithinColumn ||
-                    dragPreviewItemIds?.includes(`${task?.id}-in-${col?.id}`)
+                    dragState.dragPreviewItemIds?.includes(
+                      `${task.id}-in-${col.id}`
+                    )
+
+                  const taskStyle = isCrossColumnSource
+                    ? { border: '2px dashed orange' }
+                    : undefined
 
                   return (
                     <KanbanCard
-                      key={`${isPreview ? 'preview-' : ''}${task?.id}-in-${col?.id}`}
-                      task={{ ...task, columnId: col?.id }}
+                      key={`${isPreview ? 'preview-' : ''}${task.id}-in-${col.id}`}
+                      task={{ ...task, columnId: col.id }}
                       onDelete={handleDeleteTask}
                       disabled={isPreview}
                       isPreview={isPreview}
-                      style={
-                        isCrossColumnSource
-                          ? { border: '2px dashed orange' }
-                          : undefined
-                      }
+                      style={taskStyle}
                     />
                   )
                 })}
@@ -163,9 +170,9 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
           touchAction: 'none',
         }}
       >
-        {activelyDraggedTask ? (
+        {draggedTaskForOverlay.current ? (
           <KanbanCard
-            task={activelyDraggedTask}
+            task={draggedTaskForOverlay.current}
             onDelete={handleDeleteTask}
             disabled={true}
             isDragOverlay={true}
