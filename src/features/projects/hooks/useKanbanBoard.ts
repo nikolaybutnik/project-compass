@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   KeyboardSensor,
   PointerSensor,
@@ -57,19 +57,33 @@ export function useKanbanBoard(project: Project | undefined) {
   )
 
   useEffect(() => {
-    if (project?.kanban?.columns && !isUpdating) {
-      setLocalColumns(JSON.parse(JSON.stringify(project.kanban.columns)))
-    }
-  }, [project?.kanban?.columns, isUpdating])
+    if (!project?.kanban.columns || isUpdating) return
 
-  const cleanColumns = useMemo(() => {
-    return localColumns?.map((col) => ({
-      ...col,
-      tasks: col?.tasks?.filter(
-        (task) => !task?.id?.toString()?.startsWith('preview-')
-      ),
-    }))
-  }, [localColumns])
+    setLocalColumns(
+      project.kanban.columns.map((column) => ({
+        ...column,
+        tasks: column.tasks.length
+          ? column.tasks.map((task) => ({ ...task }))
+          : [],
+      }))
+    )
+  }, [project?.kanban.columns, isUpdating])
+
+  const removePreviewTasks = useCallback(
+    (columns: KanbanColumn[]): KanbanColumn[] =>
+      columns.map((col) => ({
+        ...col,
+        tasks: col.tasks.filter(
+          (task) => !task?.id?.toString()?.startsWith('preview-')
+        ),
+      })),
+    []
+  )
+
+  const cleanColumns = useMemo(
+    () => removePreviewTasks(localColumns),
+    [localColumns, removePreviewTasks]
+  )
 
   const handleAddTask = async (columnId: string): Promise<void> => {
     setActiveColumnId(columnId)
@@ -110,16 +124,12 @@ export function useKanbanBoard(project: Project | undefined) {
   ) => {
     setIsUpdating(true)
 
-    const updatedColumns = localColumns?.map((col) => {
-      // Remove any preview tasks from all columns
-      const filteredTasks = col?.tasks?.filter(
-        (task) => !task?.id?.toString()?.startsWith('preview-')
-      )
-
+    const cleanCols = removePreviewTasks(localColumns)
+    const updatedColumns = cleanCols.map((col) => {
       if (col?.id === sourceColumnId) {
         return {
           ...col,
-          tasks: filteredTasks.filter((task) => task?.id !== taskId),
+          tasks: col.tasks.filter((task) => task.id !== taskId),
         }
       }
 
@@ -127,16 +137,16 @@ export function useKanbanBoard(project: Project | undefined) {
         return {
           ...col,
           tasks: [
-            ...filteredTasks,
+            ...col.tasks,
             { ...dragState.activeTask, columnId: targetColumnId },
           ],
         }
       }
 
-      return { ...col, tasks: filteredTasks }
+      return col
     })
 
-    setLocalColumns(updatedColumns || [])
+    setLocalColumns(updatedColumns)
 
     moveTaskMutation.mutate(
       {
@@ -160,16 +170,17 @@ export function useKanbanBoard(project: Project | undefined) {
   ) => {
     setIsUpdating(true)
 
-    const updatedColumns = localColumns?.map((col) => {
+    const cleanCols = removePreviewTasks(localColumns)
+    const updatedColumns = cleanCols.map((col) => {
       if (col?.id === columnId) {
-        const currentTasks = [...col?.tasks]
-        const startingTaskIndex = currentTasks?.findIndex(
-          (task) => task?.id === taskId
+        const currentTasks = [...col.tasks]
+        const startingTaskIndex = currentTasks.findIndex(
+          (task) => task.id === taskId
         )
 
         if (startingTaskIndex !== -1) {
-          const [taskToMove] = currentTasks?.splice(startingTaskIndex, 1)
-          currentTasks?.splice(newIndex, 0, taskToMove)
+          const [taskToMove] = currentTasks.splice(startingTaskIndex, 1)
+          currentTasks.splice(newIndex, 0, taskToMove)
 
           return {
             ...col,
@@ -181,7 +192,7 @@ export function useKanbanBoard(project: Project | undefined) {
       return col
     })
 
-    setLocalColumns(updatedColumns || [])
+    setLocalColumns(updatedColumns)
 
     reorderTasksMutation.mutate(
       {
@@ -283,36 +294,21 @@ export function useKanbanBoard(project: Project | undefined) {
     setIsAddTaskModalOpen(false)
     setActiveColumnId(null)
   }
-
   const updateTargetColumnWithPreview = (
     targetColumnId: string,
     previewTask: KanbanTask
-  ): void => {
-    setLocalColumns((prevColumns: KanbanColumn[]) => {
-      const targetIndex = prevColumns.findIndex(
-        (col: KanbanColumn) => col.id === targetColumnId
-      )
-      if (targetIndex === -1) return prevColumns
+  ) => {
+    setLocalColumns((prevColumns) => {
+      const cleanCols = removePreviewTasks(prevColumns)
 
-      return prevColumns.map((col: KanbanColumn, index: number) => {
-        if (index === targetIndex) {
+      return cleanCols.map((col) => {
+        if (col.id === targetColumnId) {
           return {
             ...col,
-            tasks: [
-              ...col.tasks.filter(
-                (task: KanbanTask) => !task.id.toString().startsWith('preview-')
-              ),
-              previewTask,
-            ],
+            tasks: [...col.tasks, previewTask],
           }
         }
-
-        return {
-          ...col,
-          tasks: col.tasks.filter(
-            (task: KanbanTask) => !task.id.toString().startsWith('preview-')
-          ),
-        }
+        return col
       })
     })
   }
