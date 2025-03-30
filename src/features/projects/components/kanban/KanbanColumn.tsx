@@ -61,7 +61,17 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = React.memo(
           </Button>
         </HStack>
 
-        <VStack spacing={4} align='stretch' flex='1' overflow='auto'>
+        <VStack
+          spacing={4}
+          align='stretch'
+          flex='1'
+          overflow='auto'
+          sx={{
+            '& > *': {
+              transition: 'transform 0.2s, opacity 0.2s',
+            },
+          }}
+        >
           {children}
         </VStack>
       </Box>

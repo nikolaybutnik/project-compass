@@ -2,7 +2,7 @@ import { useReducer, useRef } from 'react'
 import { KanbanTask, KanbanColumn } from '@/shared/types'
 import { DragStartEvent } from '@dnd-kit/core'
 
-interface DragState {
+export interface DragState {
   activeTask: KanbanTask | null
   dragPreviewItemIds: string[]
 }

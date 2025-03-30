@@ -19,7 +19,16 @@ import {
   useReorderTasksMutation,
 } from '@/shared/store/projectsStore'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import { useDragAndDrop } from './useDragAndDrop'
+import {
+  DragState,
+  useDragAndDrop,
+} from '@/features/projects/hooks/useDragAndDrop'
+
+interface TaskDragInfo {
+  key: string
+  isPreview: boolean
+  isCrossColumnSource: boolean
+}
 
 export function useKanbanBoard(project: Project | undefined) {
   // State management
@@ -346,6 +355,34 @@ export function useKanbanBoard(project: Project | undefined) {
     })
   }
 
+  const getDragStateInfo = (
+    task: KanbanTask,
+    columnId: string,
+    dragState: DragState
+  ): TaskDragInfo => {
+    const isActiveTask = dragState.activeTask?.id === task.id
+    const isActiveTaskColumn = dragState.activeTask?.columnId === columnId
+
+    const isCrossColumnSource =
+      isActiveTask &&
+      isActiveTaskColumn &&
+      dragState.dragPreviewItemIds.some((id) =>
+        id.includes(`preview-${dragState.activeTask?.id}-in-`)
+      )
+
+    const isPreview =
+      // Preview in same column, but NOT the source card
+      (isActiveTask && isActiveTaskColumn && !isCrossColumnSource) ||
+      // Preview in another column
+      dragState.dragPreviewItemIds.includes(`${task.id}-in-${columnId}`)
+
+    return {
+      key: `${isPreview ? 'preview-' : ''}${task.id}-in-${columnId}`,
+      isPreview,
+      isCrossColumnSource,
+    }
+  }
+
   return {
     // States
     columns: localColumns || [],
@@ -363,6 +400,7 @@ export function useKanbanBoard(project: Project | undefined) {
     handleAddTask,
     handleNewTaskSubmit,
     handleDeleteTask,
+    getDragStateInfo,
 
     // Modal handlers
     closeAddTaskModal,

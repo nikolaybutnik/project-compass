@@ -16,7 +16,11 @@ import {
   MeasuringStrategy,
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { Project, KanbanColumn as KanbanColumnType } from '@/shared/types'
+import {
+  Project,
+  KanbanColumn as KanbanColumnType,
+  KanbanTask,
+} from '@/shared/types'
 import { KanbanCard } from '@/features/projects/components/kanban/KanbanCard'
 import { KanbanColumn } from '@/features/projects/components/kanban/KanbanColumn'
 import { CreateTaskModal } from '@/features/projects/components/kanban/CreateTaskModal'
@@ -52,6 +56,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     handleAddTask,
     handleNewTaskSubmit,
     handleDeleteTask,
+    getDragStateInfo,
 
     // Modal handlers
     closeAddTaskModal,
@@ -103,38 +108,19 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
               strategy={verticalListSortingStrategy}
             >
               <VStack spacing={4} align='stretch' flex='1' overflow='auto'>
-                {col?.tasks?.map((task) => {
-                  const isBeingDragged = dragState.activeTask?.id === task.id
-                  const isInActiveColumn =
-                    dragState.activeTask?.columnId === col.id
-                  const isDraggingWithinColumn =
-                    isBeingDragged && isInActiveColumn
-
-                  const previewId = `preview-${dragState.activeTask?.id}-in-`
-                  const hasCrossColumnPreview =
-                    dragState.dragPreviewItemIds?.some((id) =>
-                      id?.includes(previewId)
-                    )
-                  const isCrossColumnSource =
-                    isBeingDragged &&
-                    isInActiveColumn &&
-                    !!dragState.activeTask &&
-                    hasCrossColumnPreview
-
-                  const isPreview =
-                    isDraggingWithinColumn ||
-                    dragState.dragPreviewItemIds?.includes(
-                      `${task.id}-in-${col.id}`
-                    )
+                {col.tasks?.map((task) => {
+                  const taskDragInfo = getDragStateInfo(task, col.id, dragState)
 
                   return (
                     <KanbanCard
-                      key={`${isPreview ? 'preview-' : ''}${task.id}-in-${col.id}`}
+                      key={taskDragInfo.key}
                       task={{ ...task, columnId: col.id }}
                       onDelete={handleDeleteTask}
-                      disabled={isPreview}
-                      isPreview={isPreview}
-                      isDraggingToAnotherColumn={isCrossColumnSource}
+                      disabled={taskDragInfo.isPreview}
+                      isPreview={taskDragInfo.isPreview}
+                      isDraggingToAnotherColumn={
+                        taskDragInfo.isCrossColumnSource
+                      }
                     />
                   )
                 })}

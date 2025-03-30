@@ -46,12 +46,20 @@ export const KanbanCard: React.FC<KanbanCardProps> = React.memo(
       transition,
       isDragging,
     } = useSortable({
-      id: task?.id,
+      id: task.id,
     })
 
     const cssClasses = [
-      isDraggingToAnotherColumn ? 'cross-column-source' : '',
-      isPreview && !isDraggingToAnotherColumn ? 'preview-card' : '',
+      isDraggingToAnotherColumn
+        ? 'cross-column-source'
+        : isPreview
+          ? 'preview-card'
+          : '',
+
+      isPreview && !isDraggingToAnotherColumn && !isDragging
+        ? 'preview-animation'
+        : '',
+
       isDragging ? 'is-dragging' : '',
     ]
       .filter(Boolean)
@@ -69,7 +77,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = React.memo(
 
     const handleTaskDelete = (e: React.MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation()
-      onDelete(task?.columnId, task?.id)
+      onDelete(task.columnId, task.id)
     }
 
     return (
@@ -79,14 +87,11 @@ export const KanbanCard: React.FC<KanbanCardProps> = React.memo(
         className={cssClasses}
         {...attributes}
         {...listeners}
-        key={task?.id}
-        id={`task-${task?.id}`}
         p={4}
         bg={cardBg}
         borderRadius='md'
         boxShadow='sm'
         _hover={{ boxShadow: 'md' }}
-        position={isDragging ? 'relative' : undefined}
         sx={{
           '&.cross-column-source': {
             borderColor: 'orange.500',
@@ -99,22 +104,29 @@ export const KanbanCard: React.FC<KanbanCardProps> = React.memo(
             borderStyle: 'dashed',
             bg: `${cardBg} !important`,
           },
+          '&.preview-animation': {
+            animation: 'fadeIn 0.3s ease-in-out',
+          },
           '&.is-dragging': {
             boxShadow: 'lg',
+          },
+          '@keyframes fadeIn': {
+            '0%': { opacity: 0, transform: 'translateY(10px)' },
+            '100%': { opacity: 1, transform: 'translateY(0)' },
           },
         }}
       >
         <HStack justify='space-between' mb={2}>
-          <Heading size='sm'>{task?.title}</Heading>
-          {task?.priority && (
-            <Badge colorScheme={badgeColorMap[task?.priority]}>
-              {task?.priority}
+          <Heading size='sm'>{task.title}</Heading>
+          {task.priority && (
+            <Badge colorScheme={badgeColorMap[task.priority]}>
+              {task.priority}
             </Badge>
           )}
         </HStack>
 
         <Text fontSize='sm' color='gray.500'>
-          {task?.description}
+          {task.description}
         </Text>
 
         <HStack mt={2} justify='flex-end'>
