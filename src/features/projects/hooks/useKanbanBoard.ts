@@ -5,8 +5,6 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
-  Active,
-  Over,
   DragOverEvent,
 } from '@dnd-kit/core'
 import { throttle } from 'lodash'
@@ -40,7 +38,7 @@ export function useKanbanBoard(project: Project | undefined) {
   const {
     state: dragState,
     overlay: draggedTaskForOverlay,
-    handlers: { handleDragStart, resetDragState },
+    handlers: { handleDragStart, resetDragState, identifyDragElements },
     dispatch,
   } = useDragAndDrop(localColumns)
 
@@ -102,47 +100,6 @@ export function useKanbanBoard(project: Project | undefined) {
       })
     } catch (error) {
       console.error('Error deleting task', error)
-    }
-  }
-
-  const identifyDragElements = (
-    active: Active,
-    over: Over | null,
-    columns: KanbanColumn[],
-    draggedTask: KanbanTask
-  ): {
-    activeTaskId: string
-    sourceColumnId: string
-    targetColumnId: string
-    draggedOverTaskIndex: number
-  } => {
-    const activeTaskId = active?.id?.toString()
-    const draggedOverItemId = over?.id?.toString()
-    const sourceColumnId = draggedTask.columnId
-
-    let targetColumnId: string = ''
-    let draggedOverTaskIndex: number = -1
-
-    if (draggedOverItemId?.startsWith('column-')) {
-      targetColumnId = draggedOverItemId?.replace('column-', '')
-    } else {
-      for (const column of columns) {
-        const taskIndex = column?.tasks?.findIndex(
-          (task: KanbanTask) => task?.id === draggedOverItemId
-        )
-        if (taskIndex !== -1) {
-          targetColumnId = column?.id
-          draggedOverTaskIndex = taskIndex
-          break
-        }
-      }
-    }
-
-    return {
-      activeTaskId,
-      sourceColumnId,
-      targetColumnId: targetColumnId,
-      draggedOverTaskIndex: draggedOverTaskIndex,
     }
   }
 
@@ -255,12 +212,11 @@ export function useKanbanBoard(project: Project | undefined) {
       draggedOverTaskIndex,
     } = identifyDragElements(active, over, localColumns, dragState.activeTask)
 
-    if (sourceColumnId && targetColumnId && sourceColumnId !== targetColumnId) {
+    if (!sourceColumnId || !targetColumnId) return
+
+    if (sourceColumnId !== targetColumnId) {
       handleCrossColumnMove(sourceColumnId, targetColumnId, activeTaskId)
-    } else if (
-      sourceColumnId === targetColumnId &&
-      draggedOverTaskIndex !== undefined
-    ) {
+    } else if (draggedOverTaskIndex !== -1) {
       handleWithinColumnReorder(
         sourceColumnId,
         activeTaskId,
@@ -273,7 +229,13 @@ export function useKanbanBoard(project: Project | undefined) {
     () =>
       throttle((event: DragOverEvent): void => {
         const { active, over } = event
-        if (!over || !active || !dragState.activeTask) return
+        if (!active || !dragState.activeTask) return
+
+        if (!over) {
+          dispatch({ type: 'CLEAR_PREVIEWS' })
+          setLocalColumns(cleanColumns)
+          return
+        }
 
         const activeTaskId = active.id.toString()
         const overId = over.id.toString()
@@ -283,7 +245,7 @@ export function useKanbanBoard(project: Project | undefined) {
         const targetColumnId = overId.startsWith('column-')
           ? overId.replace('column-', '')
           : localColumns.find((column) =>
-              column.tasks?.some((task) => task.id === overId)
+              column.tasks.some((task) => task.id === overId)
             )?.id || ''
 
         dispatch({ type: 'CLEAR_PREVIEWS' })

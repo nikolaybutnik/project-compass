@@ -1,6 +1,6 @@
 import { useReducer, useRef } from 'react'
 import { KanbanTask, KanbanColumn } from '@/shared/types'
-import { DragStartEvent } from '@dnd-kit/core'
+import { Active, DragStartEvent, Over } from '@dnd-kit/core'
 
 export interface DragState {
   activeTask: KanbanTask | null
@@ -46,6 +46,57 @@ function dragReducer(state: DragState, action: DragAction): DragState {
   }
 }
 
+const identifyDragElements = (
+  active: Active,
+  over: Over | null,
+  columns: KanbanColumn[],
+  draggedTask: KanbanTask
+): {
+  activeTaskId: string
+  sourceColumnId: string
+  targetColumnId: string
+  draggedOverTaskIndex: number
+} => {
+  const activeTaskId = active?.id?.toString()
+  const sourceColumnId = draggedTask.columnId
+
+  let targetColumnId: string = ''
+  let draggedOverTaskIndex: number = -1
+
+  if (!over) {
+    return {
+      activeTaskId,
+      sourceColumnId,
+      targetColumnId,
+      draggedOverTaskIndex,
+    }
+  }
+
+  const draggedOverItemId = over?.id?.toString()
+
+  if (draggedOverItemId?.startsWith('column-')) {
+    targetColumnId = draggedOverItemId?.replace('column-', '')
+  } else {
+    const targetColumn = columns.find((column) =>
+      column.tasks.some((task) => task.id === draggedOverItemId)
+    )
+
+    if (targetColumn) {
+      targetColumnId = targetColumn.id
+      draggedOverTaskIndex = targetColumn.tasks.findIndex(
+        (task) => task.id === draggedOverItemId
+      )
+    }
+  }
+
+  return {
+    activeTaskId,
+    sourceColumnId,
+    targetColumnId,
+    draggedOverTaskIndex,
+  }
+}
+
 export function useDragAndDrop(columns: KanbanColumn[] = []) {
   const [dragState, dispatch] = useReducer(dragReducer, initialDragState)
   const draggedTaskForOverlay = useRef<KanbanTask | null>(null)
@@ -85,6 +136,8 @@ export function useDragAndDrop(columns: KanbanColumn[] = []) {
       handleDragOver: () => {},
       handleDragEnd: () => {},
       resetDragState,
+      // TEMPORARY
+      identifyDragElements,
     },
     dispatch,
   }
