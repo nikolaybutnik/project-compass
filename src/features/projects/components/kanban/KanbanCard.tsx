@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { KanbanTask } from '@/shared/types'
 import {
   Badge,
@@ -18,59 +18,65 @@ interface KanbanCardProps {
   isDragOverlay?: boolean
   disabled?: boolean
   isPreview?: boolean
-  style?: React.CSSProperties
+  isDraggingToAnotherColumn?: boolean
 }
 
-export const KanbanCard: React.FC<KanbanCardProps> = ({
-  task,
-  onDelete,
-  isDragOverlay = false,
-  disabled = false,
-  isPreview = false,
-  style = {},
-}) => {
-  const cardBg = useColorModeValue('white', 'gray.600')
-  const badgeColorMap = {
-    high: 'red',
-    medium: 'orange',
-    low: 'green',
-    urgent: 'purple',
-  }
+export const KanbanCard: React.FC<KanbanCardProps> = React.memo(
+  ({
+    task,
+    onDelete,
+    isDragOverlay = false,
+    disabled = false,
+    isPreview = false,
+    isDraggingToAnotherColumn = false,
+  }) => {
+    const cardBg = useColorModeValue('white', 'gray.600')
+    const badgeColorMap = {
+      high: 'red',
+      medium: 'orange',
+      low: 'green',
+      urgent: 'purple',
+    }
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: task?.id,
-  })
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({
+      id: task?.id,
+    })
 
-  const cardStyle = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 999 : 'auto',
-    cursor: isDragOverlay ? 'grabbing' : 'grab',
-    ...(isPreview && {
-      border: '2px dashed blue',
-      background: cardBg,
-    }),
-    ...style,
-  }
+    const cssClasses = [
+      isDraggingToAnotherColumn ? 'cross-column-source' : '',
+      isPreview && !isDraggingToAnotherColumn ? 'preview-card' : '',
+      isDragging ? 'is-dragging' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
 
-  const handleTaskDelete = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation()
-    onDelete(task?.columnId, task?.id)
-  }
+    const cardStyle = {
+      transform: CSS.Transform.toString(transform),
+      transition: isDragging
+        ? `${transition}, border-color 0.2s, opacity 0.2s`
+        : transition,
+      opacity: isDragging ? 0.5 : 1,
+      zIndex: isDragging ? 999 : 'auto',
+      cursor: isDragOverlay ? 'grabbing' : 'grab',
+    }
 
-  return (
-    <>
+    const handleTaskDelete = (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation()
+      onDelete(task?.columnId, task?.id)
+    }
+
+    return (
       <Box
         ref={setNodeRef}
         style={cardStyle}
+        className={cssClasses}
         {...attributes}
         {...listeners}
         key={task?.id}
@@ -81,6 +87,22 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
         boxShadow='sm'
         _hover={{ boxShadow: 'md' }}
         position={isDragging ? 'relative' : undefined}
+        sx={{
+          '&.cross-column-source': {
+            borderColor: 'orange.500',
+            borderWidth: '2px',
+            borderStyle: 'dashed',
+          },
+          '&.preview-card': {
+            borderColor: 'blue.400',
+            borderWidth: '2px',
+            borderStyle: 'dashed',
+            bg: `${cardBg} !important`,
+          },
+          '&.is-dragging': {
+            boxShadow: 'lg',
+          },
+        }}
       >
         <HStack justify='space-between' mb={2}>
           <Heading size='sm'>{task?.title}</Heading>
@@ -107,6 +129,6 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
           </Button>
         </HStack>
       </Box>
-    </>
-  )
-}
+    )
+  }
+)

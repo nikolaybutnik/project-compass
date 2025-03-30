@@ -116,8 +116,9 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
                       id?.includes(previewId)
                     )
                   const isCrossColumnSource =
-                    isDraggingWithinColumn &&
-                    dragState.activeTask &&
+                    isBeingDragged &&
+                    isInActiveColumn &&
+                    !!dragState.activeTask &&
                     hasCrossColumnPreview
 
                   const isPreview =
@@ -126,10 +127,6 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
                       `${task.id}-in-${col.id}`
                     )
 
-                  const taskStyle = isCrossColumnSource
-                    ? { border: '2px dashed orange' }
-                    : undefined
-
                   return (
                     <KanbanCard
                       key={`${isPreview ? 'preview-' : ''}${task.id}-in-${col.id}`}
@@ -137,7 +134,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
                       onDelete={handleDeleteTask}
                       disabled={isPreview}
                       isPreview={isPreview}
-                      style={taskStyle}
+                      isDraggingToAnotherColumn={isCrossColumnSource}
                     />
                   )
                 })}

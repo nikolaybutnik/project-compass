@@ -5,10 +5,11 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
-  DragOverEvent,
   Active,
   Over,
+  DragOverEvent,
 } from '@dnd-kit/core'
+import { throttle } from 'lodash'
 
 import { KanbanTask, Project, KanbanColumn } from '@/shared/types'
 import {
@@ -259,57 +260,90 @@ export function useKanbanBoard(project: Project | undefined) {
     }
   }
 
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event
-    if (!over || !active || !dragState.activeTask) return
+  const handleDragOver = useMemo(
+    () =>
+      throttle((event: DragOverEvent): void => {
+        const { active, over } = event
+        if (!over || !active || !dragState.activeTask) return
 
-    const activeTaskId = active.id.toString()
-    const overId = over.id.toString()
-    const sourceColumnId = dragState.activeTask.columnId
-    const isOverOriginalPosition = activeTaskId === overId
+        const activeTaskId = active.id.toString()
+        const overId = over.id.toString()
+        const sourceColumnId = dragState.activeTask.columnId
+        const isOverOriginalPosition = activeTaskId === overId
 
-    const targetColumnId = overId.startsWith('column-')
-      ? overId.replace('column-', '')
-      : localColumns.find((column) =>
-          column.tasks?.some((task) => task.id === overId)
-        )?.id || ''
+        const targetColumnId = overId.startsWith('column-')
+          ? overId.replace('column-', '')
+          : localColumns.find((column) =>
+              column.tasks?.some((task) => task.id === overId)
+            )?.id || ''
 
-    dispatch({ type: 'CLEAR_PREVIEWS' })
+        dispatch({ type: 'CLEAR_PREVIEWS' })
 
-    if (
-      !targetColumnId ||
-      sourceColumnId === targetColumnId ||
-      isOverOriginalPosition
-    ) {
-      setLocalColumns(cleanColumns)
-      return
-    }
+        if (
+          !targetColumnId ||
+          sourceColumnId === targetColumnId ||
+          isOverOriginalPosition
+        ) {
+          setLocalColumns(cleanColumns)
+          return
+        }
 
-    const targetCol = cleanColumns?.find((col) => col.id === targetColumnId)
-    if (targetCol && dragState.activeTask) {
-      const previewTask = {
-        ...dragState.activeTask,
-        id: `preview-${dragState.activeTask.id}`,
-        columnId: targetColumnId,
-      }
+        if (dragState.activeTask) {
+          const previewTask = {
+            ...dragState.activeTask,
+            id: `preview-${dragState.activeTask.id}`,
+            columnId: targetColumnId,
+          }
 
-      // TODO: instead of pushing, insert and live preview the tasks
-      targetCol.tasks.push(previewTask)
+          updateTargetColumnWithPreview(targetColumnId, previewTask)
 
-      dispatch({
-        type: 'SET_PREVIEW',
-        payload: {
-          previewId: `preview-${dragState.activeTask.id}-in-${targetColumnId}`,
-        },
-      })
-    }
-
-    setLocalColumns(cleanColumns)
-  }
+          dispatch({
+            type: 'SET_PREVIEW',
+            payload: {
+              previewId: `preview-${dragState.activeTask.id}-in-${targetColumnId}`,
+            },
+          })
+        }
+      }, 50),
+    [dragState.activeTask, localColumns]
+  )
 
   const closeAddTaskModal = () => {
     setIsAddTaskModalOpen(false)
     setActiveColumnId(null)
+  }
+
+  const updateTargetColumnWithPreview = (
+    targetColumnId: string,
+    previewTask: KanbanTask
+  ): void => {
+    setLocalColumns((prevColumns: KanbanColumn[]) => {
+      const targetIndex = prevColumns.findIndex(
+        (col: KanbanColumn) => col.id === targetColumnId
+      )
+      if (targetIndex === -1) return prevColumns
+
+      return prevColumns.map((col: KanbanColumn, index: number) => {
+        if (index === targetIndex) {
+          return {
+            ...col,
+            tasks: [
+              ...col.tasks.filter(
+                (task: KanbanTask) => !task.id.toString().startsWith('preview-')
+              ),
+              previewTask,
+            ],
+          }
+        }
+
+        return {
+          ...col,
+          tasks: col.tasks.filter(
+            (task: KanbanTask) => !task.id.toString().startsWith('preview-')
+          ),
+        }
+      })
+    })
   }
 
   return {
