@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   KeyboardSensor,
   PointerSensor,
@@ -7,7 +7,6 @@ import {
   DragEndEvent,
   DragOverEvent,
 } from '@dnd-kit/core'
-import { throttle } from 'lodash'
 
 import { KanbanTask, Project, KanbanColumn } from '@/shared/types'
 import {
@@ -55,6 +54,8 @@ export function useKanbanBoard(project: Project | undefined) {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   )
+
+  const lastDragTimeRef = useRef(0)
 
   useEffect(() => {
     if (!project?.kanban.columns || isUpdating) return
@@ -257,6 +258,13 @@ export function useKanbanBoard(project: Project | undefined) {
 
   const handleDragOver = useCallback(
     (event: DragOverEvent): void => {
+      // Throttle
+      const now = Date.now()
+      if (now - lastDragTimeRef.current < 45) {
+        return
+      }
+      lastDragTimeRef.current = now
+
       const { active, over } = event
       if (!active || !dragState.activeTask) return
 
@@ -312,12 +320,6 @@ export function useKanbanBoard(project: Project | undefined) {
       cleanColumns,
       updateTargetColumnWithPreview,
     ]
-  )
-
-  // Apply throttling in a separate step to maintain throttle behavior
-  const throttledDragOver = useMemo(
-    () => throttle(handleDragOver, 50),
-    [handleDragOver]
   )
 
   const closeAddTaskModal = () => {
