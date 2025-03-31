@@ -236,81 +236,93 @@ export function useKanbanBoard(project: Project | undefined) {
     }
   }
 
-  const handleDragOver = useMemo(
-    () =>
-      throttle((event: DragOverEvent): void => {
-        const { active, over } = event
-        if (!active || !dragState.activeTask) return
+  const updateTargetColumnWithPreview = useCallback(
+    (targetColumnId: string, previewTask: KanbanTask) => {
+      setLocalColumns((prevColumns) => {
+        const cleanCols = removePreviewTasks(prevColumns)
 
-        if (!over) {
-          dispatch({ type: 'CLEAR_PREVIEWS' })
-          setLocalColumns(cleanColumns)
-          return
-        }
-
-        const activeTaskId = active.id.toString()
-        const overId = over.id.toString()
-        const sourceColumnId = dragState.activeTask.columnId
-        const isOverOriginalPosition = activeTaskId === overId
-
-        const targetColumnId = overId.startsWith('column-')
-          ? overId.replace('column-', '')
-          : localColumns.find((column) =>
-              column.tasks.some((task) => task.id === overId)
-            )?.id || ''
-
-        dispatch({ type: 'CLEAR_PREVIEWS' })
-
-        if (
-          !targetColumnId ||
-          sourceColumnId === targetColumnId ||
-          isOverOriginalPosition
-        ) {
-          setLocalColumns(cleanColumns)
-          return
-        }
-
-        if (dragState.activeTask) {
-          const previewTask = {
-            ...dragState.activeTask,
-            id: `preview-${dragState.activeTask.id}`,
-            columnId: targetColumnId,
+        return cleanCols.map((col) => {
+          if (col.id === targetColumnId) {
+            return {
+              ...col,
+              tasks: [...col.tasks, previewTask],
+            }
           }
+          return col
+        })
+      })
+    },
+    [removePreviewTasks]
+  )
 
-          updateTargetColumnWithPreview(targetColumnId, previewTask)
+  const handleDragOver = useCallback(
+    (event: DragOverEvent): void => {
+      const { active, over } = event
+      if (!active || !dragState.activeTask) return
 
-          dispatch({
-            type: 'SET_PREVIEW',
-            payload: {
-              previewId: `preview-${dragState.activeTask.id}-in-${targetColumnId}`,
-            },
-          })
+      if (!over) {
+        dispatch({ type: 'CLEAR_PREVIEWS' })
+        setLocalColumns(cleanColumns)
+        return
+      }
+
+      const activeTaskId = active.id.toString()
+      const overId = over.id.toString()
+      const sourceColumnId = dragState.activeTask.columnId
+      const isOverOriginalPosition = activeTaskId === overId
+
+      const targetColumnId = overId.startsWith('column-')
+        ? overId.replace('column-', '')
+        : localColumns.find((column) =>
+            column.tasks.some((task) => task.id === overId)
+          )?.id || ''
+
+      dispatch({ type: 'CLEAR_PREVIEWS' })
+
+      if (
+        !targetColumnId ||
+        sourceColumnId === targetColumnId ||
+        isOverOriginalPosition
+      ) {
+        setLocalColumns(cleanColumns)
+        return
+      }
+
+      if (dragState.activeTask) {
+        const previewTask = {
+          ...dragState.activeTask,
+          id: `preview-${dragState.activeTask.id}`,
+          columnId: targetColumnId,
         }
-      }, 50),
-    [dragState.activeTask, localColumns]
+
+        updateTargetColumnWithPreview(targetColumnId, previewTask)
+
+        dispatch({
+          type: 'SET_PREVIEW',
+          payload: {
+            previewId: `preview-${dragState.activeTask.id}-in-${targetColumnId}`,
+          },
+        })
+      }
+    },
+    [
+      dragState.activeTask,
+      localColumns,
+      dispatch,
+      cleanColumns,
+      updateTargetColumnWithPreview,
+    ]
+  )
+
+  // Apply throttling in a separate step to maintain throttle behavior
+  const throttledDragOver = useMemo(
+    () => throttle(handleDragOver, 50),
+    [handleDragOver]
   )
 
   const closeAddTaskModal = () => {
     setIsAddTaskModalOpen(false)
     setActiveColumnId(null)
-  }
-  const updateTargetColumnWithPreview = (
-    targetColumnId: string,
-    previewTask: KanbanTask
-  ) => {
-    setLocalColumns((prevColumns) => {
-      const cleanCols = removePreviewTasks(prevColumns)
-
-      return cleanCols.map((col) => {
-        if (col.id === targetColumnId) {
-          return {
-            ...col,
-            tasks: [...col.tasks, previewTask],
-          }
-        }
-        return col
-      })
-    })
   }
 
   const getDragStateInfo = (
