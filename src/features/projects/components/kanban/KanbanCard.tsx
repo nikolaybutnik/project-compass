@@ -72,7 +72,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = React.memo(
         : transition,
       opacity: isDragging ? 0.5 : 1,
       zIndex: isDragging ? 999 : 'auto',
-      cursor: isDragOverlay ? 'grabbing' : 'grab',
+      cursor: isDragOverlay ? 'grabbing' : 'pointer',
     }
 
     const handleTaskDelete = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -103,6 +103,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = React.memo(
             borderWidth: '2px',
             borderStyle: 'dashed',
             bg: `${cardBg} !important`,
+            opacity: '0.5 !important',
           },
           '&.preview-animation': {
             animation: 'fadeIn 0.3s ease-in-out',
