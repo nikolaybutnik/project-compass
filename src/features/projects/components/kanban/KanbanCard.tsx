@@ -67,10 +67,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = React.memo(
 
     const cardStyle = {
       transform: CSS.Transform.toString(transform),
-      transition: isDragging
-        ? `${transition}, border-color 0.2s, opacity 0.2s`
-        : transition,
-      opacity: isDragging ? 0.5 : 1,
+      transition: `${transition}, border-color 300ms, box-shadow 300ms`,
       zIndex: isDragging ? 999 : 'auto',
       cursor: isDragOverlay ? 'grabbing' : 'pointer',
     }
@@ -105,15 +102,29 @@ export const KanbanCard: React.FC<KanbanCardProps> = React.memo(
             bg: `${cardBg} !important`,
             opacity: '0.5 !important',
           },
-          '&.preview-animation': {
-            animation: 'fadeIn 0.3s ease-in-out',
-          },
           '&.is-dragging': {
             boxShadow: 'lg',
+            opacity: '0.5 !important',
           },
-          '@keyframes fadeIn': {
-            '0%': { opacity: 0, transform: 'translateY(10px)' },
-            '100%': { opacity: 1, transform: 'translateY(0)' },
+          '&.task-enter': {
+            opacity: '0 !important',
+            transform: 'translateY(10px)',
+          },
+          '&.task-enter-active': {
+            opacity: isDragging
+              ? '0.5 !important'
+              : isPreview
+                ? '0.5 !important'
+                : '1 !important',
+            transform: 'translateY(0)',
+            transition: 'opacity 300ms, transform 300ms',
+          },
+          '&.task-exit': {
+            opacity: '0.5 !important',
+          },
+          '&.task-exit-active': {
+            opacity: '0 !important',
+            transition: 'opacity 300ms ease-out',
           },
         }}
       >

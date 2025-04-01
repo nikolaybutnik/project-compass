@@ -18,9 +18,18 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useDragAndDrop } from '@/features/projects/hooks/useDragAndDrop'
 
-/*
- * This hook is used to manage the Kanban board. Focus is on business logic related to the Kanban board.
- * It uses the useDragAndDrop hook to handle the drag and drop functionality.
+/**
+ * useKanbanBoard - Business logic
+ * SHOULD handle:
+ * - Columns/tasks data management
+ * - API/mutation calls
+ * - UI state (modals, loading)
+ * - Business rules for task movement
+ *
+ * SHOULD NOT handle:
+ * - Raw drag event processing
+ * - Throttling
+ * - Drag state management
  */
 export function useKanbanBoard(project: Project | undefined) {
   // State management
@@ -54,8 +63,6 @@ export function useKanbanBoard(project: Project | undefined) {
     })
   )
 
-  const lastDragTimeRef = useRef(0)
-
   useEffect(() => {
     if (!project?.kanban.columns || isUpdating) return
 
@@ -80,10 +87,29 @@ export function useKanbanBoard(project: Project | undefined) {
     []
   )
 
-  const cleanColumns = useMemo(
-    () => removePreviewTasks(localColumns),
-    [localColumns, removePreviewTasks]
-  )
+  // Updates UI with task previews during drag operations for immediate visual feedback
+  // Avoid reliance on localColumns to avoid unnecessary re-renders
+  useEffect(() => {
+    if (!localColumns.length) return
+
+    setLocalColumns((currentColumns) => {
+      const cleanColumns = removePreviewTasks(currentColumns)
+
+      if (dragState.preview) {
+        return cleanColumns.map((col) => {
+          if (col.id === dragState.preview?.targetColumnId) {
+            return {
+              ...col,
+              tasks: [...col.tasks, dragState.preview.task],
+            }
+          }
+          return col
+        })
+      } else {
+        return cleanColumns
+      }
+    })
+  }, [dragState.preview, removePreviewTasks])
 
   const handleAddTask = async (columnId: string): Promise<void> => {
     setActiveColumnId(columnId)
@@ -235,35 +261,6 @@ export function useKanbanBoard(project: Project | undefined) {
     })
   }
 
-  const handleDragOver = useCallback(
-    (event: DragOverEvent) => {
-      // Throttle
-      const now = Date.now()
-      if (now - lastDragTimeRef.current < 45) return
-      lastDragTimeRef.current = now
-
-      dndHandlers.handleDragOver(event, {
-        onColumnPreview: (targetColumnId, task) => {
-          const previewTask = {
-            ...task,
-            id: `preview-${task.id}`,
-            columnId: targetColumnId,
-          }
-          updateTargetColumnWithPreview(targetColumnId, previewTask)
-        },
-        onClearPreviews: () => {
-          setLocalColumns(cleanColumns)
-        },
-      })
-    },
-    [
-      localColumns,
-      cleanColumns,
-      updateTargetColumnWithPreview,
-      dndHandlers.handleDragOver,
-    ]
-  )
-
   const closeAddTaskModal = () => {
     setIsAddTaskModalOpen(false)
     setActiveColumnId(null)
@@ -279,7 +276,7 @@ export function useKanbanBoard(project: Project | undefined) {
     // DND handlers
     sensors,
     handleDragStart: dndHandlers.handleDragStart,
-    handleDragOver,
+    handleDragOver: dndHandlers.handleDragOver,
     handleDragEnd,
     getDragStateInfo: dndHandlers.getDragStateInfo,
 

@@ -10,7 +10,15 @@ import {
 
 export interface DragState {
   activeTask: KanbanTask | null
-  dragPreviewItemIds: string[]
+  preview: {
+    id: string
+    task: KanbanTask
+    targetColumnId: string
+  } | null
+}
+
+export interface DragStartCallbacks {
+  onTaskDragStart?: (task: KanbanTask) => void
 }
 
 export interface DragEndCallbacks {
@@ -26,11 +34,6 @@ export interface DragEndCallbacks {
   ) => void
 }
 
-export interface DragOverCallbacks {
-  onColumnPreview: (targetColumnId: string, task: KanbanTask) => void
-  onClearPreviews: () => void
-}
-
 interface TaskDragInfo {
   key: string
   isPreview: boolean
@@ -39,38 +42,52 @@ interface TaskDragInfo {
 
 const initialDragState: DragState = {
   activeTask: null,
-  dragPreviewItemIds: [],
+  preview: null,
+}
+
+enum DragActionType {
+  START_DRAG = 'START_DRAG',
+  CLEAR_PREVIEWS = 'CLEAR_PREVIEWS',
+  SET_PREVIEW = 'SET_PREVIEW',
+  END_DRAG = 'END_DRAG',
 }
 
 type DragAction =
-  | { type: 'START_DRAG'; payload: { task: KanbanTask } }
-  | { type: 'CLEAR_PREVIEWS' }
-  | { type: 'SET_PREVIEW'; payload: { previewId: string } }
-  | { type: 'END_DRAG' }
+  | { type: DragActionType.START_DRAG; payload: { task: KanbanTask } }
+  | { type: DragActionType.CLEAR_PREVIEWS }
+  | {
+      type: DragActionType.SET_PREVIEW
+      payload: {
+        previewId: string
+        previewTask: KanbanTask
+        targetColumnId: string
+      }
+    }
+  | { type: DragActionType.END_DRAG }
 
 function dragReducer(state: DragState, action: DragAction): DragState {
   switch (action.type) {
-    case 'START_DRAG':
+    case DragActionType.START_DRAG:
       return {
         ...state,
         activeTask: action.payload.task,
       }
-    case 'CLEAR_PREVIEWS':
+    case DragActionType.CLEAR_PREVIEWS:
       return {
         ...state,
-        dragPreviewItemIds: [],
+        preview: null,
       }
-    case 'SET_PREVIEW':
+    case DragActionType.SET_PREVIEW:
       return {
         ...state,
-        dragPreviewItemIds: [action.payload.previewId],
+        preview: {
+          id: action.payload.previewId,
+          task: action.payload.previewTask,
+          targetColumnId: action.payload.targetColumnId,
+        },
       }
-    case 'END_DRAG':
-      return {
-        ...state,
-        activeTask: null,
-        dragPreviewItemIds: [],
-      }
+    case DragActionType.END_DRAG:
+      return initialDragState
     default:
       return state
   }
@@ -128,8 +145,17 @@ const identifyDragElements = (
 }
 
 /**
- * This hook is used to manage the drag and drop functionality for the Kanban board.
- * Focus is on drag-and-drop mechanics and state.
+ * useDragAndDrop - Core drag mechanics
+ * SHOULD handle:
+ * - Drag state management (active item, previews)
+ * - All drag event processing
+ * - Throttling of events
+ * - Drag detection and visualization logic
+ *
+ * SHOULD NOT handle:
+ * - API calls
+ * - Business logic
+ * - Columns data structure
  */
 export function useDragAndDrop(columns: KanbanColumn[] = []) {
   const [dragState, dispatch] = useReducer(dragReducer, initialDragState)
@@ -152,7 +178,10 @@ export function useDragAndDrop(columns: KanbanColumn[] = []) {
     )
 
     if (draggedTask) {
-      dispatch({ type: 'START_DRAG', payload: { task: draggedTask } })
+      dispatch({
+        type: DragActionType.START_DRAG,
+        payload: { task: draggedTask },
+      })
       draggedTaskForOverlay.current = draggedTask
     }
   }
@@ -187,16 +216,12 @@ export function useDragAndDrop(columns: KanbanColumn[] = []) {
     }
   }
 
-  const handleDragOver = (
-    event: DragOverEvent,
-    callbacks: DragOverCallbacks
-  ): void => {
+  const handleDragOver = (event: DragOverEvent): void => {
     const { active, over } = event
     if (!active || !dragState.activeTask) return
 
     if (!over) {
-      dispatch({ type: 'CLEAR_PREVIEWS' })
-      callbacks.onClearPreviews()
+      dispatch({ type: DragActionType.CLEAR_PREVIEWS })
       return
     }
 
@@ -208,24 +233,30 @@ export function useDragAndDrop(columns: KanbanColumn[] = []) {
     )
 
     if (sourceColumnId === targetColumnId) {
-      dispatch({ type: 'CLEAR_PREVIEWS' })
-      callbacks.onClearPreviews()
+      dispatch({ type: DragActionType.CLEAR_PREVIEWS })
       return
     }
 
     if (dragState.activeTask) {
+      const previewTask = {
+        ...dragState.activeTask,
+        id: `preview-${dragState.activeTask.id}`,
+        columnId: targetColumnId,
+      }
+
       dispatch({
-        type: 'SET_PREVIEW',
+        type: DragActionType.SET_PREVIEW,
         payload: {
           previewId: `preview-${dragState.activeTask.id}-in-${targetColumnId}`,
+          previewTask,
+          targetColumnId,
         },
       })
-      callbacks.onColumnPreview(targetColumnId, dragState.activeTask)
     }
   }
 
   const resetDragState = (): void => {
-    dispatch({ type: 'END_DRAG' })
+    dispatch({ type: DragActionType.END_DRAG })
     draggedTaskForOverlay.current = null
   }
 
@@ -237,18 +268,19 @@ export function useDragAndDrop(columns: KanbanColumn[] = []) {
     const isActiveTask = dragState.activeTask?.id === task.id
     const isActiveTaskColumn = dragState.activeTask?.columnId === columnId
 
+    const hasPreviewInOtherColumn =
+      dragState.preview !== null &&
+      dragState.preview.targetColumnId !== dragState.activeTask?.columnId
+
     const isCrossColumnSource =
-      isActiveTask &&
-      isActiveTaskColumn &&
-      dragState.dragPreviewItemIds.some((id) =>
-        id.includes(`preview-${dragState.activeTask?.id}-in-`)
-      )
+      isActiveTask && isActiveTaskColumn && hasPreviewInOtherColumn
 
     const isPreview =
-      // Preview in same column, but NOT the source card
-      (isActiveTask && isActiveTaskColumn && !isCrossColumnSource) ||
-      // Preview in another column
-      dragState.dragPreviewItemIds.includes(`${task.id}-in-${columnId}`)
+      // Cross-column preview task
+      (dragState.preview?.task.id === task.id &&
+        dragState.preview?.targetColumnId === columnId) ||
+      // Within-column active task (should be blue)
+      (isActiveTask && isActiveTaskColumn && !hasPreviewInOtherColumn)
 
     return {
       key: `${isPreview ? 'preview-' : ''}${task.id}-in-${columnId}`,
@@ -267,6 +299,5 @@ export function useDragAndDrop(columns: KanbanColumn[] = []) {
       resetDragState,
       getDragStateInfo,
     },
-    dispatch,
   }
 }
