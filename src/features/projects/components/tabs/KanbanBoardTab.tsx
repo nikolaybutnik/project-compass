@@ -16,16 +16,12 @@ import {
   MeasuringStrategy,
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import {
-  Project,
-  KanbanColumn as KanbanColumnType,
-  KanbanTask,
-} from '@/shared/types'
+import { Project, KanbanColumn as KanbanColumnType } from '@/shared/types'
 import { KanbanCard } from '@/features/projects/components/kanban/KanbanCard'
 import { KanbanColumn } from '@/features/projects/components/kanban/KanbanColumn'
 import { CreateTaskModal } from '@/features/projects/components/kanban/CreateTaskModal'
 import { useKanbanBoard } from '@/features/projects/hooks/useKanbanBoard'
-
+import { useDragAndDrop } from '@/features/projects/hooks/useDragAndDrop'
 interface KanbanBoardTabProps {
   project: Project | undefined
   isLoading: boolean
@@ -56,11 +52,14 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     handleAddTask,
     handleNewTaskSubmit,
     handleDeleteTask,
-    getDragStateInfo,
 
     // Modal handlers
     closeAddTaskModal,
   } = useKanbanBoard(project)
+
+  const {
+    handlers: { getDragStateInfo },
+  } = useDragAndDrop(columns)
 
   if (isLoading) {
     return (

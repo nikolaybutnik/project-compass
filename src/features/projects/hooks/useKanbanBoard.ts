@@ -16,17 +16,12 @@ import {
   useReorderTasksMutation,
 } from '@/shared/store/projectsStore'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import {
-  DragState,
-  useDragAndDrop,
-} from '@/features/projects/hooks/useDragAndDrop'
+import { useDragAndDrop } from '@/features/projects/hooks/useDragAndDrop'
 
-interface TaskDragInfo {
-  key: string
-  isPreview: boolean
-  isCrossColumnSource: boolean
-}
-
+/*
+ * This hook is used to manage the Kanban board. Focus is on business logic related to the Kanban board.
+ * It uses the useDragAndDrop hook to handle the drag and drop functionality.
+ */
 export function useKanbanBoard(project: Project | undefined) {
   // State management
   const [isUpdating, setIsUpdating] = useState(false)
@@ -37,7 +32,7 @@ export function useKanbanBoard(project: Project | undefined) {
   const {
     state: dragState,
     overlay: draggedTaskForOverlay,
-    handlers: { handleDragStart, resetDragState, identifyDragElements },
+    handlers: dndHandlers,
     dispatch,
   } = useDragAndDrop(localColumns)
 
@@ -215,31 +210,11 @@ export function useKanbanBoard(project: Project | undefined) {
     )
   }
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-
-    resetDragState()
-
-    if (!over || !dragState.activeTask) return
-
-    const {
-      activeTaskId,
-      sourceColumnId,
-      targetColumnId,
-      draggedOverTaskIndex,
-    } = identifyDragElements(active, over, localColumns, dragState.activeTask)
-
-    if (!sourceColumnId || !targetColumnId) return
-
-    if (sourceColumnId !== targetColumnId) {
-      handleCrossColumnMove(sourceColumnId, targetColumnId, activeTaskId)
-    } else if (draggedOverTaskIndex !== -1) {
-      handleWithinColumnReorder(
-        sourceColumnId,
-        activeTaskId,
-        draggedOverTaskIndex
-      )
-    }
+  const handleDragEnd = (event: DragEndEvent): void => {
+    dndHandlers.handleDragEnd(event, {
+      onCrossColumnMove: handleCrossColumnMove,
+      onWithinColumnReorder: handleWithinColumnReorder,
+    })
   }
 
   const updateTargetColumnWithPreview = useCallback(
@@ -332,34 +307,6 @@ export function useKanbanBoard(project: Project | undefined) {
     setActiveColumnId(null)
   }
 
-  const getDragStateInfo = (
-    task: KanbanTask,
-    columnId: string,
-    dragState: DragState
-  ): TaskDragInfo => {
-    const isActiveTask = dragState.activeTask?.id === task.id
-    const isActiveTaskColumn = dragState.activeTask?.columnId === columnId
-
-    const isCrossColumnSource =
-      isActiveTask &&
-      isActiveTaskColumn &&
-      dragState.dragPreviewItemIds.some((id) =>
-        id.includes(`preview-${dragState.activeTask?.id}-in-`)
-      )
-
-    const isPreview =
-      // Preview in same column, but NOT the source card
-      (isActiveTask && isActiveTaskColumn && !isCrossColumnSource) ||
-      // Preview in another column
-      dragState.dragPreviewItemIds.includes(`${task.id}-in-${columnId}`)
-
-    return {
-      key: `${isPreview ? 'preview-' : ''}${task.id}-in-${columnId}`,
-      isPreview,
-      isCrossColumnSource,
-    }
-  }
-
   return {
     // States
     columns: localColumns || [],
@@ -369,7 +316,7 @@ export function useKanbanBoard(project: Project | undefined) {
 
     // DND handlers
     sensors,
-    handleDragStart,
+    handleDragStart: dndHandlers.handleDragStart,
     handleDragOver,
     handleDragEnd,
 
@@ -377,7 +324,6 @@ export function useKanbanBoard(project: Project | undefined) {
     handleAddTask,
     handleNewTaskSubmit,
     handleDeleteTask,
-    getDragStateInfo,
 
     // Modal handlers
     closeAddTaskModal,

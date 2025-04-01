@@ -1,10 +1,29 @@
 import { useReducer, useRef } from 'react'
 import { KanbanTask, KanbanColumn } from '@/shared/types'
-import { Active, DragStartEvent, Over } from '@dnd-kit/core'
+import { Active, DragStartEvent, Over, DragEndEvent } from '@dnd-kit/core'
 
 export interface DragState {
   activeTask: KanbanTask | null
   dragPreviewItemIds: string[]
+}
+
+export interface DragEndCallbacks {
+  onCrossColumnMove: (
+    sourceColumnId: string,
+    targetColumnId: string,
+    taskId: string
+  ) => void
+  onWithinColumnReorder: (
+    columnId: string,
+    taskId: string,
+    newIndex: number
+  ) => void
+}
+
+interface TaskDragInfo {
+  key: string
+  isPreview: boolean
+  isCrossColumnSource: boolean
 }
 
 const initialDragState: DragState = {
@@ -97,11 +116,15 @@ const identifyDragElements = (
   }
 }
 
+/**
+ * This hook is used to manage the drag and drop functionality for the Kanban board.
+ * Focus is on drag-and-drop mechanics and state.
+ */
 export function useDragAndDrop(columns: KanbanColumn[] = []) {
   const [dragState, dispatch] = useReducer(dragReducer, initialDragState)
   const draggedTaskForOverlay = useRef<KanbanTask | null>(null)
 
-  const handleDragStart = (event: DragStartEvent) => {
+  const handleDragStart = (event: DragStartEvent): void => {
     const { active } = event
     if (!active) return
 
@@ -123,9 +146,67 @@ export function useDragAndDrop(columns: KanbanColumn[] = []) {
     }
   }
 
-  const resetDragState = () => {
+  const handleDragEnd = (
+    event: DragEndEvent,
+    callbacks: DragEndCallbacks
+  ): void => {
+    const { active, over } = event
+
+    resetDragState()
+
+    if (!over || !dragState.activeTask) return
+
+    const {
+      activeTaskId,
+      sourceColumnId,
+      targetColumnId,
+      draggedOverTaskIndex,
+    } = identifyDragElements(active, over, columns, dragState.activeTask)
+
+    if (!sourceColumnId || !targetColumnId) return
+
+    if (sourceColumnId !== targetColumnId) {
+      callbacks.onCrossColumnMove(sourceColumnId, targetColumnId, activeTaskId)
+    } else if (draggedOverTaskIndex !== -1) {
+      callbacks.onWithinColumnReorder(
+        sourceColumnId,
+        activeTaskId,
+        draggedOverTaskIndex
+      )
+    }
+  }
+
+  const resetDragState = (): void => {
     dispatch({ type: 'END_DRAG' })
     draggedTaskForOverlay.current = null
+  }
+
+  const getDragStateInfo = (
+    task: KanbanTask,
+    columnId: string,
+    dragState: DragState
+  ): TaskDragInfo => {
+    const isActiveTask = dragState.activeTask?.id === task.id
+    const isActiveTaskColumn = dragState.activeTask?.columnId === columnId
+
+    const isCrossColumnSource =
+      isActiveTask &&
+      isActiveTaskColumn &&
+      dragState.dragPreviewItemIds.some((id) =>
+        id.includes(`preview-${dragState.activeTask?.id}-in-`)
+      )
+
+    const isPreview =
+      // Preview in same column, but NOT the source card
+      (isActiveTask && isActiveTaskColumn && !isCrossColumnSource) ||
+      // Preview in another column
+      dragState.dragPreviewItemIds.includes(`${task.id}-in-${columnId}`)
+
+    return {
+      key: `${isPreview ? 'preview-' : ''}${task.id}-in-${columnId}`,
+      isPreview,
+      isCrossColumnSource,
+    }
   }
 
   return {
@@ -134,10 +215,9 @@ export function useDragAndDrop(columns: KanbanColumn[] = []) {
     handlers: {
       handleDragStart,
       handleDragOver: () => {},
-      handleDragEnd: () => {},
+      handleDragEnd,
       resetDragState,
-      // TEMPORARY
-      identifyDragElements,
+      getDragStateInfo,
     },
     dispatch,
   }
