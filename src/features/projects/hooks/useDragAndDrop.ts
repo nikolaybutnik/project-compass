@@ -1,6 +1,12 @@
 import { useReducer, useRef } from 'react'
 import { KanbanTask, KanbanColumn } from '@/shared/types'
-import { Active, DragStartEvent, Over, DragEndEvent } from '@dnd-kit/core'
+import {
+  Active,
+  DragStartEvent,
+  Over,
+  DragEndEvent,
+  DragOverEvent,
+} from '@dnd-kit/core'
 
 export interface DragState {
   activeTask: KanbanTask | null
@@ -18,6 +24,11 @@ export interface DragEndCallbacks {
     taskId: string,
     newIndex: number
   ) => void
+}
+
+export interface DragOverCallbacks {
+  onColumnPreview: (targetColumnId: string, task: KanbanTask) => void
+  onClearPreviews: () => void
 }
 
 interface TaskDragInfo {
@@ -176,6 +187,43 @@ export function useDragAndDrop(columns: KanbanColumn[] = []) {
     }
   }
 
+  const handleDragOver = (
+    event: DragOverEvent,
+    callbacks: DragOverCallbacks
+  ): void => {
+    const { active, over } = event
+    if (!active || !dragState.activeTask) return
+
+    if (!over) {
+      dispatch({ type: 'CLEAR_PREVIEWS' })
+      callbacks.onClearPreviews()
+      return
+    }
+
+    const { sourceColumnId, targetColumnId } = identifyDragElements(
+      active,
+      over,
+      columns,
+      dragState.activeTask
+    )
+
+    if (sourceColumnId === targetColumnId) {
+      dispatch({ type: 'CLEAR_PREVIEWS' })
+      callbacks.onClearPreviews()
+      return
+    }
+
+    if (dragState.activeTask) {
+      dispatch({
+        type: 'SET_PREVIEW',
+        payload: {
+          previewId: `preview-${dragState.activeTask.id}-in-${targetColumnId}`,
+        },
+      })
+      callbacks.onColumnPreview(targetColumnId, dragState.activeTask)
+    }
+  }
+
   const resetDragState = (): void => {
     dispatch({ type: 'END_DRAG' })
     draggedTaskForOverlay.current = null
@@ -214,7 +262,7 @@ export function useDragAndDrop(columns: KanbanColumn[] = []) {
     overlay: draggedTaskForOverlay,
     handlers: {
       handleDragStart,
-      handleDragOver: () => {},
+      handleDragOver,
       handleDragEnd,
       resetDragState,
       getDragStateInfo,

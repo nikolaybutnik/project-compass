@@ -21,7 +21,7 @@ import { KanbanCard } from '@/features/projects/components/kanban/KanbanCard'
 import { KanbanColumn } from '@/features/projects/components/kanban/KanbanColumn'
 import { CreateTaskModal } from '@/features/projects/components/kanban/CreateTaskModal'
 import { useKanbanBoard } from '@/features/projects/hooks/useKanbanBoard'
-import { useDragAndDrop } from '@/features/projects/hooks/useDragAndDrop'
+
 interface KanbanBoardTabProps {
   project: Project | undefined
   isLoading: boolean
@@ -47,6 +47,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     handleDragStart,
     handleDragOver,
     handleDragEnd,
+    getDragStateInfo,
 
     // Task operations
     handleAddTask,
@@ -56,10 +57,6 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
     // Modal handlers
     closeAddTaskModal,
   } = useKanbanBoard(project)
-
-  const {
-    handlers: { getDragStateInfo },
-  } = useDragAndDrop(columns)
 
   if (isLoading) {
     return (

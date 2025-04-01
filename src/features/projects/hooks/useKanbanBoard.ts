@@ -33,7 +33,6 @@ export function useKanbanBoard(project: Project | undefined) {
     state: dragState,
     overlay: draggedTaskForOverlay,
     handlers: dndHandlers,
-    dispatch,
   } = useDragAndDrop(localColumns)
 
   // Mutations
@@ -164,6 +163,25 @@ export function useKanbanBoard(project: Project | undefined) {
     )
   }
 
+  const updateTargetColumnWithPreview = useCallback(
+    (targetColumnId: string, previewTask: KanbanTask) => {
+      setLocalColumns((prevColumns) => {
+        const cleanCols = removePreviewTasks(prevColumns)
+
+        return cleanCols.map((col) => {
+          if (col.id === targetColumnId) {
+            return {
+              ...col,
+              tasks: [...col.tasks, previewTask],
+            }
+          }
+          return col
+        })
+      })
+    },
+    [removePreviewTasks]
+  )
+
   const handleWithinColumnReorder = (
     columnId: string,
     taskId: string,
@@ -217,88 +235,32 @@ export function useKanbanBoard(project: Project | undefined) {
     })
   }
 
-  const updateTargetColumnWithPreview = useCallback(
-    (targetColumnId: string, previewTask: KanbanTask) => {
-      setLocalColumns((prevColumns) => {
-        const cleanCols = removePreviewTasks(prevColumns)
-
-        return cleanCols.map((col) => {
-          if (col.id === targetColumnId) {
-            return {
-              ...col,
-              tasks: [...col.tasks, previewTask],
-            }
-          }
-          return col
-        })
-      })
-    },
-    [removePreviewTasks]
-  )
-
   const handleDragOver = useCallback(
-    (event: DragOverEvent): void => {
+    (event: DragOverEvent) => {
       // Throttle
       const now = Date.now()
-      if (now - lastDragTimeRef.current < 45) {
-        return
-      }
+      if (now - lastDragTimeRef.current < 45) return
       lastDragTimeRef.current = now
 
-      const { active, over } = event
-      if (!active || !dragState.activeTask) return
-
-      if (!over) {
-        dispatch({ type: 'CLEAR_PREVIEWS' })
-        setLocalColumns(cleanColumns)
-        return
-      }
-
-      const activeTaskId = active.id.toString()
-      const overId = over.id.toString()
-      const sourceColumnId = dragState.activeTask.columnId
-      const isOverOriginalPosition = activeTaskId === overId
-
-      const targetColumnId = overId.startsWith('column-')
-        ? overId.replace('column-', '')
-        : localColumns.find((column) =>
-            column.tasks.some((task) => task.id === overId)
-          )?.id || ''
-
-      dispatch({ type: 'CLEAR_PREVIEWS' })
-
-      if (
-        !targetColumnId ||
-        sourceColumnId === targetColumnId ||
-        isOverOriginalPosition
-      ) {
-        setLocalColumns(cleanColumns)
-        return
-      }
-
-      if (dragState.activeTask) {
-        const previewTask = {
-          ...dragState.activeTask,
-          id: `preview-${dragState.activeTask.id}`,
-          columnId: targetColumnId,
-        }
-
-        updateTargetColumnWithPreview(targetColumnId, previewTask)
-
-        dispatch({
-          type: 'SET_PREVIEW',
-          payload: {
-            previewId: `preview-${dragState.activeTask.id}-in-${targetColumnId}`,
-          },
-        })
-      }
+      dndHandlers.handleDragOver(event, {
+        onColumnPreview: (targetColumnId, task) => {
+          const previewTask = {
+            ...task,
+            id: `preview-${task.id}`,
+            columnId: targetColumnId,
+          }
+          updateTargetColumnWithPreview(targetColumnId, previewTask)
+        },
+        onClearPreviews: () => {
+          setLocalColumns(cleanColumns)
+        },
+      })
     },
     [
-      dragState.activeTask,
       localColumns,
-      dispatch,
       cleanColumns,
       updateTargetColumnWithPreview,
+      dndHandlers.handleDragOver,
     ]
   )
 
@@ -319,6 +281,7 @@ export function useKanbanBoard(project: Project | undefined) {
     handleDragStart: dndHandlers.handleDragStart,
     handleDragOver,
     handleDragEnd,
+    getDragStateInfo: dndHandlers.getDragStateInfo,
 
     // Task operations
     handleAddTask,
