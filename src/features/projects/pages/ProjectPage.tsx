@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import {
-  Box,
   Heading,
   Tabs,
   TabList,
@@ -12,12 +11,18 @@ import {
   Text,
   Badge,
   useToast,
+  Box,
+  VStack,
+  Spinner,
+  Input,
+  useColorModeValue,
 } from '@chakra-ui/react'
 import { useParams } from 'react-router-dom'
 import { KanbanBoardTab } from '@/features/projects/components/tabs/KanbanBoardTab'
 import { useProjectQuery } from '@/shared/store/projectsStore'
 import { useAuth } from '@/shared/store/authStore'
 import { useSetActiveProjectMutation } from '@/shared/store/usersStore'
+import { useAI } from '@/features/ai/context/aiContext'
 
 enum ProjectViewTabs {
   KANBAN = 0,
@@ -27,23 +32,29 @@ enum ProjectViewTabs {
 
 export const ProjectPage: React.FC = () => {
   const { projectId } = useParams()
-  const { data: project, isLoading, error } = useProjectQuery(projectId || '')
+  const {
+    data: project,
+    isLoading: isProjectLoading,
+    error,
+  } = useProjectQuery(projectId || '')
   const { user } = useAuth()
   const setActiveProjectMutation = useSetActiveProjectMutation()
   const toast = useToast()
+  const {
+    messages,
+    isLoading: isAiLoading,
+    sendMessage,
+    resetContext,
+  } = useAI()
+
+  const [input, setInput] = useState('')
   const [isSettingActive, setIsSettingActive] = useState(false)
+  const [tabIndex, setTabIndex] = useState(ProjectViewTabs.KANBAN)
 
   const isActiveProject = user?.activeProjectId === projectId
 
-  // Project state, will be replaced with real data from Firebase
-  // const [project, setProject] = useState<Project | null>(null)
-  // Mock data for tasks - will be replaced with real data from Firebase
-  // const [tasks, setTasks] = useState<KanbanTask[]>([])
-  // const [insights, setInsights] = useState<AiInsight[]>([])
-  // const [isLoadingInsights, setIsLoadingInsights] = useState(false)
-  // const [error, setError] = useState<Error | null>(null)
-  // const [isLoading, setIsLoading] = useState(false)
-  const [tabIndex, setTabIndex] = useState(ProjectViewTabs.KANBAN)
+  const userBgColor = useColorModeValue('blue.100', 'blue.900')
+  const aiBgColor = useColorModeValue('gray.200', 'gray.700')
 
   const handleSetActiveProject = async () => {
     if (!user || !projectId) return
@@ -72,267 +83,17 @@ export const ProjectPage: React.FC = () => {
     }
   }
 
-  // Re-enable insights generation with better error handling
-  // useEffect(() => {
-  //   let isMounted = true
+  // TODO: full implementation pending
+  const handleSendMessage = async () => {
+    if (!input.trim()) return
 
-  //   const loadInitialInsights = async () => {
-  //     try {
-  //       if (!project) return
-  //       const newInsights = await generateInsights(project, tasks)
-
-  //       if (isMounted) {
-  //         setInsights((prev) => [...prev, ...newInsights])
-
-  //         if (newInsights.length > 0) {
-  //           showInsightNotification(newInsights.length)
-  //         }
-  //       }
-  //     } catch (err) {
-  //       console.error('Error loading initial insights:', err)
-  //       if (isMounted) {
-  //         setError(
-  //           err instanceof Error
-  //             ? err
-  //             : new Error('Unknown error loading insights')
-  //         )
-  //       }
-  //     }
-  //   }
-
-  //   loadInitialInsights()
-
-  //   // Interval for periodic updates
-  //   const intervalId = setInterval(
-  //     () => {
-  //       if (isMounted) {
-  //         fetchInsights(true).catch((err) => {
-  //           console.error('Error in scheduled insights update:', err)
-  //         })
-  //       }
-  //     },
-  //     1000 * 60 * 30
-  //   ) // 30 minutes
-
-  //   return () => {
-  //     isMounted = false
-  //     clearInterval(intervalId)
-  //   }
-  // }, [])
-
-  // const showInsightNotification = (count: number): void => {
-  //   toast({
-  //     duration: 10000,
-  //     render: ({ onClose }) => (
-  //       <ClickableToast
-  //         message={`${count} new AI insights available`}
-  //         type='info'
-  //         onClick={() => setTabIndex(ProjectViewTabs.INSIGHTS)}
-  //         onClose={onClose}
-  //       />
-  //     ),
-  //   })
-  // }
-
-  // const fetchInsights = async (silent: boolean = false) => {
-  //   if (!silent) {
-  //     setIsLoadingInsights(true)
-  //   }
-
-  //   try {
-  //     if (!project) return
-  //     const newInsights = await generateInsights(project, tasks)
-  //     setInsights((prev) => [...prev, ...newInsights])
-
-  //     if (!silent && newInsights.length > 0) {
-  //       showInsightNotification(newInsights.length)
-  //     }
-  //   } catch (error) {
-  //     console.error('Error fetching insights:', error)
-  //     setError(error instanceof Error ? error : new Error('Unknown error'))
-
-  //     if (!silent) {
-  //       toast({
-  //         title: 'Failed to generate insights',
-  //         status: 'error',
-  //         duration: 5000,
-  //       })
-  //     }
-  //   } finally {
-  //     if (!silent) {
-  //       setIsLoadingInsights(false)
-  //     }
-  //   }
-  // }
-
-  // const clearInsights = () => {
-  //   console.log('Before clearing:', insights)
-
-  //   // Get only saved insights
-  //   const savedInsights = insights.filter(
-  //     (insight) => insight.status === 'saved'
-  //   )
-  //   console.log('Saved insights:', savedInsights)
-
-  //   // Force re-render by using a two-step state update
-  //   setInsights([])
-
-  //   // Use setTimeout to ensure the empty array renders first
-  //   setTimeout(() => {
-  //     setInsights(savedInsights)
-  //   }, 0)
-
-  //   toast({
-  //     title: 'Insights cleared',
-  //     description: `All non-saved insights have been removed. Kept ${savedInsights.length} saved insights.`,
-  //     status: 'info',
-  //     duration: 3000,
-  //   })
-  // }
-
-  // This function would normally save to Firebase
-  // const updateProjectDescription = async (newDescription: string) => {
-  //   setIsLoading(true)
-  //   try {
-  //     // Simulating API call
-  //     await new Promise((resolve) => setTimeout(resolve, 1000))
-
-  //     // Update local state
-  //     // setProject({
-  //     //   ...project,
-  //     //   description: newDescription,
-  //     //   updatedAt: Date.now(),
-  //     // })
-
-  //     // In a real app, you would save to Firebase here
-  //   } catch (error) {
-  //     console.error('Error updating project:', error)
-  //     throw error
-  //   } finally {
-  //     setIsLoading(false)
-  //   }
-  // }
-
-  // Handle dismissing an insight
-  // const handleDismissInsight = async (insightId: string) => {
-  //   try {
-  //     // Simulating API call
-  //     await new Promise((resolve) => setTimeout(resolve, 500))
-
-  //     // Update local state
-  //     setInsights((prev) =>
-  //       prev.map((insight) =>
-  //         insight.id === insightId
-  //           ? { ...insight, status: 'dismissed' }
-  //           : insight
-  //       )
-  //     )
-
-  //     // In a real app, you would update Firebase here
-  //   } catch (error) {
-  //     console.error('Error dismissing insight:', error)
-  //     throw error
-  //   }
-  // }
-
-  // Handle implementing an insight
-  // const handleImplementInsight = async (insightId: string) => {
-  //   try {
-  //     // Simulating API call
-  //     await new Promise((resolve) => setTimeout(resolve, 500))
-
-  //     // Update local state
-  //     setInsights((prev) =>
-  //       prev.map((insight) =>
-  //         insight.id === insightId
-  //           ? { ...insight, status: 'implemented' }
-  //           : insight
-  //       )
-  //     )
-
-  //     // In a real app, you would update Firebase here
-  //   } catch (error) {
-  //     console.error('Error implementing insight:', error)
-  //     throw error
-  //   }
-  // }
-
-  // Handle creating a task from an insight
-  // const handleCreateTask = async (task: Partial<KanbanTask>) => {
-  //   try {
-  //     // Simulating API call
-  //     await new Promise((resolve) => setTimeout(resolve, 800))
-
-  //     // Create new task
-  //     // const newTask: KanbanTask = {
-  //     //   id: uuidv4(),
-  //     //   title: task.title || 'New Task',
-  //     //   description: task.description || '',
-  //     //   priority: task.priority || 'medium',
-  //     //   tags: task.tags || [],
-  //     //   createdAt: Date.now(),
-  //     //   updatedAt: Date.now(),
-  //     // }
-
-  //     // Add to tasks
-  //     // setTasks((prev) => [...prev, newTask])
-
-  //     // In a real app, you would save to Firebase here
-  //   } catch (error) {
-  //     console.error('Error creating task:', error)
-  //     throw error
-  //   }
-  // }
-
-  // Handle asking a follow-up question about an insight
-  // const handleAskFollowUp = async (insightId: string, question: string) => {
-  //   // This would be implemented with AI chat capability
-  //   console.log(`Follow-up for insight ${insightId}: ${question}`)
-
-  //   // For now, just acknowledge the question
-  //   toast({
-  //     title: 'This feature is coming soon',
-  //     description: 'Follow-up questions will be implemented in a future update',
-  //     status: 'info',
-  //     duration: 3000,
-  //   })
-  // }
-
-  // Handle marking an insight as viewed
-  // const handleViewInsight = async (insightId: string) => {
-  //   try {
-  //     // Update local state
-  //     setInsights((prev) =>
-  //       prev.map((insight) =>
-  //         insight.id === insightId ? { ...insight, status: 'viewed' } : insight
-  //       )
-  //     )
-
-  //     // In a real app, you would update Firebase here
-  //   } catch (error) {
-  //     console.error('Error marking insight as viewed:', error)
-  //   }
-  // }
-
-  // Handle saving an insight for later
-  // const handleSaveInsight = async (insightId: string) => {
-  //   try {
-  //     // Simulating API call
-  //     await new Promise((resolve) => setTimeout(resolve, 500))
-
-  //     // Update local state
-  //     setInsights((prev) =>
-  //       prev.map((insight) =>
-  //         insight.id === insightId ? { ...insight, status: 'saved' } : insight
-  //       )
-  //     )
-
-  //     // In a real app, you would update Firebase here
-  //   } catch (error) {
-  //     console.error('Error saving insight:', error)
-  //     throw error
-  //   }
-  // }
+    try {
+      await sendMessage(input)
+      setInput('')
+    } catch (error) {
+      console.error('Error sending message:', error)
+    }
+  }
 
   return (
     <>
@@ -362,16 +123,6 @@ export const ProjectPage: React.FC = () => {
         )}
       </Flex>
 
-      {/* {error && (
-        <Box p={4} mb={4} bg='red.100' color='red.800' borderRadius='md'>
-          <Heading size='md'>Error Loading Project</Heading>
-          <Text>{error.message}</Text>
-          <Button mt={2} onClick={() => setError(null)}>
-            Dismiss
-          </Button>
-        </Box>
-      )} */}
-
       <Tabs
         colorScheme='blue'
         variant='enclosed'
@@ -386,54 +137,85 @@ export const ProjectPage: React.FC = () => {
           <Tab>Kanban Board</Tab>
           <Tab>Overview</Tab>
           <Tab>AI Insights</Tab>
+          <Tab>CHAT TEST</Tab>
         </TabList>
 
         <TabPanels display='flex' flex='1'>
           <TabPanel flex='1'>
             <KanbanBoardTab
               project={project}
-              isLoading={isLoading}
+              isLoading={isProjectLoading}
               error={error}
             />
           </TabPanel>
+          <TabPanel flex='1'>{/* TODO: Add Overview Tab */}</TabPanel>
+          <TabPanel flex='1'>{/* TODO: Add AI Insights Tab */}</TabPanel>
+
+          {/* Temporary Chat Test Tab */}
           <TabPanel flex='1'>
-            {/* <ProjectOverviewTab
-              project={project}
-              onUpdateDescription={updateProjectDescription}
-            /> */}
-          </TabPanel>
-          <TabPanel flex='1'>
-            {/* <Box position='relative'>
-              <Box mb={4} textAlign='right'>
+            <Box h='full' display='flex' flexDirection='column'>
+              <Flex justify='flex-end' mb={2}>
                 <Button
-                  colorScheme='red'
                   size='sm'
-                  mr={2}
-                  onClick={clearInsights}
+                  onClick={resetContext}
+                  colorScheme='blue'
+                  variant='outline'
                 >
-                  Clear Insights
+                  Reset Chat
                 </Button>
+              </Flex>
+
+              <VStack
+                flex='1'
+                overflowY='auto'
+                spacing={4}
+                p={4}
+                borderWidth={1}
+                borderRadius='md'
+                mb={4}
+                align='stretch'
+              >
+                {messages
+                  .filter((msg) => msg.role !== 'system')
+                  .map((msg, idx) => (
+                    <Box
+                      key={idx}
+                      p={3}
+                      borderRadius='md'
+                      bg={msg.role === 'user' ? userBgColor : aiBgColor}
+                      alignSelf={
+                        msg.role === 'user' ? 'flex-end' : 'flex-start'
+                      }
+                      maxW='80%'
+                    >
+                      <Text>{msg.content}</Text>
+                    </Box>
+                  ))}
+                {isAiLoading && (
+                  <Flex justify='center'>
+                    <Spinner />
+                  </Flex>
+                )}
+              </VStack>
+
+              <Flex>
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder='Ask about your project...'
+                  mr={2}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                />
                 <Button
                   colorScheme='blue'
-                  size='sm'
-                  isLoading={isLoadingInsights}
-                  onClick={() => fetchInsights()}
+                  onClick={handleSendMessage}
+                  isLoading={isAiLoading}
+                  isDisabled={!input.trim()}
                 >
-                  Generate New Insights
+                  Send
                 </Button>
-              </Box>
-
-              <AiInsights
-                project={project!}
-                insights={insights}
-                onDismissInsight={handleDismissInsight}
-                onImplementInsight={handleImplementInsight}
-                onViewInsight={handleViewInsight}
-                onSaveInsight={handleSaveInsight}
-                onCreateTask={handleCreateTask}
-                onAskFollowUp={handleAskFollowUp}
-              />
-            </Box> */}
+              </Flex>
+            </Box>
           </TabPanel>
         </TabPanels>
       </Tabs>

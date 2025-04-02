@@ -76,3 +76,12 @@ export interface AIResponse {
   message: string // Human-readable message to display
   action: AIAction // Structured action data for the app
 }
+
+export enum MessageRole {
+  SYSTEM = 'system', // AI instructions and context
+  USER = 'user', // Messages from the human user
+  ASSISTANT = 'assistant', // Responses from the AI
+  FUNCTION = 'function', // Results from function calls
+  TOOL = 'tool', // Results from tool usage
+  EVENT = 'event', // System events (project changes, etc.)
+}
