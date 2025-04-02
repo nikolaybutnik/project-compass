@@ -21,7 +21,6 @@ import { KanbanCard } from '@/features/projects/components/kanban/KanbanCard'
 import { KanbanColumn } from '@/features/projects/components/kanban/KanbanColumn'
 import { CreateTaskModal } from '@/features/projects/components/kanban/CreateTaskModal'
 import { useKanbanBoard } from '@/features/projects/hooks/useKanbanBoard'
-import { TransitionGroup, CSSTransition } from 'react-transition-group'
 
 interface KanbanBoardTabProps {
   project: Project | undefined
@@ -105,34 +104,22 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
               strategy={verticalListSortingStrategy}
             >
               <VStack spacing={4} align='stretch' flex='1' overflow='auto'>
-                <TransitionGroup component={null}>
-                  {col.tasks?.map((task) => {
-                    const taskDragInfo = getDragStateInfo(
-                      task,
-                      col.id,
-                      dragState
-                    )
+                {col.tasks?.map((task) => {
+                  const taskDragInfo = getDragStateInfo(task, col.id, dragState)
 
-                    return (
-                      <CSSTransition
-                        key={task.id}
-                        timeout={300}
-                        classNames='task'
-                      >
-                        <KanbanCard
-                          key={taskDragInfo.key}
-                          task={{ ...task, columnId: col.id }}
-                          onDelete={handleDeleteTask}
-                          disabled={taskDragInfo.isPreview}
-                          isPreview={taskDragInfo.isPreview}
-                          isDraggingToAnotherColumn={
-                            taskDragInfo.isCrossColumnSource
-                          }
-                        />
-                      </CSSTransition>
-                    )
-                  })}
-                </TransitionGroup>
+                  return (
+                    <KanbanCard
+                      key={taskDragInfo.key}
+                      task={{ ...task, columnId: col.id }}
+                      onDelete={handleDeleteTask}
+                      disabled={taskDragInfo.isPreview}
+                      isPreview={taskDragInfo.isPreview}
+                      isDraggingToAnotherColumn={
+                        taskDragInfo.isCrossColumnSource
+                      }
+                    />
+                  )
+                })}
               </VStack>
             </SortableContext>
           </KanbanColumn>
