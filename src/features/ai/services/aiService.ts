@@ -44,16 +44,31 @@ export const getChatResponse = async (
       const toolCall = responseMessage.tool_calls[0]
       const toolName = toolCall.function.name
       const toolArguments = JSON.parse(toolCall.function.arguments)
-      console.log(toolArguments)
 
-      // const actionType = toolToActionMap[toolName] || AIActionType.NONE
-      // return {
-      //   message: responseMessage.content || "Sure thing, let's get this done!",
-      //   action: {
-      //     type: actionType,
-      //     payload: toolArguments,
-      //   },
-      // }
+      const actionType = toolToActionMap[toolName] || AIActionType.NONE
+
+      let fallbackMessage = ''
+      switch (toolName) {
+        case AIActionType.CREATE_TASK.toLowerCase():
+          fallbackMessage = `I'll create a task${toolArguments.title ? ` called "${toolArguments.title}"` : ''} for you.`
+          break
+        case AIActionType.UPDATE_TASK.toLowerCase():
+          fallbackMessage = `I'll update that task for you.`
+          break
+        case AIActionType.DELETE_TASK.toLowerCase():
+          fallbackMessage = `I'll delete that task for you.`
+          break
+        default:
+          fallbackMessage = "I'll take care of that for you."
+      }
+
+      return {
+        message: responseMessage.content || fallbackMessage,
+        action: {
+          type: actionType,
+          payload: toolArguments,
+        },
+      }
     }
 
     return {
