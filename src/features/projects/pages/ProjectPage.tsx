@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Heading,
   Tabs,
@@ -45,7 +45,20 @@ export const ProjectPage: React.FC = () => {
     isLoading: isAiLoading,
     sendMessage,
     resetContext,
+    updateProjectContext,
   } = useAI()
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (project) {
+      updateProjectContext(project)
+    }
+  }, [project, updateProjectContext])
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
   const [input, setInput] = useState('')
   const [isSettingActive, setIsSettingActive] = useState(false)
@@ -152,7 +165,13 @@ export const ProjectPage: React.FC = () => {
           <TabPanel flex='1'>{/* TODO: Add AI Insights Tab */}</TabPanel>
 
           {/* Temporary Chat Test Tab */}
-          <TabPanel flex='1'>
+          <TabPanel
+            flex='1'
+            display='flex'
+            flexDirection='column'
+            h='calc(100vh - 250px)'
+            overflow='hidden'
+          >
             <Box h='full' display='flex' flexDirection='column'>
               <Flex justify='flex-end' mb={2}>
                 <Button
@@ -174,6 +193,18 @@ export const ProjectPage: React.FC = () => {
                 borderRadius='md'
                 mb={4}
                 align='stretch'
+                css={{
+                  '&::-webkit-scrollbar': {
+                    width: '8px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    width: '10px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    borderRadius: '24px',
+                  },
+                }}
               >
                 {messages
                   .filter((msg) => msg.role !== 'system')
@@ -196,15 +227,16 @@ export const ProjectPage: React.FC = () => {
                     <Spinner />
                   </Flex>
                 )}
+                <div ref={messagesEndRef} />
               </VStack>
 
-              <Flex>
+              <Flex mb={2}>
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder='Ask about your project...'
                   mr={2}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  onKeyUp={(e) => e.key === 'Enter' && handleSendMessage()}
                 />
                 <Button
                   colorScheme='blue'

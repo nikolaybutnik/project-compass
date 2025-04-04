@@ -10,11 +10,11 @@ function App(): JSX.Element {
 
   return (
     <ChakraProvider theme={theme}>
-      <AIProvider>
-        <BrowserRouter>
+      <BrowserRouter>
+        <AIProvider>
           <AppRoutes />
-        </BrowserRouter>
-      </AIProvider>
+        </AIProvider>
+      </BrowserRouter>
     </ChakraProvider>
   )
 }

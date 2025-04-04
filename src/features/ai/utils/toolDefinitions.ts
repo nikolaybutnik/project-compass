@@ -76,7 +76,7 @@ export const taskTools = {
 export const getToolDefinitions = () => {
   return [
     ...Object.entries(taskTools).map(([name, definition]) => ({
-      type: 'function',
+      type: 'function' as const,
       function: {
         name,
         description: definition.description,

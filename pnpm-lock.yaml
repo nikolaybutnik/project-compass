@@ -42,7 +42,7 @@ importers:
         specifier: ^4.17.21
         version: 4.17.21
       openai:
-        specifier: ^4.28.0
+        specifier: ^4.86.2
         version: 4.86.2
       react:
         specifier: ^18.2.0
