@@ -1,61 +1,94 @@
-export const getToolDefinitions = (projectId: string) => [
-  {
-    type: 'function',
-    function: {
-      name: 'create_task',
-      description: 'Creates a new task in a column',
-      parameters: {
-        type: 'object',
-        properties: {
-          columnId: {
-            type: 'string',
-            description: 'ID of the column to add the task to',
-          },
-          title: {
-            type: 'string',
-            description: 'Title of the task',
-          },
-          description: {
-            type: 'string',
-            description: 'Detailed description of the task',
-          },
-          priority: {
-            type: 'string',
-            enum: ['high', 'medium', 'low', 'urgent'],
-            description: 'Priority level of the task',
-          },
+import { AIActionType } from '../types'
+
+export const taskTools = {
+  create_task: {
+    description: 'Create a new task in the project',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Title of the task',
         },
-        required: ['columnId', 'title'],
+        description: {
+          type: 'string',
+          description: 'Detailed description of the task',
+        },
+        columnId: {
+          type: 'string',
+          description: 'ID of the column where the task should be placed',
+        },
+        priority: {
+          type: 'string',
+          enum: ['LOW', 'MEDIUM', 'HIGH'],
+          description: 'Priority level of the task',
+        },
       },
+      required: ['title', 'columnId'],
     },
   },
-  {
-    type: 'function',
-    function: {
-      name: 'update_task',
-      description: 'Updates an existing task',
-      parameters: {
-        type: 'object',
-        properties: {
-          taskId: {
-            type: 'string',
-            description: 'ID of the task to update',
-          },
-          title: {
-            type: 'string',
-            description: 'New title for the task',
-          },
-          description: {
-            type: 'string',
-            description: 'New description for the task',
-          },
-          priority: {
-            type: 'string',
-            enum: ['high', 'medium', 'low', 'urgent'],
-          },
+  update_task: {
+    description: 'Update an existing task',
+    parameters: {
+      type: 'object',
+      properties: {
+        taskId: {
+          type: 'string',
+          description: 'ID of the task to update',
         },
-        required: ['taskId'],
+        title: {
+          type: 'string',
+          description: 'New title of the task',
+        },
+        description: {
+          type: 'string',
+          description: 'New description of the task',
+        },
+        columnId: {
+          type: 'string',
+          description: 'ID of the column to move the task to',
+        },
+        priority: {
+          type: 'string',
+          enum: ['LOW', 'MEDIUM', 'HIGH'],
+          description: 'New priority level of the task',
+        },
       },
+      required: ['taskId'],
     },
   },
-]
+  delete_task: {
+    description: 'Delete a task',
+    parameters: {
+      type: 'object',
+      properties: {
+        taskId: {
+          type: 'string',
+          description: 'ID of the task to delete',
+        },
+      },
+      required: ['taskId'],
+    },
+  },
+  // TODO: Add more tools beyond task management
+}
+
+export const getToolDefinitions = () => {
+  return [
+    ...Object.entries(taskTools).map(([name, definition]) => ({
+      type: 'function',
+      function: {
+        name,
+        description: definition.description,
+        parameters: definition.parameters,
+      },
+    })),
+  ]
+}
+
+export const toolToActionMap: Record<string, AIActionType> = {
+  create_task: AIActionType.CREATE_TASK,
+  update_task: AIActionType.UPDATE_TASK,
+  delete_task: AIActionType.DELETE_TASK,
+  // TODO: Add more tools beyond task management
+}
