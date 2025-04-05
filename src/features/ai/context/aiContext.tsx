@@ -21,6 +21,7 @@ interface AIContextState {
   sendMessage: (message: string) => Promise<AIResponse>
   resetContext: () => void
   updateProjectContext: (project: Project) => void
+  invalidateContext: () => void
 }
 
 const AIContext = createContext<AIContextState | undefined>(undefined)
@@ -35,8 +36,9 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [projectContext, setProjectContext] = useState<Project | null>(null)
   const [contextSent, setContextSent] = useState(false)
-  const [lastActionTimestamp, setLastActionTimestamp] = useState<number>(0)
   const [isFirstLoad, setIsFirstLoad] = useState(true)
+  const [contextVersion, setContextVersion] = useState(0)
+  const [lastSentContextVersion, setLastSentContextVersion] = useState(0)
 
   useEffect(() => {
     setMessages([
@@ -58,6 +60,12 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
       ])
     }
   }, [projectContext?.id])
+
+  // Invalidate the context when the project data is updated to force a refresh of context for AI
+  const invalidateContext = useCallback(() => {
+    setContextSent(false)
+    setContextVersion((prev) => prev + 1)
+  }, [])
 
   // Handle user message submission to AI
   const sendMessage = useCallback(
@@ -83,10 +91,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         setMessages((prev) => [...prev, displayMessage])
 
         const needsContextRefresh =
-          !contextSent ||
-          (projectContext?.updatedAt &&
-            lastActionTimestamp > 0 &&
-            projectContext.updatedAt.toMillis() > lastActionTimestamp)
+          !contextSent || contextVersion > lastSentContextVersion
 
         let apiMessages = [...messages]
 
@@ -104,6 +109,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
           ]
 
           setContextSent(true)
+          setLastSentContextVersion(contextVersion)
         } else {
           apiMessages = [...apiMessages, apiMessage]
         }
@@ -111,7 +117,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         const response = await getChatResponse(apiMessages, projectContext?.id)
 
         if (response.action && response.action.type !== AIActionType.NONE) {
-          setLastActionTimestamp(Date.now())
+          setContextVersion((prev) => prev + 1)
         }
 
         setMessages((prev) => [
@@ -127,7 +133,13 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLoading(false)
       }
     },
-    [messages, projectContext, contextSent, lastActionTimestamp]
+    [
+      messages,
+      projectContext,
+      contextSent,
+      contextVersion,
+      lastSentContextVersion,
+    ]
   )
 
   // Clear the message history and reset to the initial system prompt
@@ -139,7 +151,8 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
       },
     ])
     setContextSent(false)
-    setLastActionTimestamp(0)
+    setContextVersion(0)
+    setLastSentContextVersion(0)
   }, [projectContext])
 
   const updateProjectContext = useCallback(
@@ -150,7 +163,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (isNewProject) {
         setContextSent(false)
-        setLastActionTimestamp(0)
+        setContextVersion((prev) => prev + 1)
 
         if (!isFirstLoad) {
           setMessages((prev) => [
@@ -177,6 +190,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         project.updatedAt.toMillis() > projectContext.updatedAt.toMillis()
       ) {
         setContextSent(false)
+        setContextVersion((prev) => prev + 1)
       }
     },
     [projectContext]
@@ -191,6 +205,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         sendMessage,
         resetContext,
         updateProjectContext,
+        invalidateContext,
       }}
     >
       {children}
