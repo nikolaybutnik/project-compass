@@ -1,4 +1,4 @@
-import { KanbanColumn, KanbanTask, Project, TaskPriority } from '@/shared/types'
+import { Project, TaskPriority } from '@/shared/types'
 
 export const getBasicSystemPrompt = () => `
 You are Vector, a project management assistant for a Kanban app.
@@ -14,7 +14,6 @@ IMPORTANT: When you see a user message starting with [FIRST_MESSAGE], this is yo
 - Project name
 - Number of high priority tasks
 - Status of active tasks or suggested next steps
-- One practical insight
 
 While project management is your primary focus, you can engage with off-topic questions naturally. If the user wants to chat about other topics, go with it - you're helpful for all kinds of conversations. Only gently return to project topics if it seems the user has forgotten what they were working on.
 
@@ -24,36 +23,64 @@ Remember that building rapport is as important as providing information.
 export const getProjectContextPrompt = (project: Project) => {
   if (!project) return ''
 
-  const kanbanStructure = project.kanban?.columns
-    ?.map((col) => {
-      const tasksStr = col.tasks
-        .map((task: KanbanTask) => {
-          // Format: ID|Title|Priority|Description (truncated)
-          const shortDesc =
-            task.description && task.description.length > 70
-              ? task.description.substring(0, 70) + '...'
-              : task.description || ''
+  let kanbanStructure = ''
 
-          return `${task.id}|${task.title}|${task.priority}|${shortDesc}`
-        })
-        .join('\n      ')
+  project.kanban.columns?.forEach((col) => {
+    kanbanStructure += `\n$ "${col.title} col" (ID: ${col.id}) $\n`
+    kanbanStructure += `Tasks in column: ${col.tasks.length}\n`
 
-      return `Column "${col.title}" (${col.id}):\n ${tasksStr || 'No tasks'}`
-    })
-    .join('\n    ')
+    const highPriorityTasks = col.tasks.filter(
+      (task) => task.priority === TaskPriority.HIGH
+    )
+    const mediumPriorityTasks = col.tasks.filter(
+      (task) => task.priority === TaskPriority.MEDIUM
+    )
+    const lowPriorityTasks = col.tasks.filter(
+      (task) => task.priority === TaskPriority.LOW
+    )
+    const urgentTasks = col.tasks.filter(
+      (task) => task.priority === TaskPriority.URGENT
+    )
 
-  const highPriorityCount =
-    project.kanban?.columns?.reduce(
-      (count, col) =>
-        count +
-        col.tasks.filter((task) => task.priority === TaskPriority.HIGH).length,
-      0
-    ) || 0
+    const urgentTasksInfo = urgentTasks.map((t) => `"${t.title}" (${t.id})`)
+    const highTasksInfo = highPriorityTasks.map((t) => `"${t.title}" (${t.id})`)
+    const mediumTasksInfo = mediumPriorityTasks.map(
+      (t) => `"${t.title}" (${t.id})`
+    )
+    const lowTasksInfo = lowPriorityTasks.map((t) => `"${t.title}" (${t.id})`)
+
+    const priorityCounts = []
+    if (urgentTasks.length) priorityCounts.push(`${urgentTasks.length} urgent`)
+    if (highPriorityTasks.length)
+      priorityCounts.push(`${highPriorityTasks.length} high`)
+    if (mediumPriorityTasks.length)
+      priorityCounts.push(`${mediumPriorityTasks.length} medium`)
+    if (lowPriorityTasks.length)
+      priorityCounts.push(`${lowPriorityTasks.length} low`)
+
+    const prioritiesText = priorityCounts.length
+      ? priorityCounts.join(', ')
+      : 'none'
+
+    kanbanStructure += `Priorities: ${prioritiesText}\n`
+
+    if (urgentTasks.length) {
+      kanbanStructure += `\n  [Urgent] tasks: ${urgentTasksInfo.join(', ')}\n`
+    }
+    if (highPriorityTasks.length) {
+      kanbanStructure += `\n  [High] tasks: ${highTasksInfo.join(', ')}\n`
+    }
+    if (mediumPriorityTasks.length) {
+      kanbanStructure += `\n  [Medium] tasks: ${mediumTasksInfo.join(', ')}\n`
+    }
+    if (lowPriorityTasks.length) {
+      kanbanStructure += `\n  [Low] tasks: ${lowTasksInfo.join(', ')}\n`
+    }
+  })
 
   return `
 Project: "${project.title}" (${project.id})
 Description: ${project.description || 'None'}
-Status: ${highPriorityCount} high priority tasks across ${project.kanban?.columns?.length || 0} columns
 
 Kanban Structure: 
 ${kanbanStructure || 'Empty board'}
