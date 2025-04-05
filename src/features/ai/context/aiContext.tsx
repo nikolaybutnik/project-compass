@@ -84,8 +84,8 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
 
         const needsContextRefresh =
           !contextSent ||
-          (lastActionTimestamp > 0 &&
-            projectContext?.updatedAt &&
+          (projectContext?.updatedAt &&
+            lastActionTimestamp > 0 &&
             projectContext.updatedAt.toMillis() > lastActionTimestamp)
 
         let apiMessages = [...messages]

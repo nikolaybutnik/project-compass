@@ -32,7 +32,7 @@ export const getChatResponse = async (
   try {
     const tools = getToolDefinitions()
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       messages: mapToOpenAIMessages(messages),
       tools: tools,
       tool_choice: 'auto',
