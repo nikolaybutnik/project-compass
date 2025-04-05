@@ -4,7 +4,6 @@ import {
   toolToActionMap,
 } from '@/features/ai/utils/toolDefinitions'
 import OpenAI from 'openai'
-import { getSystemPrompt } from '../utils/promptTemplate'
 import { ChatCompletionMessageParam } from 'openai/resources/chat'
 
 const openai = new OpenAI({

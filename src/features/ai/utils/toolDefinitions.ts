@@ -70,7 +70,6 @@ export const taskTools = {
       required: ['taskId'],
     },
   },
-  // TODO: Add more tools beyond task management
 }
 
 export const getToolDefinitions = () => {
