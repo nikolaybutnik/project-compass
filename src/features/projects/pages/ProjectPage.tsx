@@ -16,6 +16,10 @@ import {
   Spinner,
   Input,
   useColorModeValue,
+  UnorderedList,
+  Code,
+  OrderedList,
+  ListItem,
 } from '@chakra-ui/react'
 import { useParams } from 'react-router-dom'
 import { KanbanBoardTab } from '@/features/projects/components/tabs/KanbanBoardTab'
@@ -23,6 +27,7 @@ import { useProjectQuery } from '@/shared/store/projectsStore'
 import { useAuth } from '@/shared/store/authStore'
 import { useSetActiveProjectMutation } from '@/shared/store/usersStore'
 import { useAI } from '@/features/ai/context/aiContext'
+import ReactMarkdown from 'react-markdown'
 
 enum ProjectViewTabs {
   KANBAN = 0,
@@ -210,6 +215,7 @@ export const ProjectPage: React.FC = () => {
                   .filter((msg) => msg.role !== 'system')
                   .map((msg, idx) => (
                     <Box
+                      className='markdown-content'
                       key={idx}
                       p={3}
                       borderRadius='md'
@@ -219,7 +225,21 @@ export const ProjectPage: React.FC = () => {
                       }
                       maxW='80%'
                     >
-                      <Text>{msg.content}</Text>
+                      <ReactMarkdown
+                        components={{
+                          p: (props) => <Text mb={2} {...props} />,
+                          code: (props) => <Code p={1} {...props} />,
+                          ul: (props) => (
+                            <UnorderedList pl={4} mb={2} {...props} />
+                          ),
+                          ol: (props) => (
+                            <OrderedList pl={4} mb={2} {...props} />
+                          ),
+                          li: (props) => <ListItem {...props} />,
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
                     </Box>
                   ))}
                 {isAiLoading && (

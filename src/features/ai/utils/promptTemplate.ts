@@ -26,7 +26,7 @@ export const getProjectContextPrompt = (project: Project) => {
   let kanbanStructure = ''
 
   project.kanban.columns?.forEach((col) => {
-    kanbanStructure += `\n$ "${col.title} col" (ID: ${col.id}) $\n`
+    kanbanStructure += `\n$ "${col.title}" (ID: ${col.id}) $\n`
     kanbanStructure += `Tasks in column: ${col.tasks.length}\n`
 
     const highPriorityTasks = col.tasks.filter(
