@@ -1,4 +1,4 @@
-import { TaskPriority } from '@/shared/types'
+import { KanbanColumn, KanbanTask, Project, TaskPriority } from '@/shared/types'
 
 export enum AIActionType {
   // Task actions
@@ -84,4 +84,23 @@ export enum MessageRole {
   FUNCTION = 'function', // Results from function calls
   TOOL = 'tool', // Results from tool usage
   EVENT = 'event', // System events (project changes, etc.)
+}
+
+export enum MentionType {
+  TASK = 'task',
+  COLUMN = 'column',
+  PROJECT = 'project',
+}
+
+export interface ChatMention {
+  type: MentionType
+  id: string
+  displayText: string
+  searchText: string // For filtering
+  entity: KanbanTask | KanbanColumn | Project
+}
+
+export interface TaskMention extends ChatMention {
+  type: MentionType.TASK
+  entity: KanbanTask
 }

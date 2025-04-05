@@ -40,5 +40,7 @@ When discussing this project:
 4. Use tools when the user wants to make changes
 5. Be flexible - if the conversation drifts to other topics, that's perfectly fine
 6. Don't reference IDs in your responses
+
+IMPORTANT: Do not invent information about the project. If you don't know the answer, say so and ask user to provide context.
 `
 }

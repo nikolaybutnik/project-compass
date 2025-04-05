@@ -29,6 +29,7 @@ import { useSetActiveProjectMutation } from '@/shared/store/usersStore'
 import { useAI } from '@/features/ai/context/aiContext'
 import ReactMarkdown from 'react-markdown'
 import { useContextSync } from '@/features/ai/hooks/useContextSync'
+import { findTaskMentions } from '@/features/ai/utils/mentionUtils'
 
 enum ProjectViewTabs {
   KANBAN = 0,
