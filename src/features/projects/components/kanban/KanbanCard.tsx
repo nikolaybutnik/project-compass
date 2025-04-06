@@ -100,7 +100,6 @@ export const KanbanCard: React.FC<KanbanCardProps> = React.memo(
             borderWidth: '2px',
             borderStyle: 'dashed',
             bg: `${cardBg} !important`,
-            opacity: '0.5 !important',
           },
           '&.preview-animation': {
             animation: 'fadeIn 0.2s ease-in-out',

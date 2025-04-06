@@ -2,7 +2,6 @@ import React, {
   createContext,
   useContext,
   useState,
-  useEffect,
   useCallback,
   useMemo,
 } from 'react'
@@ -20,9 +19,10 @@ interface AIContextState {
   isLoading: boolean
   projectContext: Project | null
   sendMessage: (message: string) => Promise<AIResponse>
-  resetContext: () => void
   updateProjectContext: (project: Project) => void
   invalidateContext: () => void
+  resetContext: () => void
+  refreshContext: () => void
 }
 
 const AIContext = createContext<AIContextState | undefined>(undefined)
@@ -43,32 +43,50 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
   // Memoize the basic system prompt to avoid regenerating it
   const basicSystemPrompt = useMemo(() => getBasicSystemPrompt(), [])
 
-  useEffect(() => {
-    setMessages([
-      {
-        role: MessageRole.SYSTEM,
-        content: basicSystemPrompt,
-      },
-    ])
-  }, [basicSystemPrompt])
-
-  useEffect(() => {
-    if (messages.length > 0 && messages[0].role === 'system') {
-      setMessages((prev) => [
-        {
-          role: MessageRole.SYSTEM,
-          content: basicSystemPrompt,
-        },
-        ...prev.slice(1), // Preserve conversation history
-      ])
-    }
-  }, [projectContext?.id, basicSystemPrompt])
-
   // Invalidate the context when the project data is updated to force a refresh of context for AI
   const invalidateContext = useCallback(() => {
-    // TODO: make sure invalidation triggers when moving tasks between columns
     setContextVersion((prev) => prev + 1)
   }, [])
+
+  // Manually send fresh context to AI if it loses track.
+  const refreshContext = useCallback(async () => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: MessageRole.EVENT,
+        content: 'Context refreshed with latest project data.',
+      },
+    ])
+    if (projectContext) {
+      setIsLoading(true)
+
+      try {
+        const refreshMessage =
+          '[SYSTEM_REFRESH_CONTEXT] Confirm that you have received the latest project data, and give a status update.'
+        const conversationMessages = createConversationMessages(
+          projectContext,
+          refreshMessage,
+          messages,
+          true
+        )
+        const apiMessages = conversationMessages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        }))
+
+        const response = await getChatResponse(apiMessages, projectContext.id)
+        setMessages((prev) => [
+          ...prev,
+          { role: MessageRole.ASSISTANT, content: response.message },
+        ])
+        setLastSentContextVersion(contextVersion + 1)
+      } catch (error) {
+        console.error('Error refreshing context:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+  }, [projectContext])
 
   // Handle user message submission to AI
   const sendMessage = useCallback(
@@ -165,12 +183,12 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
     (project: Project) => {
       const isNewProject = !projectContext || project.id !== projectContext.id
 
-      if (isNewProject) {
-        setContextVersion((prev) => prev + 1)
+      setContextVersion((prev) => prev + 1)
 
+      if (isNewProject) {
         if (!isFirstLoad) {
           setMessages((prev) => [
-            prev[0], // Keep basic system prompt
+            prev[0], // Keep existing system prompt
             {
               role: MessageRole.EVENT,
               content: `Switched to project: ${project.title || project.id}`,
@@ -200,18 +218,20 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
       isLoading,
       projectContext,
       sendMessage,
-      resetContext,
       updateProjectContext,
       invalidateContext,
+      resetContext,
+      refreshContext,
     }),
     [
       messages,
       isLoading,
       projectContext,
       sendMessage,
-      resetContext,
       updateProjectContext,
       invalidateContext,
+      resetContext,
+      refreshContext,
     ]
   )
 

@@ -30,6 +30,7 @@ import { useAI } from '@/features/ai/context/aiContext'
 import ReactMarkdown from 'react-markdown'
 import { useContextSync } from '@/features/ai/hooks/useContextSync'
 import { findTaskMentions } from '@/features/ai/utils/mentionUtils'
+import { MessageRole } from '@/features/ai/types'
 
 enum ProjectViewTabs {
   KANBAN = 0,
@@ -52,10 +53,13 @@ export const ProjectPage: React.FC = () => {
     messages,
     isLoading: isAiLoading,
     sendMessage,
-    resetContext,
     updateProjectContext,
     invalidateContext,
+    resetContext,
+    refreshContext,
   } = useAI()
+
+  // TODO: Troubleshoot projectLoading and aiLoading
 
   useContextSync(projectId, invalidateContext)
 
@@ -73,6 +77,7 @@ export const ProjectPage: React.FC = () => {
 
   const userBgColor = useColorModeValue('blue.100', 'blue.900')
   const aiBgColor = useColorModeValue('gray.200', 'gray.700')
+  const eventBgColor = useColorModeValue('yellow.100', 'gray.800')
 
   // Auto-scroll to bottom when messages change or when switching to chat tab
   useEffect(() => {
@@ -91,15 +96,21 @@ export const ProjectPage: React.FC = () => {
   // Memoize the message components to prevent re-renders on input changes
   const memoizedMessages = useMemo(() => {
     return messages
-      .filter((msg) => msg.role !== 'system')
+      .filter((msg) => msg.role !== MessageRole.SYSTEM)
       .map((msg, idx) => (
         <Box
           className='markdown-content'
           key={idx}
           p={3}
           borderRadius='md'
-          bg={msg.role === 'user' ? userBgColor : aiBgColor}
-          alignSelf={msg.role === 'user' ? 'flex-end' : 'flex-start'}
+          bg={
+            msg.role === MessageRole.USER
+              ? userBgColor
+              : msg.role === MessageRole.ASSISTANT
+                ? aiBgColor
+                : eventBgColor
+          }
+          alignSelf={msg.role === MessageRole.USER ? 'flex-end' : 'flex-start'}
           maxW='80%'
         >
           <ReactMarkdown
@@ -230,6 +241,15 @@ export const ProjectPage: React.FC = () => {
           >
             <Box h='full' display='flex' flexDirection='column'>
               <Flex justify='flex-end' mb={2}>
+                <Button
+                  size='sm'
+                  onClick={refreshContext}
+                  colorScheme='green'
+                  variant='outline'
+                  mr={2}
+                >
+                  Refresh Context
+                </Button>
                 <Button
                   size='sm'
                   onClick={resetContext}
