@@ -36,7 +36,6 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
   >([])
   const [isLoading, setIsLoading] = useState(false)
   const [projectContext, setProjectContext] = useState<Project | null>(null)
-  const [contextSent, setContextSent] = useState(false)
   const [isFirstLoad, setIsFirstLoad] = useState(true)
   const [contextVersion, setContextVersion] = useState(0)
   const [lastSentContextVersion, setLastSentContextVersion] = useState(0)
@@ -67,7 +66,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Invalidate the context when the project data is updated to force a refresh of context for AI
   const invalidateContext = useCallback(() => {
-    setContextSent(false)
+    // TODO: make sure invalidation triggers when moving tasks between columns
     setContextVersion((prev) => prev + 1)
   }, [])
 
@@ -96,32 +95,23 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         let apiMessages
 
         if (projectContext) {
-          const previousMessages = messages.map((msg) => ({
-            role: msg.role.toLowerCase() as
-              | MessageRole.SYSTEM
-              | MessageRole.USER
-              | MessageRole.ASSISTANT,
-            content: msg.content,
-          }))
+          const needsContextRefresh = contextVersion > lastSentContextVersion
 
           const conversationMessages = createConversationMessages(
             projectContext,
             userMessageContent,
-            previousMessages
+            messages,
+            needsContextRefresh
           )
 
           apiMessages = conversationMessages.map((msg) => ({
-            role:
-              msg.role === 'system'
-                ? MessageRole.SYSTEM
-                : msg.role === 'user'
-                  ? MessageRole.USER
-                  : MessageRole.ASSISTANT,
+            role: msg.role,
             content: msg.content,
           }))
 
-          setContextSent(true)
-          setLastSentContextVersion(contextVersion)
+          if (needsContextRefresh) {
+            setLastSentContextVersion(contextVersion)
+          }
         } else {
           // For non-project conversations, preserve the conversation history
           apiMessages = [
@@ -167,7 +157,6 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         content: basicSystemPrompt,
       },
     ])
-    setContextSent(false)
     setContextVersion(0)
     setLastSentContextVersion(0)
   }, [basicSystemPrompt])
@@ -176,10 +165,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
     (project: Project) => {
       const isNewProject = !projectContext || project.id !== projectContext.id
 
-      setProjectContext(project)
-
       if (isNewProject) {
-        setContextSent(false)
         setContextVersion((prev) => prev + 1)
 
         if (!isFirstLoad) {
@@ -200,15 +186,9 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
 
           setIsFirstLoad(false)
         }
-      } else if (
-        projectContext &&
-        project.updatedAt &&
-        projectContext.updatedAt &&
-        project.updatedAt.toMillis() > projectContext.updatedAt.toMillis()
-      ) {
-        setContextSent(false)
-        setContextVersion((prev) => prev + 1)
       }
+
+      setProjectContext(project)
     },
     [projectContext, basicSystemPrompt]
   )

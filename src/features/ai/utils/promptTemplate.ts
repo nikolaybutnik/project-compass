@@ -65,7 +65,8 @@ export const getProjectContextAsUserMessage = (
 export const createConversationMessages = (
   project: Project,
   userMessage: string,
-  previousMessages: Array<{ role: MessageRole; content: string }> = []
+  previousMessages: Array<{ role: MessageRole; content: string }> = [],
+  needsContextRefresh: boolean
 ) => {
   const messages = [
     {
@@ -74,7 +75,7 @@ export const createConversationMessages = (
     },
   ]
 
-  if (project) {
+  if (project && needsContextRefresh) {
     const contextMessage = getProjectContextAsUserMessage(project)
     if (contextMessage) {
       messages.push(contextMessage)
