@@ -1,5 +1,6 @@
 import { Project } from '@/shared/types'
 import { extractProjectContext } from '@/features/ai/utils/projectContextHandler'
+import { MessageRole } from '@/features/ai/types'
 
 export const getBasicSystemPrompt = () => `
 IMPORTANT:Your name is Vector, a project management assistant for a Kanban app.
@@ -50,24 +51,25 @@ Do not invent information about the project. If you don't know the answer, say s
 
 export const getProjectContextAsUserMessage = (
   project: Project
-): { role: string; content: string } | undefined => {
+): { role: MessageRole; content: string } | undefined => {
   if (!project) return undefined
 
   const { contextString } = extractProjectContext(project)
 
   return {
-    role: 'user',
+    role: MessageRole.USER,
     content: `[PROJECT_CONTEXT]\n${contextString}\n[END_PROJECT_CONTEXT]`,
   }
 }
 
 export const createConversationMessages = (
   project: Project,
-  userMessage: string
+  userMessage: string,
+  previousMessages: Array<{ role: MessageRole; content: string }> = []
 ) => {
   const messages = [
     {
-      role: 'system',
+      role: MessageRole.SYSTEM,
       content: getBasicSystemPrompt(),
     },
   ]
@@ -78,14 +80,19 @@ export const createConversationMessages = (
       messages.push(contextMessage)
 
       messages.push({
-        role: 'assistant',
+        role: MessageRole.ASSISTANT,
         content: `I understand the project context. I'll keep all task details including descriptions in mind when answering your questions.`,
       })
     }
   }
 
+  const conversationMessages = previousMessages.filter(
+    (msg) => msg.role !== MessageRole.SYSTEM && msg.role !== MessageRole.EVENT
+  )
+  messages.push(...conversationMessages)
+
   messages.push({
-    role: 'user',
+    role: MessageRole.USER,
     content: userMessage,
   })
 

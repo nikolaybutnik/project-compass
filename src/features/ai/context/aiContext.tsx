@@ -4,6 +4,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useMemo,
 } from 'react'
 import {
   getBasicSystemPrompt,
@@ -40,26 +41,29 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
   const [contextVersion, setContextVersion] = useState(0)
   const [lastSentContextVersion, setLastSentContextVersion] = useState(0)
 
+  // Memoize the basic system prompt to avoid regenerating it
+  const basicSystemPrompt = useMemo(() => getBasicSystemPrompt(), [])
+
   useEffect(() => {
     setMessages([
       {
         role: MessageRole.SYSTEM,
-        content: getBasicSystemPrompt(),
+        content: basicSystemPrompt,
       },
     ])
-  }, [])
+  }, [basicSystemPrompt])
 
   useEffect(() => {
     if (messages.length > 0 && messages[0].role === 'system') {
       setMessages((prev) => [
         {
           role: MessageRole.SYSTEM,
-          content: getBasicSystemPrompt(),
+          content: basicSystemPrompt,
         },
         ...prev.slice(1), // Preserve conversation history
       ])
     }
-  }, [projectContext?.id])
+  }, [projectContext?.id, basicSystemPrompt])
 
   // Invalidate the context when the project data is updated to force a refresh of context for AI
   const invalidateContext = useCallback(() => {
@@ -92,9 +96,18 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         let apiMessages
 
         if (projectContext) {
+          const previousMessages = messages.map((msg) => ({
+            role: msg.role.toLowerCase() as
+              | MessageRole.SYSTEM
+              | MessageRole.USER
+              | MessageRole.ASSISTANT,
+            content: msg.content,
+          }))
+
           const conversationMessages = createConversationMessages(
             projectContext,
-            userMessageContent
+            userMessageContent,
+            previousMessages
           )
 
           apiMessages = conversationMessages.map((msg) => ({
@@ -110,12 +123,13 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
           setContextSent(true)
           setLastSentContextVersion(contextVersion)
         } else {
-          // For non-project conversations, use basic system prompt
+          // For non-project conversations, preserve the conversation history
           apiMessages = [
             {
               role: MessageRole.SYSTEM,
-              content: getBasicSystemPrompt(),
+              content: basicSystemPrompt,
             },
+            ...messages.filter((msg) => msg.role !== MessageRole.SYSTEM),
             {
               role: MessageRole.USER,
               content: userMessageContent,
@@ -142,7 +156,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLoading(false)
       }
     },
-    [messages, projectContext, contextVersion]
+    [messages, projectContext, basicSystemPrompt, contextVersion]
   )
 
   // Clear the message history and reset to the initial system prompt
@@ -150,13 +164,13 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
     setMessages([
       {
         role: MessageRole.SYSTEM,
-        content: getBasicSystemPrompt(),
+        content: basicSystemPrompt,
       },
     ])
     setContextSent(false)
     setContextVersion(0)
     setLastSentContextVersion(0)
-  }, [projectContext])
+  }, [basicSystemPrompt])
 
   const updateProjectContext = useCallback(
     (project: Project) => {
@@ -180,7 +194,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
           setMessages([
             {
               role: MessageRole.SYSTEM,
-              content: getBasicSystemPrompt(),
+              content: basicSystemPrompt,
             },
           ])
 
@@ -196,21 +210,33 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         setContextVersion((prev) => prev + 1)
       }
     },
-    [projectContext]
+    [projectContext, basicSystemPrompt]
+  )
+
+  // Memoize the context value to prevent unnecessary re-renders
+  const memoizedContextValue = useMemo(
+    () => ({
+      messages,
+      isLoading,
+      projectContext,
+      sendMessage,
+      resetContext,
+      updateProjectContext,
+      invalidateContext,
+    }),
+    [
+      messages,
+      isLoading,
+      projectContext,
+      sendMessage,
+      resetContext,
+      updateProjectContext,
+      invalidateContext,
+    ]
   )
 
   return (
-    <AIContext.Provider
-      value={{
-        messages,
-        isLoading,
-        projectContext,
-        sendMessage,
-        resetContext,
-        updateProjectContext,
-        invalidateContext,
-      }}
-    >
+    <AIContext.Provider value={memoizedContextValue}>
       {children}
     </AIContext.Provider>
   )

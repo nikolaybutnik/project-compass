@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   Heading,
   Tabs,
@@ -35,6 +35,7 @@ enum ProjectViewTabs {
   KANBAN = 0,
   OVERVIEW = 1,
   INSIGHTS = 2,
+  CHAT = 3,
 }
 
 export const ProjectPage: React.FC = () => {
@@ -66,19 +67,57 @@ export const ProjectPage: React.FC = () => {
     }
   }, [project, updateProjectContext])
 
-  // Auto-scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
   const [input, setInput] = useState('')
   const [isSettingActive, setIsSettingActive] = useState(false)
   const [tabIndex, setTabIndex] = useState(ProjectViewTabs.KANBAN)
 
-  const isActiveProject = user?.activeProjectId === projectId
-
   const userBgColor = useColorModeValue('blue.100', 'blue.900')
   const aiBgColor = useColorModeValue('gray.200', 'gray.700')
+
+  // Auto-scroll to bottom when messages change or when switching to chat tab
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  // Scroll to bottom when switching to the chat tab
+  useEffect(() => {
+    if (tabIndex === ProjectViewTabs.CHAT) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+    }
+  }, [tabIndex])
+
+  // Memoize the message components to prevent re-renders on input changes
+  const memoizedMessages = useMemo(() => {
+    return messages
+      .filter((msg) => msg.role !== 'system')
+      .map((msg, idx) => (
+        <Box
+          className='markdown-content'
+          key={idx}
+          p={3}
+          borderRadius='md'
+          bg={msg.role === 'user' ? userBgColor : aiBgColor}
+          alignSelf={msg.role === 'user' ? 'flex-end' : 'flex-start'}
+          maxW='80%'
+        >
+          <ReactMarkdown
+            components={{
+              p: (props) => <Text mb={2} {...props} />,
+              code: (props) => <Code p={1} {...props} />,
+              ul: (props) => <UnorderedList pl={4} mb={2} {...props} />,
+              ol: (props) => <OrderedList pl={4} mb={2} {...props} />,
+              li: (props) => <ListItem {...props} />,
+            }}
+          >
+            {msg.content}
+          </ReactMarkdown>
+        </Box>
+      ))
+  }, [messages, userBgColor, aiBgColor])
+
+  const isActiveProject = user?.activeProjectId === projectId
 
   const handleSetActiveProject = async () => {
     if (!user || !projectId) return
@@ -107,7 +146,13 @@ export const ProjectPage: React.FC = () => {
     }
   }
 
-  // TODO: full implementation pending
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setInput(e.target.value)
+    },
+    []
+  )
+
   const handleSendMessage = async () => {
     if (!input.trim()) return
 
@@ -217,37 +262,7 @@ export const ProjectPage: React.FC = () => {
                   },
                 }}
               >
-                {messages
-                  .filter((msg) => msg.role !== 'system')
-                  .map((msg, idx) => (
-                    <Box
-                      className='markdown-content'
-                      key={idx}
-                      p={3}
-                      borderRadius='md'
-                      bg={msg.role === 'user' ? userBgColor : aiBgColor}
-                      alignSelf={
-                        msg.role === 'user' ? 'flex-end' : 'flex-start'
-                      }
-                      maxW='80%'
-                    >
-                      <ReactMarkdown
-                        components={{
-                          p: (props) => <Text mb={2} {...props} />,
-                          code: (props) => <Code p={1} {...props} />,
-                          ul: (props) => (
-                            <UnorderedList pl={4} mb={2} {...props} />
-                          ),
-                          ol: (props) => (
-                            <OrderedList pl={4} mb={2} {...props} />
-                          ),
-                          li: (props) => <ListItem {...props} />,
-                        }}
-                      >
-                        {msg.content}
-                      </ReactMarkdown>
-                    </Box>
-                  ))}
+                {memoizedMessages}
                 {isAiLoading && (
                   <Flex justify='center'>
                     <Spinner />
@@ -259,7 +274,7 @@ export const ProjectPage: React.FC = () => {
               <Flex mb={2}>
                 <Input
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={handleInputChange}
                   placeholder='Ask about your project...'
                   mr={2}
                   onKeyUp={(e) => e.key === 'Enter' && handleSendMessage()}
