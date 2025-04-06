@@ -7,7 +7,7 @@ import React, {
 } from 'react'
 import {
   getBasicSystemPrompt,
-  getProjectContextPrompt,
+  createConversationMessages,
 } from '@/features/ai/utils/promptTemplate'
 import { Project } from '@/shared/types'
 import { AIActionType, AIResponse } from '@/features/ai/types'
@@ -83,35 +83,44 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         // [FIRST_MESSAGE] flag for AI to know if this is the start of conversation
-        const apiMessage = {
-          role: MessageRole.USER,
-          content: isFirstUserMessage ? `[FIRST_MESSAGE] ${message}` : message,
-        }
+        const userMessageContent = isFirstUserMessage
+          ? `[FIRST_MESSAGE] ${message}`
+          : message
 
         setMessages((prev) => [...prev, displayMessage])
 
-        const needsContextRefresh =
-          !contextSent || contextVersion > lastSentContextVersion
+        let apiMessages
 
-        let apiMessages = [...messages]
+        if (projectContext) {
+          const conversationMessages = createConversationMessages(
+            projectContext,
+            userMessageContent
+          )
 
-        if (needsContextRefresh && projectContext) {
-          const projectContextMessage = {
-            role: MessageRole.SYSTEM,
-            content: getProjectContextPrompt(projectContext),
-          }
-
-          apiMessages = [
-            apiMessages[0],
-            projectContextMessage,
-            ...apiMessages.slice(1),
-            apiMessage,
-          ]
+          apiMessages = conversationMessages.map((msg) => ({
+            role:
+              msg.role === 'system'
+                ? MessageRole.SYSTEM
+                : msg.role === 'user'
+                  ? MessageRole.USER
+                  : MessageRole.ASSISTANT,
+            content: msg.content,
+          }))
 
           setContextSent(true)
           setLastSentContextVersion(contextVersion)
         } else {
-          apiMessages = [...apiMessages, apiMessage]
+          // For non-project conversations, use basic system prompt
+          apiMessages = [
+            {
+              role: MessageRole.SYSTEM,
+              content: getBasicSystemPrompt(),
+            },
+            {
+              role: MessageRole.USER,
+              content: userMessageContent,
+            },
+          ]
         }
 
         const response = await getChatResponse(apiMessages, projectContext?.id)
@@ -133,13 +142,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLoading(false)
       }
     },
-    [
-      messages,
-      projectContext,
-      contextSent,
-      contextVersion,
-      lastSentContextVersion,
-    ]
+    [messages, projectContext, contextVersion]
   )
 
   // Clear the message history and reset to the initial system prompt

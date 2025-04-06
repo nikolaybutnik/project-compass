@@ -29,6 +29,8 @@ export const getProjectContextPrompt = (project: Project) => {
     extractProjectContext(project)
 
   return `
+IMPORTANT PROJECT DATA FOLLOWS:
+
 ${summaryString}
 
 ${contextString}
@@ -39,8 +41,53 @@ When discussing this project:
 3. Be specific about which column tasks are located in
 4. Use tools when the user wants to make changes
 5. Be flexible - if the conversation drifts to other topics, that's perfectly fine
-6. Don't reference IDs in your responses
 
-IMPORTANT: Do not invent information about the project. If you don't know the answer, say so and ask user to provide context.
+***IMPORTANT NOTE: Many tasks contain detailed descriptions that provide crucial context. Always check for and include this information when discussing specific tasks.***
+
+Do not invent information about the project. If you don't know the answer, say so and ask user to provide context.
 `
+}
+
+export const getProjectContextAsUserMessage = (
+  project: Project
+): { role: string; content: string } | undefined => {
+  if (!project) return undefined
+
+  const { contextString } = extractProjectContext(project)
+
+  return {
+    role: 'user',
+    content: `[PROJECT_CONTEXT]\n${contextString}\n[END_PROJECT_CONTEXT]`,
+  }
+}
+
+export const createConversationMessages = (
+  project: Project,
+  userMessage: string
+) => {
+  const messages = [
+    {
+      role: 'system',
+      content: getBasicSystemPrompt(),
+    },
+  ]
+
+  if (project) {
+    const contextMessage = getProjectContextAsUserMessage(project)
+    if (contextMessage) {
+      messages.push(contextMessage)
+
+      messages.push({
+        role: 'assistant',
+        content: `I understand the project context. I'll keep all task details including descriptions in mind when answering your questions.`,
+      })
+    }
+  }
+
+  messages.push({
+    role: 'user',
+    content: userMessage,
+  })
+
+  return messages
 }

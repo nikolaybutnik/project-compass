@@ -3,6 +3,16 @@ import { Project, KanbanTask, TaskPriority, KanbanColumn } from '@/shared/types'
 // Maximum characters in the project context to avoid exceeding the token limit
 const MAX_CONTEXT_SIZE = 10000
 
+// Function to properly escape XML special characters
+function escapeXml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
+
 export function extractProjectContext(project: Project): {
   summaryString: string
   contextString: string
@@ -27,11 +37,11 @@ export function extractProjectContext(project: Project): {
   const summaryString = `Project: ${project.title} | ID: (${project.id}) | ${totalTasks} tasks across ${columns.length} columns`
 
   let contextString = `<project>\n`
-  contextString += `  <project_title>${project.title}</project_title>\n`
+  contextString += `  <project_title>${escapeXml(project.title)}</project_title>\n`
   contextString += `  <project_id>${project.id}</project_id>\n`
 
   if (project.description) {
-    contextString += `  <project_description>${project.description}</project_description>\n`
+    contextString += `  <project_description>${escapeXml(project.description)}</project_description>\n`
   }
 
   contextString += `  <stats>\n`
@@ -44,7 +54,7 @@ export function extractProjectContext(project: Project): {
   const tasksByID: Record<string, { title: string; columnTitle: string }> = {}
 
   columns.forEach((col) => {
-    contextString += `    <column name="${col.title}" task_count="${col.tasks.length}">\n`
+    contextString += `    <column name="${escapeXml(col.title)}" task_count="${col.tasks.length}">\n`
 
     if (col.tasks.length === 0) {
       contextString += `      <no_tasks/>\n`
@@ -74,7 +84,7 @@ export function extractProjectContext(project: Project): {
 
         contextString += `        <task index="${taskIndexInColumn}" total="${col.tasks.length}">\n`
         contextString += `          <id>${task.id}</id>\n`
-        contextString += `          <title>${task.title}</title>\n`
+        contextString += `          <title>${escapeXml(task.title)}</title>\n`
         contextString += `          <priority>${priority}</priority>\n`
 
         if (task.description) {
@@ -82,7 +92,11 @@ export function extractProjectContext(project: Project): {
             task.description.length > 100
               ? task.description.substring(0, 100) + '...'
               : task.description
-          contextString += `          <description>${shortDesc}</description>\n`
+          // Make description tags more prominent with attributes
+          contextString += `          <DESCRIPTION important="true" exists="true">${escapeXml(shortDesc)}</DESCRIPTION>\n`
+        } else {
+          // Explicitly note when description is missing
+          contextString += `          <DESCRIPTION exists="false">No description provided</DESCRIPTION>\n`
         }
 
         contextString += `        </task>\n`
@@ -100,11 +114,16 @@ export function extractProjectContext(project: Project): {
   contextString += `</project>\n`
 
   // Important: Add summary at both beginning and end for better retention
-  const projectSummary = `IMPORTANT SUMMARY: Project "${project.title}" contains ${totalTasks} tasks across ${columns.length} columns: ${columns.map((c) => `${c.title}(${c.tasks.length})`).join(', ')}.`
+  const projectSummary = `IMPORTANT SUMMARY: Project "${escapeXml(project.title)}" contains ${totalTasks} tasks across ${columns.length} columns: ${columns.map((c) => `${escapeXml(c.title)}(${c.tasks.length})`).join(', ')}.`
 
   // Add summary at both beginning and end (primacy-recency effect)
   contextString =
-    projectSummary + '\n\n' + contextString + '\n\n' + projectSummary
+    projectSummary +
+    '\n\n' +
+    contextString +
+    '\n\n' +
+    projectSummary +
+    '\n\nPAY ATTENTION: Many tasks have descriptions. When discussing tasks, always check and mention their descriptions.'
 
   if (contextString.length > MAX_CONTEXT_SIZE) {
     // Preserve the XML structure by truncating the middle
