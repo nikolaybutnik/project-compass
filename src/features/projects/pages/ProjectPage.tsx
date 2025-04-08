@@ -33,6 +33,7 @@ import {
 import { useParams } from 'react-router-dom'
 import { KanbanBoardTab } from '@/features/projects/components/tabs/KanbanBoardTab'
 import {
+  updateProjectDescriptionMutation,
   updateProjectTitleMutation,
   useProjectQuery,
 } from '@/shared/store/projectsStore'
@@ -43,6 +44,7 @@ import ReactMarkdown from 'react-markdown'
 import { useContextSync } from '@/features/ai/hooks/useContextSync'
 import { MessageRole } from '@/features/ai/types'
 import { EditIcon } from '@chakra-ui/icons'
+import { ProjectOverviewTab } from '../components/tabs/ProjectOverviewTab'
 
 enum ProjectViewTabs {
   KANBAN = 0,
@@ -61,6 +63,7 @@ export const ProjectPage: React.FC = () => {
   const { user } = useAuth()
   const setActiveProjectMutation = useSetActiveProjectMutation()
   const updateTitle = updateProjectTitleMutation()
+  const updateDescription = updateProjectDescriptionMutation()
   const {
     messages,
     isLoading: isAiLoading,
@@ -88,6 +91,10 @@ export const ProjectPage: React.FC = () => {
   const [tabIndex, setTabIndex] = useState(ProjectViewTabs.KANBAN)
   const [projectTitle, setProjectTitle] = useState(project?.title || '')
   const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [projectDescription, setProjectDescription] = useState(
+    project?.description || ''
+  )
+  const [isEditingDescription, setIsEditingDescription] = useState(false)
 
   const userBgColor = useColorModeValue('blue.100', 'blue.900')
   const aiBgColor = useColorModeValue('gray.200', 'gray.700')
@@ -96,6 +103,10 @@ export const ProjectPage: React.FC = () => {
   useEffect(() => {
     setProjectTitle(project?.title || '')
   }, [project?.title])
+
+  useEffect(() => {
+    setProjectDescription(project?.description || '')
+  }, [project?.description])
 
   // Auto-scroll to bottom when messages change or when switching to chat tab
   useEffect(() => {
@@ -209,6 +220,29 @@ export const ProjectPage: React.FC = () => {
     )
   }
 
+  const handleDescriptionUpdate = (
+    event: FocusEvent<HTMLTextAreaElement> | KeyboardEvent<HTMLTextAreaElement>
+  ): void => {
+    if ('key' in event) {
+      if (event.key === 'Escape') {
+        setIsEditingDescription(false)
+        setProjectDescription(project ? project.description : '')
+      }
+      if (!event.metaKey || event.key !== 'Enter') return
+    }
+
+    const newDescription = event.currentTarget.value
+    updateDescription.mutate(
+      { projectId, newDescription },
+      {
+        onSuccess: () => {
+          setProjectDescription(newDescription)
+          setIsEditingDescription(false)
+        },
+      }
+    )
+  }
+
   return (
     <>
       <Flex justify='space-between' align='center' mb={6}>
@@ -287,7 +321,16 @@ export const ProjectPage: React.FC = () => {
               error={error}
             />
           </TabPanel>
-          <TabPanel flex='1'>{/* TODO: Add Overview Tab */}</TabPanel>
+          <TabPanel flex='1'>
+            <ProjectOverviewTab
+              project={project || null}
+              content={projectDescription}
+              isEditing={isEditingDescription}
+              setIsEditing={setIsEditingDescription}
+              onUpdate={handleDescriptionUpdate}
+              onChange={setProjectDescription}
+            />
+          </TabPanel>
           <TabPanel flex='1'>{/* TODO: Add AI Insights Tab */}</TabPanel>
 
           {/* Temporary Chat Test Tab */}
