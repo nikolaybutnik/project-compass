@@ -99,15 +99,18 @@ export const ProjectPage: React.FC = () => {
 
   // Auto-scroll to bottom when messages change or when switching to chat tab
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   // Scroll to bottom when switching to the chat tab
   useEffect(() => {
     if (tabIndex === ProjectViewTabs.CHAT) {
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-      }, 100)
+      if (messagesEndRef.current) {
+        const container = messagesEndRef.current.parentElement
+        if (container) {
+          container.scrollTop = container.scrollHeight
+        }
+      }
     }
   }, [tabIndex])
 
