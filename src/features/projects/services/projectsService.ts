@@ -8,6 +8,7 @@ import {
   where,
   orderBy,
   getDocs,
+  updateDoc,
 } from 'firebase/firestore'
 import { db } from '@/shared/config/firebase'
 import { AIProjectInstructions, Project, ProjectStatus } from '@/shared/types'
@@ -128,6 +129,53 @@ export const getProject = async (projectId: string): Promise<Project> => {
     return docSnap?.data() as Project
   } catch (error) {
     console.error('Error getting project:', error)
+    throw error
+  }
+}
+
+export const updateTitle = async (projectId: string, newTitle: string) => {
+  try {
+    const projectRef = doc(db, COLLECTIONS.PROJECTS, projectId)
+    const projectSnap = await getDoc(projectRef)
+
+    if (!projectSnap?.exists()) {
+      throw new Error('Project not found')
+    }
+
+    await updateDoc(projectRef, {
+      title: newTitle,
+      updatedAt: serverTimestamp(),
+    })
+
+    const updatedProjectSnap = await getDoc(projectRef)
+    return updatedProjectSnap?.data() as Project
+  } catch (error) {
+    console.error('Error updating title:', error)
+    throw error
+  }
+}
+
+export const updateDescription = async (
+  projectId: string,
+  newDescription: string
+) => {
+  try {
+    const projectRef = doc(db, COLLECTIONS.PROJECTS, projectId)
+    const projectSnap = await getDoc(projectRef)
+
+    if (!projectSnap?.exists()) {
+      throw new Error('Project not found')
+    }
+
+    await updateDoc(projectRef, {
+      description: newDescription,
+      updatedAt: serverTimestamp(),
+    })
+
+    const updatedProjectSnap = await getDoc(projectRef)
+    return updatedProjectSnap?.data() as Project
+  } catch (error) {
+    console.error('Error updating description:', error)
     throw error
   }
 }

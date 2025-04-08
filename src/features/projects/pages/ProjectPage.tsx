@@ -1,4 +1,12 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+  FocusEvent,
+  KeyboardEvent,
+} from 'react'
 import {
   Heading,
   Tabs,
@@ -10,7 +18,6 @@ import {
   Flex,
   Text,
   Badge,
-  useToast,
   Box,
   VStack,
   Spinner,
@@ -20,17 +27,22 @@ import {
   Code,
   OrderedList,
   ListItem,
+  IconButton,
+  HStack,
 } from '@chakra-ui/react'
 import { useParams } from 'react-router-dom'
 import { KanbanBoardTab } from '@/features/projects/components/tabs/KanbanBoardTab'
-import { useProjectQuery } from '@/shared/store/projectsStore'
+import {
+  updateProjectTitleMutation,
+  useProjectQuery,
+} from '@/shared/store/projectsStore'
 import { useAuth } from '@/shared/store/authStore'
 import { useSetActiveProjectMutation } from '@/shared/store/usersStore'
 import { useAI } from '@/features/ai/context/aiContext'
 import ReactMarkdown from 'react-markdown'
 import { useContextSync } from '@/features/ai/hooks/useContextSync'
-import { findTaskMentions } from '@/features/ai/utils/mentionUtils'
 import { MessageRole } from '@/features/ai/types'
+import { EditIcon } from '@chakra-ui/icons'
 
 enum ProjectViewTabs {
   KANBAN = 0,
@@ -40,7 +52,7 @@ enum ProjectViewTabs {
 }
 
 export const ProjectPage: React.FC = () => {
-  const { projectId } = useParams()
+  const { projectId = '' } = useParams<{ projectId: string }>()
   const {
     data: project,
     isLoading: isProjectLoading,
@@ -48,7 +60,7 @@ export const ProjectPage: React.FC = () => {
   } = useProjectQuery(projectId || '')
   const { user } = useAuth()
   const setActiveProjectMutation = useSetActiveProjectMutation()
-  const toast = useToast()
+  const updateTitle = updateProjectTitleMutation()
   const {
     messages,
     isLoading: isAiLoading,
@@ -71,17 +83,23 @@ export const ProjectPage: React.FC = () => {
     }
   }, [project, updateProjectContext])
 
-  const [input, setInput] = useState('')
+  const [chatInput, setChatInput] = useState('')
   const [isSettingActive, setIsSettingActive] = useState(false)
   const [tabIndex, setTabIndex] = useState(ProjectViewTabs.KANBAN)
+  const [projectTitle, setProjectTitle] = useState(project?.title || '')
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
 
   const userBgColor = useColorModeValue('blue.100', 'blue.900')
   const aiBgColor = useColorModeValue('gray.200', 'gray.700')
   const eventBgColor = useColorModeValue('yellow.100', 'gray.800')
 
+  useEffect(() => {
+    setProjectTitle(project?.title || '')
+  }, [project?.title])
+
   // Auto-scroll to bottom when messages change or when switching to chat tab
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
   }, [messages])
 
   // Scroll to bottom when switching to the chat tab
@@ -130,55 +148,93 @@ export const ProjectPage: React.FC = () => {
 
   const isActiveProject = user?.activeProjectId === projectId
 
-  const handleSetActiveProject = async () => {
+  const handleSetActiveProject = async (): Promise<void> => {
     if (!user || !projectId) return
 
     setIsSettingActive(true)
+
     try {
       await setActiveProjectMutation.mutateAsync({
         userId: user?.id,
         projectId,
       })
-      toast({
-        title: 'Project activated',
-        description: 'This is now your active project',
-        status: 'success',
-        duration: 3000,
-      })
     } catch (error) {
       console.error('Failed to set active project:', error)
-      toast({
-        title: 'Failed to set active project',
-        status: 'error',
-        duration: 3000,
-      })
     } finally {
       setIsSettingActive(false)
     }
   }
 
   const handleInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setInput(e.target.value)
+    (e: React.ChangeEvent<HTMLInputElement>): void => {
+      setChatInput(e.target.value)
     },
     []
   )
 
-  const handleSendMessage = async () => {
-    if (!input.trim()) return
+  const handleSendMessage = async (): Promise<void> => {
+    if (!chatInput.trim()) return
 
     try {
-      await sendMessage(input)
-      setInput('')
+      await sendMessage(chatInput)
+      setChatInput('')
     } catch (error) {
       console.error('Error sending message:', error)
     }
   }
 
+  const handleTitleUpdate = (
+    event: FocusEvent<HTMLInputElement> | KeyboardEvent<HTMLInputElement>
+  ): void => {
+    if ('key' in event) {
+      if (event.key === 'Escape') {
+        setIsEditingTitle(false)
+        setProjectTitle(project ? project.title : '')
+      }
+      if (event.key !== 'Enter') return
+    }
+
+    const newTitle = event.currentTarget.value
+    updateTitle.mutate(
+      { projectId, newTitle },
+      {
+        onSuccess: () => {
+          setProjectTitle(newTitle)
+          setIsEditingTitle(false)
+        },
+      }
+    )
+  }
+
   return (
     <>
       <Flex justify='space-between' align='center' mb={6}>
-        <Heading>{project?.title}</Heading>
+        <HStack>
+          {isEditingTitle ? (
+            <Input
+              value={projectTitle}
+              onChange={(e) => setProjectTitle(e.target.value)}
+              onBlur={handleTitleUpdate}
+              onKeyDown={handleTitleUpdate}
+              autoFocus
+              variant='unstyled'
+              fontSize='4xl'
+              fontWeight='bold'
+              height={50}
+              p={0}
+            />
+          ) : (
+            <>
+              <Heading height={50}>{project?.title}</Heading>
+              <IconButton
+                aria-label='Edit title'
+                icon={<EditIcon />}
+                size='sm'
+                onClick={() => setIsEditingTitle(true)}
+              />
+            </>
+          )}
+        </HStack>
 
         {!isActiveProject && project && (
           <Flex align='center' bg='blue.50' p={2} borderRadius='md'>
@@ -293,7 +349,7 @@ export const ProjectPage: React.FC = () => {
 
               <Flex mb={2}>
                 <Input
-                  value={input}
+                  value={chatInput}
                   onChange={handleInputChange}
                   placeholder='Ask about your project...'
                   mr={2}
@@ -303,7 +359,7 @@ export const ProjectPage: React.FC = () => {
                   colorScheme='blue'
                   onClick={handleSendMessage}
                   isLoading={isAiLoading}
-                  isDisabled={!input.trim()}
+                  isDisabled={!chatInput.trim()}
                 >
                   Send
                 </Button>

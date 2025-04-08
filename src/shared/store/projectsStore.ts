@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getProject,
   getProjects,
+  updateDescription,
+  updateTitle,
 } from '@/features/projects/services/projectsService'
 import { createProject } from '@/features/projects/services/projectsService'
 import {
@@ -72,6 +74,9 @@ export const useCreateProjectMutation = () => {
         queryKey: [QUERY_KEYS.PROJECTS, newProject?.userId],
       })
     },
+    onError: (err) => {
+      console.error('Failed to create project:', err)
+    },
   })
 }
 
@@ -94,6 +99,9 @@ export const useAddTaskMutation = () => {
         queryKey: [QUERY_KEYS.PROJECT, updatedProject?.id],
       })
     },
+    onError: (err) => {
+      console.error('Failed to create task:', err)
+    },
   })
 }
 
@@ -115,6 +123,9 @@ export const useDeleteTaskMutation = () => {
       queryClient?.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECT, updatedProject?.id],
       })
+    },
+    onError: (err) => {
+      console.error('Failed deleting task:', err)
     },
   })
 }
@@ -223,7 +234,7 @@ export const useMoveTaskMutation = () => {
       )
       console.error('Error moving task:', err)
     },
-    onSettled: (data, err, variables) => {
+    onSettled: (_data, _err, variables) => {
       // Always refetch after error or success
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECT, variables?.projectId],
@@ -299,9 +310,109 @@ export const useReorderTasksMutation = () => {
       )
       console.error('Error reordering tasks:', err)
     },
-    onSettled: (data, err, variables) => {
+    onSettled: (_data, _err, variables) => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECT, variables?.projectId],
+      })
+    },
+  })
+}
+
+// Uodate project title
+export const updateProjectTitleMutation = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      newTitle,
+    }: {
+      projectId: string
+      newTitle: string
+    }) => updateTitle(projectId, newTitle),
+    onMutate: async ({ projectId, newTitle }) => {
+      await queryClient.cancelQueries({
+        queryKey: [QUERY_KEYS.PROJECT, projectId],
+      })
+
+      const previousProjectSnapshot = queryClient.getQueryData([
+        QUERY_KEYS.PROJECT,
+        projectId,
+      ])
+
+      queryClient.setQueryData(
+        [QUERY_KEYS.PROJECT, projectId],
+        (old: Project) => ({
+          ...old,
+          title: newTitle,
+        })
+      )
+
+      return { previousProjectSnapshot }
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(
+        [QUERY_KEYS.PROJECT, variables?.projectId],
+        context?.previousProjectSnapshot
+      )
+      console.error('Error updating project title', err)
+    },
+    onSettled: (_data, _err, variables) => {
+      queryClient?.invalidateQueries({
+        queryKey: [QUERY_KEYS.PROJECT, variables?.projectId],
+      })
+      queryClient?.invalidateQueries({
+        queryKey: [QUERY_KEYS.PROJECTS],
+      })
+    },
+  })
+}
+
+// Update project description
+export const updateProjectDescriptionMutation = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      newDescription,
+    }: {
+      projectId: string
+      newDescription: string
+    }) => updateDescription(projectId, newDescription),
+    onMutate: async ({ projectId, newDescription }) => {
+      await queryClient.cancelQueries({
+        queryKey: [QUERY_KEYS.PROJECT, projectId],
+      })
+
+      const previousProjectSnapshot = queryClient.getQueryData([
+        QUERY_KEYS.PROJECT,
+        projectId,
+      ])
+
+      queryClient.setQueryData(
+        [QUERY_KEYS.PROJECT, projectId],
+        (old: Project) => ({
+          ...old,
+          description: newDescription,
+        })
+      )
+
+      return { previousProjectSnapshot }
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(
+        [QUERY_KEYS.PROJECT, variables?.projectId],
+        context?.previousProjectSnapshot
+      )
+      console.error('Error updating project description', err)
+    },
+    onSettled: (_data, _err, variables) => {
+      queryClient?.invalidateQueries({
+        queryKey: [QUERY_KEYS.PROJECT, variables?.projectId],
+      })
+      queryClient?.invalidateQueries({
+        queryKey: [QUERY_KEYS.PROJECTS],
       })
     },
   })

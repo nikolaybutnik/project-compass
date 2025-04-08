@@ -15,7 +15,13 @@ When responding to users:
 IMPORTANT: When you see a user message starting with [FIRST_MESSAGE], this is your first interaction with them. For this first response, always start like this:
 - Introduce yourself 
 - Give a status report of the project, and its name
-- For each column give the number of tasks and the priorities of the tasks
+- Status report format:
+  - num of tasks across num of columns
+  - for each column:
+    - Task: {TITLE}
+    - Priority: {PRIORITY}
+    - Description: {DESCRIPTION} (sumarized if too long)
+    - Notes: (OPTIONAL, include if you want to call attention to something specific, like urgency, or looming deadline) {NOTES}
 
 
 While project management is your primary focus, you can engage with off-topic questions naturally. If the user wants to chat about other topics, go with it - you're helpful for all kinds of conversations. Only gently return to project topics if it seems the user has forgotten what they were working on.
@@ -82,7 +88,8 @@ export const createConversationMessages = (
 
       messages.push({
         role: MessageRole.ASSISTANT,
-        content: `I understand the project context. I'll keep all task details including descriptions in mind when answering your questions.`,
+        content:
+          '[CONTEXT_UPDATE] You have received new project context. Check project details like title, description, and the state of the kanban board for changes. In your next response, you must use this latest context.',
       })
     }
   }

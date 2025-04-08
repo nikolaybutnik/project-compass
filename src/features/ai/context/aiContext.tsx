@@ -14,6 +14,20 @@ import { AIActionType, AIResponse } from '@/features/ai/types'
 import { MessageRole } from '@/features/ai/types'
 import { getChatResponse } from '@/features/ai/services/aiService'
 
+/* 
+AI MESSAGE ARCHITECTURE
+
+messages (UI state)
+    ↓
+conversationMessages (adds context & system prompts)
+    ↓
+apiMessages (formatted for API)
+    ↓
+AI response
+    ↓
+back to messages (UI state)
+*/
+
 interface AIContextState {
   messages: Array<{ role: MessageRole; content: string }>
   isLoading: boolean
@@ -113,8 +127,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         let apiMessages
 
         if (projectContext) {
-          const needsContextRefresh = contextVersion > lastSentContextVersion
-
+          const needsContextRefresh = contextVersion !== lastSentContextVersion
           const conversationMessages = createConversationMessages(
             projectContext,
             userMessageContent,
