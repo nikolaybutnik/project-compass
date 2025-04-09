@@ -15,6 +15,7 @@ import {
   reorderTasks,
 } from '@/features/projects/services/tasksService'
 import { Timestamp } from 'firebase/firestore'
+import { ContextUpdateTrigger, useAI } from '@/features/ai/context/aiContext'
 export const QUERY_KEYS = {
   PROJECTS: 'projects',
   PROJECT: 'project',
@@ -60,6 +61,7 @@ export const useProjectQuery = (projectId: string) => {
 // Create a new project
 export const useCreateProjectMutation = () => {
   const queryClient = useQueryClient()
+  const { invalidateContext } = useAI()
 
   return useMutation({
     mutationFn: ({
@@ -69,13 +71,14 @@ export const useCreateProjectMutation = () => {
       userId: string
       projectData: Partial<Project>
     }) => createProject(userId, projectData),
+    onError: (err) => {
+      console.error('Failed to create project:', err)
+    },
     onSuccess: (newProject) => {
       queryClient?.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECTS, newProject?.userId],
       })
-    },
-    onError: (err) => {
-      console.error('Failed to create project:', err)
+      invalidateContext(ContextUpdateTrigger.NEW_PROJECT_CREATED)
     },
   })
 }
@@ -83,6 +86,7 @@ export const useCreateProjectMutation = () => {
 // Add a new task to a project
 export const useAddTaskMutation = () => {
   const queryClient = useQueryClient()
+  const { invalidateContext } = useAI()
 
   return useMutation({
     mutationFn: ({
@@ -94,13 +98,14 @@ export const useAddTaskMutation = () => {
       columnId: string
       taskData: Partial<KanbanTask>
     }) => addTask(projectId, columnId, taskData),
+    onError: (err) => {
+      console.error('Failed to create task:', err)
+    },
     onSuccess: (updatedProject) => {
       queryClient?.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECT, updatedProject?.id],
       })
-    },
-    onError: (err) => {
-      console.error('Failed to create task:', err)
+      invalidateContext(ContextUpdateTrigger.KANBAN_TASK_ADDED)
     },
   })
 }
@@ -108,6 +113,7 @@ export const useAddTaskMutation = () => {
 // Delete a task from a project
 export const useDeleteTaskMutation = () => {
   const queryClient = useQueryClient()
+  const { invalidateContext } = useAI()
 
   return useMutation({
     mutationFn: ({
@@ -119,13 +125,14 @@ export const useDeleteTaskMutation = () => {
       columnId: string
       taskId: string
     }) => deleteTask(projectId, columnId, taskId),
+    onError: (err) => {
+      console.error('Failed deleting task:', err)
+    },
     onSuccess: (updatedProject) => {
       queryClient?.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECT, updatedProject?.id],
       })
-    },
-    onError: (err) => {
-      console.error('Failed deleting task:', err)
+      invalidateContext(ContextUpdateTrigger.KANBAN_TASK_DELETED)
     },
   })
 }
@@ -133,6 +140,7 @@ export const useDeleteTaskMutation = () => {
 // Move a task from one column to another
 export const useMoveTaskMutation = () => {
   const queryClient = useQueryClient()
+  const { invalidateContext } = useAI()
 
   return useMutation({
     mutationFn: async ({
@@ -239,6 +247,7 @@ export const useMoveTaskMutation = () => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECT, variables?.projectId],
       })
+      invalidateContext(ContextUpdateTrigger.KANBAN_TASKS_MOVED)
     },
   })
 }
@@ -246,6 +255,7 @@ export const useMoveTaskMutation = () => {
 // Reorder tasks within a column
 export const useReorderTasksMutation = () => {
   const queryClient = useQueryClient()
+  const { invalidateContext } = useAI()
 
   return useMutation({
     mutationFn: async ({
@@ -314,6 +324,7 @@ export const useReorderTasksMutation = () => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECT, variables?.projectId],
       })
+      invalidateContext(ContextUpdateTrigger.KANBAN_TASKS_REORDERED)
     },
   })
 }
@@ -321,6 +332,7 @@ export const useReorderTasksMutation = () => {
 // Uodate project title
 export const updateProjectTitleMutation = () => {
   const queryClient = useQueryClient()
+  const { invalidateContext } = useAI()
 
   return useMutation({
     mutationFn: async ({
@@ -364,6 +376,7 @@ export const updateProjectTitleMutation = () => {
       queryClient?.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECTS],
       })
+      invalidateContext(ContextUpdateTrigger.TITLE)
     },
   })
 }
@@ -371,6 +384,7 @@ export const updateProjectTitleMutation = () => {
 // Update project description
 export const updateProjectDescriptionMutation = () => {
   const queryClient = useQueryClient()
+  const { invalidateContext } = useAI()
 
   return useMutation({
     mutationFn: async ({
@@ -414,6 +428,7 @@ export const updateProjectDescriptionMutation = () => {
       queryClient?.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECTS],
       })
+      invalidateContext(ContextUpdateTrigger.DESCRIPTION)
     },
   })
 }

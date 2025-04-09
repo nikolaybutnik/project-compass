@@ -21,7 +21,6 @@ IMPORTANT: When you see a user message starting with [FIRST_MESSAGE], this is yo
     - Task: {TITLE}
     - Priority: {PRIORITY}
     - Description: {DESCRIPTION} (sumarized if too long)
-    - Notes: (OPTIONAL, include if you want to call attention to something specific, like urgency, or looming deadline) {NOTES}
 
 
 While project management is your primary focus, you can engage with off-topic questions naturally. If the user wants to chat about other topics, go with it - you're helpful for all kinds of conversations. Only gently return to project topics if it seems the user has forgotten what they were working on.
@@ -32,72 +31,72 @@ Remember that building rapport is as important as providing information.
 export const getProjectContextPrompt = (project: Project) => {
   if (!project) return ''
 
-  const { summaryString, contextString, totalTasks, totalColumns } =
-    extractProjectContext(project)
+  const { summaryString, contextString } = extractProjectContext(project)
+
+  const fullContext = `
+  --- Project Context Start ---
+  
+    Project Title: ${project.title || 'N/A'}
+  
+    *** Project Description Start ***
+    ${project.description || 'No description provided.'}
+    *** Project Description End ***
+  
+    Kanban Board Details:
+    ${contextString}
+  
+  --- Project Context End ---
+  `
+
+  const instructions = `
+  When discussing this project:
+  1. Reference specific tasks by titles.
+  2. Consider ALL columns and ALL tasks when making suggestions.
+  3. Be specific about which column tasks are located in.
+  4. Use tools when the user wants to make changes.
+  5. Be flexible - if the conversation drifts to other topics, that's fine.
+  
+  ***IMPORTANT NOTE 1: Always refer to the Project Description (between the *** markers above) when asked about the project's overall goal, summary, or description.***
+  
+  ***IMPORTANT NOTE 2: Many tasks within the Kanban Board Details contain detailed descriptions that provide crucial context. Always check for and include this task-specific information when discussing specific tasks.***
+  
+  Do not invent information about the project. If you don't know the answer, say so and ask the user to provide context.
+  `
 
   return `
 IMPORTANT PROJECT DATA FOLLOWS:
 
 ${summaryString}
 
-${contextString}
+${fullContext}
 
-When discussing this project:
-1. Reference specific tasks by titles
-2. Consider ALL columns and ALL tasks when making suggestions
-3. Be specific about which column tasks are located in
-4. Use tools when the user wants to make changes
-5. Be flexible - if the conversation drifts to other topics, that's perfectly fine
-
-***IMPORTANT NOTE: Many tasks contain detailed descriptions that provide crucial context. Always check for and include this information when discussing specific tasks.***
-
-Do not invent information about the project. If you don't know the answer, say so and ask user to provide context.
+${instructions}
 `
 }
 
-export const getProjectContextAsUserMessage = (
-  project: Project
-): { role: MessageRole; content: string } | undefined => {
-  if (!project) return undefined
-
-  const { contextString } = extractProjectContext(project)
-
-  return {
-    role: MessageRole.USER,
-    content: `[PROJECT_CONTEXT]\n${contextString}\n[END_PROJECT_CONTEXT]`,
-  }
-}
-
 export const createConversationMessages = (
-  project: Project,
+  project: Project | null,
   userMessage: string,
-  previousMessages: Array<{ role: MessageRole; content: string }> = [],
-  needsContextRefresh: boolean
+  previousMessages: Array<{ role: MessageRole; content: string }> = []
 ) => {
+  let systemPromptContent = getBasicSystemPrompt()
+
+  if (project) {
+    const projectContextInfo = getProjectContextPrompt(project)
+    systemPromptContent += `\n\n${projectContextInfo}`
+  }
+
   const messages = [
     {
       role: MessageRole.SYSTEM,
-      content: getBasicSystemPrompt(),
+      content: systemPromptContent,
     },
   ]
 
-  if (project && needsContextRefresh) {
-    const contextMessage = getProjectContextAsUserMessage(project)
-    if (contextMessage) {
-      messages.push(contextMessage)
-
-      messages.push({
-        role: MessageRole.ASSISTANT,
-        content:
-          '[CONTEXT_UPDATE] You have received new project context. Check project details like title, description, and the state of the kanban board for changes. In your next response, you must use this latest context.',
-      })
-    }
-  }
-
-  const conversationMessages = previousMessages.filter(
+  const conversationHistory = previousMessages.filter(
     (msg) => msg.role !== MessageRole.SYSTEM && msg.role !== MessageRole.EVENT
   )
-  messages.push(...conversationMessages)
+  messages.push(...conversationHistory)
 
   messages.push({
     role: MessageRole.USER,

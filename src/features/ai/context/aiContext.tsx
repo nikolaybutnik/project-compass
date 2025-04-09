@@ -10,7 +10,7 @@ import {
   createConversationMessages,
 } from '@/features/ai/utils/promptTemplate'
 import { Project } from '@/shared/types'
-import { AIActionType, AIResponse } from '@/features/ai/types'
+import { AIResponse } from '@/features/ai/types'
 import { MessageRole } from '@/features/ai/types'
 import { getChatResponse } from '@/features/ai/services/aiService'
 
@@ -34,9 +34,21 @@ interface AIContextState {
   projectContext: Project | null
   sendMessage: (message: string) => Promise<AIResponse>
   updateProjectContext: (project: Project) => void
-  invalidateContext: () => void
+  invalidateContext: (updateType: ContextUpdateTrigger) => void
   resetContext: () => void
   refreshContext: () => void
+}
+
+export enum ContextUpdateTrigger {
+  DESCRIPTION = 'DESCRIPTION',
+  TITLE = 'TITLE',
+  KANBAN_TASKS_MOVED = 'KANBAN_TASKS_MOVED',
+  KANBAN_TASKS_REORDERED = 'KANBAN_TASKS_REORDERED',
+  KANBAN_TASK_UPDATED = 'KANBAN_TASK_UPDATED',
+  KANBAN_TASK_ADDED = 'KANBAN_TASK_ADDED',
+  KANBAN_TASK_DELETED = 'KANBAN_TASK_DELETED',
+  PROJECT_CHANGED = 'PROJECT_CHANGED',
+  NEW_PROJECT_CREATED = 'NEW_PROJECT_CREATED',
 }
 
 const AIContext = createContext<AIContextState | undefined>(undefined)
@@ -51,15 +63,18 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [projectContext, setProjectContext] = useState<Project | null>(null)
   const [isFirstLoad, setIsFirstLoad] = useState(true)
-  const [contextVersion, setContextVersion] = useState(0)
-  const [lastSentContextVersion, setLastSentContextVersion] = useState(0)
+  const [pendingContextUpdates, setPendingContextUpdates] = useState<
+    ContextUpdateTrigger[]
+  >([])
 
   // Memoize the basic system prompt to avoid regenerating it
   const basicSystemPrompt = useMemo(() => getBasicSystemPrompt(), [])
 
   // Invalidate the context when the project data is updated to force a refresh of context for AI
-  const invalidateContext = useCallback(() => {
-    setContextVersion((prev) => prev + 1)
+  const invalidateContext = useCallback((updateType: ContextUpdateTrigger) => {
+    setPendingContextUpdates((prev) => {
+      return prev?.includes(updateType) ? prev : [...prev, updateType]
+    })
   }, [])
 
   // Manually send fresh context to AI if it loses track.
@@ -80,8 +95,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         const conversationMessages = createConversationMessages(
           projectContext,
           refreshMessage,
-          messages,
-          true
+          messages
         )
         const apiMessages = conversationMessages.map((msg) => ({
           role: msg.role,
@@ -93,7 +107,6 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
           ...prev,
           { role: MessageRole.ASSISTANT, content: response.message },
         ])
-        setLastSentContextVersion(contextVersion + 1)
       } catch (error) {
         console.error('Error refreshing context:', error)
       } finally {
@@ -124,45 +137,13 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
 
         setMessages((prev) => [...prev, displayMessage])
 
-        let apiMessages
-
-        if (projectContext) {
-          const needsContextRefresh = contextVersion !== lastSentContextVersion
-          const conversationMessages = createConversationMessages(
-            projectContext,
-            userMessageContent,
-            messages,
-            needsContextRefresh
-          )
-
-          apiMessages = conversationMessages.map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-          }))
-
-          if (needsContextRefresh) {
-            setLastSentContextVersion(contextVersion)
-          }
-        } else {
-          // For non-project conversations, preserve the conversation history
-          apiMessages = [
-            {
-              role: MessageRole.SYSTEM,
-              content: basicSystemPrompt,
-            },
-            ...messages.filter((msg) => msg.role !== MessageRole.SYSTEM),
-            {
-              role: MessageRole.USER,
-              content: userMessageContent,
-            },
-          ]
-        }
+        const apiMessages = createConversationMessages(
+          projectContext, // This can be null for non-project conversations
+          userMessageContent,
+          messages
+        )
 
         const response = await getChatResponse(apiMessages, projectContext?.id)
-
-        if (response.action && response.action.type !== AIActionType.NONE) {
-          setContextVersion((prev) => prev + 1)
-        }
 
         setMessages((prev) => [
           ...prev,
@@ -177,7 +158,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLoading(false)
       }
     },
-    [messages, projectContext, basicSystemPrompt, contextVersion]
+    [messages, projectContext, basicSystemPrompt, pendingContextUpdates]
   )
 
   // Clear the message history and reset to the initial system prompt
@@ -188,15 +169,12 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         content: basicSystemPrompt,
       },
     ])
-    setContextVersion(0)
-    setLastSentContextVersion(0)
+    setPendingContextUpdates([])
   }, [basicSystemPrompt])
 
   const updateProjectContext = useCallback(
     (project: Project) => {
       const isNewProject = !projectContext || project.id !== projectContext.id
-
-      setContextVersion((prev) => prev + 1)
 
       if (isNewProject) {
         if (!isFirstLoad) {
@@ -207,6 +185,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
               content: `Switched to project: ${project.title || project.id}`,
             },
           ])
+          invalidateContext(ContextUpdateTrigger.PROJECT_CHANGED)
         } else {
           setMessages([
             {

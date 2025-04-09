@@ -41,7 +41,6 @@ import { useAuth } from '@/shared/store/authStore'
 import { useSetActiveProjectMutation } from '@/shared/store/usersStore'
 import { useAI } from '@/features/ai/context/aiContext'
 import ReactMarkdown from 'react-markdown'
-import { useContextSync } from '@/features/ai/hooks/useContextSync'
 import { MessageRole } from '@/features/ai/types'
 import { EditIcon } from '@chakra-ui/icons'
 import { ProjectOverviewTab } from '../components/tabs/ProjectOverviewTab'
@@ -75,8 +74,6 @@ export const ProjectPage: React.FC = () => {
   } = useAI()
 
   // TODO: Troubleshoot projectLoading and aiLoading
-
-  useContextSync(projectId, invalidateContext)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
