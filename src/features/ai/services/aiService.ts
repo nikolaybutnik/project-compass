@@ -16,10 +16,18 @@ function mapToOpenAIMessages(
   messages: Array<{ role: MessageRole; content: string }>
 ): ChatCompletionMessageParam[] {
   return messages
-    .filter((msg) => msg.role !== 'event')
+    .filter(
+      (msg) =>
+        msg.role !== MessageRole.EVENT &&
+        msg.role !== MessageRole.FUNCTION &&
+        msg.role !== MessageRole.TOOL
+    )
     .map((msg) => {
       return {
-        role: msg.role as 'system' | 'user' | 'assistant',
+        role: msg.role as
+          | MessageRole.SYSTEM
+          | MessageRole.USER
+          | MessageRole.ASSISTANT,
         content: msg.content,
       }
     })

@@ -86,6 +86,18 @@ export enum MessageRole {
   EVENT = 'event', // System events (project changes, etc.)
 }
 
+export enum ContextUpdateTrigger {
+  DESCRIPTION = 'DESCRIPTION',
+  TITLE = 'TITLE',
+  KANBAN_TASKS_MOVED = 'KANBAN_TASKS_MOVED',
+  KANBAN_TASKS_REORDERED = 'KANBAN_TASKS_REORDERED',
+  KANBAN_TASK_UPDATED = 'KANBAN_TASK_UPDATED',
+  KANBAN_TASK_ADDED = 'KANBAN_TASK_ADDED',
+  KANBAN_TASK_DELETED = 'KANBAN_TASK_DELETED',
+  PROJECT_CHANGED = 'PROJECT_CHANGED',
+  NEW_PROJECT_CREATED = 'NEW_PROJECT_CREATED',
+}
+
 export enum MentionType {
   TASK = 'task',
   COLUMN = 'column',

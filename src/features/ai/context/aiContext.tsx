@@ -10,7 +10,7 @@ import {
   createConversationMessages,
 } from '@/features/ai/utils/promptTemplate'
 import { Project } from '@/shared/types'
-import { AIResponse } from '@/features/ai/types'
+import { AIResponse, ContextUpdateTrigger } from '@/features/ai/types'
 import { MessageRole } from '@/features/ai/types'
 import { getChatResponse } from '@/features/ai/services/aiService'
 
@@ -37,18 +37,6 @@ interface AIContextState {
   invalidateContext: (updateType: ContextUpdateTrigger) => void
   resetContext: () => void
   refreshContext: () => void
-}
-
-export enum ContextUpdateTrigger {
-  DESCRIPTION = 'DESCRIPTION',
-  TITLE = 'TITLE',
-  KANBAN_TASKS_MOVED = 'KANBAN_TASKS_MOVED',
-  KANBAN_TASKS_REORDERED = 'KANBAN_TASKS_REORDERED',
-  KANBAN_TASK_UPDATED = 'KANBAN_TASK_UPDATED',
-  KANBAN_TASK_ADDED = 'KANBAN_TASK_ADDED',
-  KANBAN_TASK_DELETED = 'KANBAN_TASK_DELETED',
-  PROJECT_CHANGED = 'PROJECT_CHANGED',
-  NEW_PROJECT_CREATED = 'NEW_PROJECT_CREATED',
 }
 
 const AIContext = createContext<AIContextState | undefined>(undefined)
@@ -140,11 +128,13 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         const apiMessages = createConversationMessages(
           projectContext, // This can be null for non-project conversations
           userMessageContent,
-          messages
+          messages,
+          pendingContextUpdates
         )
 
         const response = await getChatResponse(apiMessages, projectContext?.id)
 
+        setPendingContextUpdates([])
         setMessages((prev) => [
           ...prev,
           { role: MessageRole.ASSISTANT, content: response.message },

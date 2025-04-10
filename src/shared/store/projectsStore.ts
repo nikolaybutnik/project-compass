@@ -15,7 +15,8 @@ import {
   reorderTasks,
 } from '@/features/projects/services/tasksService'
 import { Timestamp } from 'firebase/firestore'
-import { ContextUpdateTrigger, useAI } from '@/features/ai/context/aiContext'
+import { useAI } from '@/features/ai/context/aiContext'
+import { ContextUpdateTrigger } from '@/features/ai/types'
 export const QUERY_KEYS = {
   PROJECTS: 'projects',
   PROJECT: 'project',
