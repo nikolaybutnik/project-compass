@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   KeyboardSensor,
   PointerSensor,
@@ -110,172 +110,197 @@ export function useKanbanBoard(project: Project | undefined) {
     })
   }, [dragState.preview, removePreviewTasks])
 
-  const handleAddTask = async (columnId: string): Promise<void> => {
+  const handleAddTask = useCallback(async (columnId: string): Promise<void> => {
     setActiveColumnId(columnId)
     setIsAddTaskModalOpen(true)
-  }
+  }, [])
 
-  const handleNewTaskSubmit = async (taskData: Partial<KanbanTask>) => {
-    try {
-      await addTaskMutation.mutateAsync({
-        projectId: project?.id || '',
-        columnId: activeColumnId || '',
-        taskData: taskData,
-      })
-    } catch (error) {
-      console.error('Error adding task:', error)
-    }
-  }
-
-  const handleDeleteTask = async (
-    columnId: string,
-    taskId: string
-  ): Promise<void> => {
-    try {
-      await deleteTaskMutation.mutateAsync({
-        projectId: project?.id || '',
-        columnId,
-        taskId,
-      })
-    } catch (error) {
-      console.error('Error deleting task', error)
-    }
-  }
-
-  const handleCrossColumnMove = (
-    sourceColumnId: string,
-    targetColumnId: string,
-    taskId: string
-  ) => {
-    setIsUpdating(true)
-
-    const cleanCols = removePreviewTasks(localColumns)
-    const updatedColumns = cleanCols.map((col) => {
-      if (col?.id === sourceColumnId) {
-        return {
-          ...col,
-          tasks: col.tasks.filter((task) => task.id !== taskId),
-        }
+  const handleNewTaskSubmit = useCallback(
+    async (taskData: Partial<KanbanTask>) => {
+      try {
+        await addTaskMutation.mutateAsync({
+          projectId: project?.id || '',
+          columnId: activeColumnId || '',
+          taskData: taskData,
+        })
+      } catch (error) {
+        console.error('Error adding task:', error)
       }
+    },
+    [project?.id, activeColumnId, addTaskMutation]
+  )
 
-      if (col?.id === targetColumnId && dragState.activeTask) {
-        return {
-          ...col,
-          tasks: [
-            ...col.tasks,
-            { ...dragState.activeTask, columnId: targetColumnId },
-          ],
-        }
+  const handleDeleteTask = useCallback(
+    async (columnId: string, taskId: string): Promise<void> => {
+      try {
+        await deleteTaskMutation.mutateAsync({
+          projectId: project?.id || '',
+          columnId,
+          taskId,
+        })
+      } catch (error) {
+        console.error('Error deleting task', error)
       }
+    },
+    [project?.id, deleteTaskMutation]
+  )
 
-      return col
-    })
+  const handleCrossColumnMove = useCallback(
+    (sourceColumnId: string, targetColumnId: string, taskId: string) => {
+      setIsUpdating(true)
 
-    setLocalColumns(updatedColumns)
-
-    moveTaskMutation.mutate(
-      {
-        projectId: project?.id || '',
-        sourceColumnId,
-        targetColumnId,
-        taskId,
-      },
-      {
-        onSettled: () => {
-          setIsUpdating(false)
-        },
-      }
-    )
-  }
-
-  const handleWithinColumnReorder = (
-    columnId: string,
-    taskId: string,
-    newIndex: number
-  ) => {
-    const cleanCols = removePreviewTasks(localColumns)
-    const column = cleanCols.find((col) => col.id === columnId)
-
-    if (!column) return
-
-    const currentIndex = column.tasks.findIndex((task) => task.id === taskId)
-
-    if (currentIndex === -1) return
-
-    if (currentIndex === newIndex) return
-
-    setIsUpdating(true)
-
-    const updatedColumns = cleanCols.map((col) => {
-      if (col?.id === columnId) {
-        const currentTasks = [...col.tasks]
-        const startingTaskIndex = currentTasks.findIndex(
-          (task) => task.id === taskId
-        )
-
-        if (startingTaskIndex !== -1) {
-          const [taskToMove] = currentTasks.splice(startingTaskIndex, 1)
-          currentTasks.splice(newIndex, 0, taskToMove)
-
+      const cleanCols = removePreviewTasks(localColumns)
+      const updatedColumns = cleanCols.map((col) => {
+        if (col?.id === sourceColumnId) {
           return {
             ...col,
-            tasks: currentTasks,
+            tasks: col.tasks.filter((task) => task.id !== taskId),
           }
         }
-      }
 
-      return col
-    })
+        if (col?.id === targetColumnId && dragState.activeTask) {
+          return {
+            ...col,
+            tasks: [
+              ...col.tasks,
+              { ...dragState.activeTask, columnId: targetColumnId },
+            ],
+          }
+        }
 
-    setLocalColumns(updatedColumns)
+        return col
+      })
 
-    reorderTasksMutation.mutate(
-      {
-        projectId: project?.id || '',
-        columnId,
-        taskId,
-        newIndex,
-      },
-      {
-        onSettled: () => {
-          setIsUpdating(false)
+      setLocalColumns(updatedColumns)
+
+      moveTaskMutation.mutate(
+        {
+          projectId: project?.id || '',
+          sourceColumnId,
+          targetColumnId,
+          taskId,
         },
-      }
-    )
-  }
+        {
+          onSettled: () => {
+            setIsUpdating(false)
+          },
+        }
+      )
+    },
+    [
+      project?.id,
+      localColumns,
+      dragState.activeTask,
+      removePreviewTasks,
+      moveTaskMutation,
+    ]
+  )
 
-  const handleDragEnd = (event: DragEndEvent): void => {
-    dndHandlers.handleDragEnd(event, {
-      onCrossColumnMove: handleCrossColumnMove,
-      onWithinColumnReorder: handleWithinColumnReorder,
-    })
-  }
+  const handleWithinColumnReorder = useCallback(
+    (columnId: string, taskId: string, newIndex: number) => {
+      const cleanCols = removePreviewTasks(localColumns)
+      const column = cleanCols.find((col) => col.id === columnId)
 
-  const closeAddTaskModal = () => {
+      if (!column) return
+
+      const currentIndex = column.tasks.findIndex((task) => task.id === taskId)
+
+      if (currentIndex === -1) return
+
+      if (currentIndex === newIndex) return
+
+      setIsUpdating(true)
+
+      const updatedColumns = cleanCols.map((col) => {
+        if (col?.id === columnId) {
+          const currentTasks = [...col.tasks]
+          const startingTaskIndex = currentTasks.findIndex(
+            (task) => task.id === taskId
+          )
+
+          if (startingTaskIndex !== -1) {
+            const [taskToMove] = currentTasks.splice(startingTaskIndex, 1)
+            currentTasks.splice(newIndex, 0, taskToMove)
+
+            return {
+              ...col,
+              tasks: currentTasks,
+            }
+          }
+        }
+
+        return col
+      })
+
+      setLocalColumns(updatedColumns)
+
+      reorderTasksMutation.mutate(
+        {
+          projectId: project?.id || '',
+          columnId,
+          taskId,
+          newIndex,
+        },
+        {
+          onSettled: () => {
+            setIsUpdating(false)
+          },
+        }
+      )
+    },
+    [project?.id, localColumns, removePreviewTasks, reorderTasksMutation]
+  )
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent): void => {
+      dndHandlers.handleDragEnd(event, {
+        onCrossColumnMove: handleCrossColumnMove,
+        onWithinColumnReorder: handleWithinColumnReorder,
+      })
+    },
+    [dndHandlers, handleCrossColumnMove, handleWithinColumnReorder]
+  )
+
+  const closeAddTaskModal = useCallback(() => {
     setIsAddTaskModalOpen(false)
     setActiveColumnId(null)
-  }
+  }, [])
 
-  return {
-    // States
-    columns: localColumns || [],
-    isAddTaskModalOpen,
-    dragState,
-    draggedTaskForOverlay,
+  return useMemo(
+    () => ({
+      // States
+      columns: localColumns || [],
+      isAddTaskModalOpen,
+      dragState,
+      draggedTaskForOverlay,
 
-    // DND handlers
-    sensors,
-    handleDragStart: dndHandlers.handleDragStart,
-    handleDragOver: dndHandlers.handleDragOver,
-    handleDragEnd,
-    getDragStateInfo: dndHandlers.getDragStateInfo,
+      // DND handlers
+      sensors,
+      handleDragStart: dndHandlers.handleDragStart,
+      handleDragOver: dndHandlers.handleDragOver,
+      handleDragEnd,
+      getDragStateInfo: dndHandlers.getDragStateInfo,
 
-    // Task operations
-    handleAddTask,
-    handleNewTaskSubmit,
-    handleDeleteTask,
+      // Task operations
+      handleAddTask,
+      handleNewTaskSubmit,
+      handleDeleteTask,
 
-    // Modal handlers
-    closeAddTaskModal,
-  }
+      // Modal handlers
+      closeAddTaskModal,
+    }),
+    [
+      localColumns,
+      isAddTaskModalOpen,
+      dragState,
+      draggedTaskForOverlay,
+      sensors,
+      dndHandlers,
+      handleDragEnd,
+      handleAddTask,
+      handleNewTaskSubmit,
+      handleDeleteTask,
+      closeAddTaskModal,
+    ]
+  )
 }
