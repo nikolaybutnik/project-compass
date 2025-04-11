@@ -311,7 +311,7 @@ export const ProjectPage: React.FC = () => {
         </TabList>
 
         <TabPanels display='flex' flex='1'>
-          <TabPanel flex='1'>
+          <TabPanel flex='1' pb={0}>
             <KanbanBoardTab
               project={project}
               isLoading={isProjectLoading}

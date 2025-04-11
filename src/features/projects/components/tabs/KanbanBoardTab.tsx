@@ -4,7 +4,6 @@ import {
   Heading,
   Text,
   SimpleGrid,
-  VStack,
   Center,
   Spinner,
 } from '@chakra-ui/react'
@@ -80,30 +79,31 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={rectIntersection}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-      measuring={{
-        droppable: {
-          strategy: MeasuringStrategy.Always,
-        },
-      }}
-    >
-      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} h='100%'>
-        {columns?.map((col: KanbanColumnType) => (
-          <KanbanColumn
-            key={`column-${col?.id || Math.random()}`}
-            column={col}
-            onAddTask={() => handleAddTask(col?.id)}
-          >
-            <SortableContext
-              items={col?.tasks?.map((t) => t?.id) || []}
-              strategy={verticalListSortingStrategy}
+    <Box h='calc(100vh - 270px)' overflow='hidden'>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={rectIntersection}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+        measuring={{
+          droppable: {
+            strategy: MeasuringStrategy.Always,
+          },
+        }}
+      >
+        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} h='100%'>
+          {columns?.map((col: KanbanColumnType) => (
+            <KanbanColumn
+              key={`column-${col?.id || Math.random()}`}
+              column={col}
+              isDragging={!!dragState.activeTask}
+              onAddTask={() => handleAddTask(col?.id)}
             >
-              <VStack spacing={4} align='stretch' flex='1' overflow='auto'>
+              <SortableContext
+                items={col?.tasks?.map((t) => t?.id) || []}
+                strategy={verticalListSortingStrategy}
+              >
                 {col.tasks?.map((task) => {
                   const taskDragInfo = getDragStateInfo(task, col.id, dragState)
 
@@ -120,44 +120,44 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = ({
                     />
                   )
                 })}
-              </VStack>
-            </SortableContext>
-          </KanbanColumn>
-        ))}
-      </SimpleGrid>
+              </SortableContext>
+            </KanbanColumn>
+          ))}
+        </SimpleGrid>
 
-      <CreateTaskModal
-        isOpen={isAddTaskModalOpen}
-        onClose={closeAddTaskModal}
-        onSubmit={handleNewTaskSubmit}
-      />
+        <CreateTaskModal
+          isOpen={isAddTaskModalOpen}
+          onClose={closeAddTaskModal}
+          onSubmit={handleNewTaskSubmit}
+        />
 
-      <DragOverlay
-        zIndex={999}
-        dropAnimation={{
-          duration: 250,
-          easing: 'cubic-bezier(0.2, 0, 0.2, 1)',
-          sideEffects: defaultDropAnimationSideEffects({
-            styles: {
-              active: {
-                opacity: '0.5',
+        <DragOverlay
+          zIndex={999}
+          dropAnimation={{
+            duration: 250,
+            easing: 'cubic-bezier(0.2, 0, 0.2, 1)',
+            sideEffects: defaultDropAnimationSideEffects({
+              styles: {
+                active: {
+                  opacity: '0.5',
+                },
               },
-            },
-          }),
-        }}
-        style={{
-          touchAction: 'none',
-        }}
-      >
-        {draggedTaskForOverlay.current ? (
-          <KanbanCard
-            task={draggedTaskForOverlay.current}
-            onDelete={handleDeleteTask}
-            disabled={true}
-            isDragOverlay={true}
-          />
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+            }),
+          }}
+          style={{
+            touchAction: 'none',
+          }}
+        >
+          {draggedTaskForOverlay.current ? (
+            <KanbanCard
+              task={draggedTaskForOverlay.current}
+              onDelete={handleDeleteTask}
+              disabled={true}
+              isDragOverlay={true}
+            />
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+    </Box>
   )
 }
