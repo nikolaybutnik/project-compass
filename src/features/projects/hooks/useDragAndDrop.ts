@@ -7,6 +7,7 @@ import {
   DragEndEvent,
   DragOverEvent,
 } from '@dnd-kit/core'
+import { throttle } from 'lodash'
 
 export interface DragState {
   activeTask: KanbanTask | null
@@ -15,6 +16,7 @@ export interface DragState {
     task: KanbanTask
     targetColumnId: string
   } | null
+  isDragInProgress: boolean
 }
 
 export interface DragStartCallbacks {
@@ -43,6 +45,7 @@ interface TaskDragInfo {
 const initialDragState: DragState = {
   activeTask: null,
   preview: null,
+  isDragInProgress: false,
 }
 
 enum DragActionType {
@@ -65,12 +68,13 @@ type DragAction =
     }
   | { type: DragActionType.END_DRAG }
 
-function dragReducer(state: DragState, action: DragAction): DragState {
+const dragReducer = (state: DragState, action: DragAction): DragState => {
   switch (action.type) {
     case DragActionType.START_DRAG:
       return {
         ...state,
         activeTask: action.payload.task,
+        isDragInProgress: true,
       }
     case DragActionType.CLEAR_PREVIEWS:
       return {
@@ -157,9 +161,15 @@ const identifyDragElements = (
  * - Business logic
  * - Columns data structure
  */
-export function useDragAndDrop(columns: KanbanColumn[] = []) {
+export const useDragAndDrop = (columns: KanbanColumn[] = []) => {
   const [dragState, dispatch] = useReducer(dragReducer, initialDragState)
   const draggedTaskForOverlay = useRef<KanbanTask | null>(null)
+
+  const throttledDispatch = useRef(
+    throttle((action: DragAction) => {
+      dispatch(action)
+    }, 50)
+  ).current
 
   const handleDragStart = (event: DragStartEvent): void => {
     const { active } = event
@@ -221,7 +231,7 @@ export function useDragAndDrop(columns: KanbanColumn[] = []) {
     if (!active || !dragState.activeTask) return
 
     if (!over) {
-      dispatch({ type: DragActionType.CLEAR_PREVIEWS })
+      throttledDispatch({ type: DragActionType.CLEAR_PREVIEWS })
       return
     }
 
@@ -232,8 +242,10 @@ export function useDragAndDrop(columns: KanbanColumn[] = []) {
       dragState.activeTask
     )
 
+    if (dragState.preview?.targetColumnId === targetColumnId) return
+
     if (sourceColumnId === targetColumnId) {
-      dispatch({ type: DragActionType.CLEAR_PREVIEWS })
+      throttledDispatch({ type: DragActionType.CLEAR_PREVIEWS })
       return
     }
 
@@ -244,7 +256,7 @@ export function useDragAndDrop(columns: KanbanColumn[] = []) {
         columnId: targetColumnId,
       }
 
-      dispatch({
+      throttledDispatch({
         type: DragActionType.SET_PREVIEW,
         payload: {
           previewId: `preview-${dragState.activeTask.id}-in-${targetColumnId}`,

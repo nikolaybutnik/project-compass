@@ -1,4 +1,5 @@
 import React from 'react'
+import { memo } from 'react'
 import { KanbanTask } from '@/shared/types'
 import {
   Badge,
@@ -21,7 +22,7 @@ interface KanbanCardProps {
   isDraggingToAnotherColumn?: boolean
 }
 
-export const KanbanCard: React.FC<KanbanCardProps> = React.memo(
+export const KanbanCard: React.FC<KanbanCardProps> = memo(
   ({
     task,
     onDelete,
@@ -139,5 +140,25 @@ export const KanbanCard: React.FC<KanbanCardProps> = React.memo(
         </HStack>
       </Box>
     )
+  },
+  (prev, next) => {
+    // 1. Check if task ID changed (shouldn't happen for same card)
+    if (prev.task.id !== next.task.id) return false
+
+    // 2. Check preview state changes
+    if (prev.isPreview !== next.isPreview) return false
+
+    // 3. Check if card is being dragged to another column
+    if (prev.isDraggingToAnotherColumn !== next.isDraggingToAnotherColumn)
+      return false
+
+    // 4. Check if disabled state changed
+    if (prev.disabled !== next.disabled) return false
+
+    // 5. Check if drag overlay state changed
+    if (prev.isDragOverlay !== next.isDragOverlay) return false
+
+    // 6. For all other cases, prevent re-renders
+    return true
   }
 )
