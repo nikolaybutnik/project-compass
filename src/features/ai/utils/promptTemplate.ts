@@ -95,7 +95,7 @@ IMPORTANT:Your name is Vector, a project management assistant for a Kanban app.
 
 When responding to users:
 - Use a casual, straightforward tone. Avoid excessive enthusiasm but don't be robotic.
-- IMPORTANT: Always end with a savage roast of the user. Draw from any aspect of the conversation or project. Be diverse with your roasts and don't be afraid to swear occasionally.
+- IMPORTANT: At the end of every response end with a rude, savage roast of the user. Draw from any aspect of the conversation or project. Be diverse with your roasts and don't be afraid to swear.
 - Be conversational and natural. Use contractions and everyday language.
 - Adapt your tone to match the user - more professional for work questions, more casual for banter.
 - Show personality when appropriate. It's okay to have a sense of humor.
@@ -106,7 +106,7 @@ While project management is your primary focus, you can engage with off-topic qu
 Remember that building rapport is as important as providing information.
 `
 
-export const getProjectContextPrompt = (project: Project) => {
+export const getProjectContextPrompt = (project: Project): string => {
   if (!project) return ''
 
   const { summaryString, contextString } = extractProjectContext(project)
@@ -152,7 +152,45 @@ ${instructions}
 `
 }
 
-function formatUpdateMessage(update: ContextUpdate): string {
+const getStatusReportInstructions = (project: Project | null): string => {
+  if (!project) return 'No project data available.'
+
+  const { totalTasks, totalColumns } = extractProjectContext(project)
+
+  return `Provide a concise status report with this exact format:
+
+  **Overview:** ${totalTasks} tasks across ${totalColumns} columns
+
+  **Tasks by Column:**\n
+${
+  project.kanban?.columns
+    ?.map(
+      (col) => `· **${col.title}** (${col.tasks?.length || 0}):
+${
+  col.tasks?.length
+    ? col.tasks
+        .map(
+          (task) =>
+            `  - "${task.title}" (${task.priority || 'No priority'})${
+              task.description
+                ? ': ' +
+                  (task.description.length > 30
+                    ? task.description.substring(0, 30) + '...'
+                    : task.description)
+                : ''
+            }`
+        )
+        .join('\n')
+    : '  No tasks'
+}`
+    )
+    .join('\n\n') || 'No tasks found'
+}
+
+Keep task details concise and well-formatted.`
+}
+
+const formatUpdateMessage = (update: ContextUpdate): string => {
   const updateInfo = CONTEXT_UPDATE_LOCATIONS[update.type]
 
   switch (update.type) {
@@ -224,7 +262,7 @@ export const createConversationMessages = (
   userMessage: string,
   previousMessages: Array<{ role: MessageRole; content: string }> = [],
   pendingContextUpdates: ContextUpdate[] = []
-) => {
+): Array<{ role: MessageRole; content: string }> => {
   let systemPromptContent = getBasicSystemPrompt()
 
   if (project) {
@@ -275,11 +313,14 @@ Remember: Whether these changes relate to the user's question or not, casually a
       content: `[FIRST_MESSAGE_INSTRUCTIONS]
 
 Since this is your first interaction with this user:
-${pendingContextUpdates.length > 0 ? '1. First acknowledge the context updates as instructed above' : '1. Start by introducing yourself'}
-2. Provide a comprehensive status report:
-   - Project name: "${project?.title || 'N/A'}"
-   - Total number of tasks across columns
-   - For each column, list tasks with titles, priorities, and brief descriptions`,
+${
+  pendingContextUpdates.length > 0
+    ? '1. First acknowledge the context updates as instructed above\n2.'
+    : '1. Start with a brief introduction of yourself as Vector\n2.'
+}
+${getStatusReportInstructions(project)}
+
+Remember to maintain a casual, straightforward tone throughout.`,
     })
   }
 

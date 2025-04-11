@@ -113,10 +113,9 @@ export function extractProjectContext(project: Project): {
   contextString += `  </board>\n`
   contextString += `</project>\n`
 
-  // Important: Add summary at both beginning and end for better retention
   const projectSummary = `IMPORTANT SUMMARY: Project "${escapeXml(project.title)}" contains ${totalTasks} tasks across ${columns.length} columns: ${columns.map((c) => `${escapeXml(c.title)}(${c.tasks.length})`).join(', ')}.`
 
-  // Add summary at both beginning and end (primacy-recency effect)
+  // Important: Add summary at both beginning and end for retention (primacy-recency effect)
   contextString =
     projectSummary +
     '\n\n' +
