@@ -1,6 +1,10 @@
 import { Project } from '@/shared/types'
 import { extractProjectContext } from '@/features/ai/utils/projectContextHandler'
-import { ContextUpdateTrigger, MessageRole } from '@/features/ai/types'
+import {
+  ContextUpdate,
+  ContextUpdateTrigger,
+  MessageRole,
+} from '@/features/ai/types'
 
 const CONTEXT_UPDATE_LOCATIONS: Record<
   ContextUpdateTrigger,
@@ -13,14 +17,14 @@ const CONTEXT_UPDATE_LOCATIONS: Record<
     }
   }
 > = {
-  [ContextUpdateTrigger.TITLE]: {
+  [ContextUpdateTrigger.PROJECT_TITLE]: {
     description: 'project title',
     location: 'in the Project Context section',
     marker: {
       start: 'Project Title:',
     },
   },
-  [ContextUpdateTrigger.DESCRIPTION]: {
+  [ContextUpdateTrigger.PROJECT_DESCRIPTION]: {
     description: 'project description',
     location: 'in the Project Context section',
     marker: {
@@ -159,11 +163,78 @@ ${instructions}
 `
 }
 
+function formatUpdateMessage(update: ContextUpdate): string {
+  const updateInfo = CONTEXT_UPDATE_LOCATIONS[update.type]
+
+  switch (update.type) {
+    case ContextUpdateTrigger.PROJECT_TITLE:
+      return `❗ The project title has been updated to "${update.details?.project?.title}".
+Look for the ${updateInfo.marker.start} in ${updateInfo.location}.`
+
+    case ContextUpdateTrigger.PROJECT_DESCRIPTION:
+      const markerInfo = updateInfo.marker.end
+        ? `between "${updateInfo.marker.start}" and "${updateInfo.marker.end}"`
+        : `on the line starting with "${updateInfo.marker.start}"`
+      return `❗ The project description has been updated to:
+"${update.details?.project?.description}"
+Look ${updateInfo.location} ${markerInfo}.`
+
+    case ContextUpdateTrigger.KANBAN_TASKS_MOVED:
+      if (!update.details?.task?.movements?.length) return ''
+      return `❗ Tasks have been moved:
+  ${update.details.task.movements
+    .map(
+      (move) =>
+        `- Task "${move.task.title}" was moved from "${move.fromColumn.title}" to "${move.toColumn.title}"`
+    )
+    .join('\n')}`
+
+    case ContextUpdateTrigger.KANBAN_TASK_UPDATED:
+      // TODO: handle case when update functionality is in place
+      return ''
+
+    case ContextUpdateTrigger.KANBAN_TASK_ADDED:
+      if (!update.details?.task?.additions?.length) return ''
+      return `❗ New tasks have been added:
+${update.details.task.additions
+  .map(
+    (addition) =>
+      `- Task "${addition.task.title}" has been added to "${addition.column.title}"
+   Description: ${addition.task.description || 'None'}
+   Priority: ${addition.task.priority || 'Not set'}`
+  )
+  .join('\n')}`
+
+    case ContextUpdateTrigger.KANBAN_TASK_DELETED:
+      if (!update.details?.task?.deletions?.length) return ''
+      return `❗ Tasks have been removed:
+${update.details.task.deletions
+  .map(
+    (deletion) =>
+      `- Task "${deletion.task.title}" was removed from the "${deletion.column.title}"`
+  )
+  .join('\n')}`
+
+    case ContextUpdateTrigger.KANBAN_TASKS_REORDERED:
+      if (!update.details?.task?.reorders?.length) return ''
+      return `❗ Tasks have been reordered:
+${update.details.task.reorders
+  .map(
+    (reorder) =>
+      `- Task "${reorder.task.title}" has been reordered in "${reorder.column.title}" (new position: ${reorder.newIndex + 1})`
+  )
+  .join('\n')}`
+
+    default:
+      return `❗ The ${updateInfo.description} has been updated. Look ${updateInfo.location}.`
+  }
+}
+
 export const createConversationMessages = (
   project: Project | null,
   userMessage: string,
   previousMessages: Array<{ role: MessageRole; content: string }> = [],
-  pendingContextUpdates: ContextUpdateTrigger[] = []
+  pendingContextUpdates: ContextUpdate[] = []
 ) => {
   let systemPromptContent = getBasicSystemPrompt()
 
@@ -191,30 +262,19 @@ export const createConversationMessages = (
       content: `[CONTEXT_UPDATE_REQUIRED]
 
 STOP AND READ THIS FIRST:
-The following SPECIFIC changes have been made to the project:
+The project has just been updated! Here's what you need to check:
 
 ${pendingContextUpdates
-  .map((update) => {
-    const updateInfo = CONTEXT_UPDATE_LOCATIONS[update]
-    const markerInfo = updateInfo.marker.end
-      ? `between "${updateInfo.marker.start}" and "${updateInfo.marker.end}"`
-      : `on the line starting with "${updateInfo.marker.start}"`
-    return `❗ ONLY the ${updateInfo.description} has been updated. Look ${updateInfo.location} ${markerInfo} for the new value.`
-  })
-  .join('\n')}
+  .map((update) => formatUpdateMessage(update))
+  .filter(Boolean)
+  .join('\n\n')}
       
 ⚠️ IMPORTANT INSTRUCTIONS:
-1. STOP what you're doing
-2. For EACH change listed above:
-   - Look at the EXACT location specified
-   - Find the new value
-   - Include it in your response
-3. Start your response with "I see the following specific changes:"
-   - List ONLY the changes mentioned above
-   - Quote the exact new values you found
-4. Only then proceed to answer the user's question
+1. Verify each change mentioned above
+2. Start your response by naturally mentioning the specific changes changed
+3. Then proceed with answering the user's question
 
-Remember: ONLY the changes listed above have been updated. No other fields have changed.`,
+Remember: Only the above fields have changed. Be conversational about the changes you notice, as if you're keeping the user updated on their project's progress. But also specifically mention each change.`,
     })
   }
 

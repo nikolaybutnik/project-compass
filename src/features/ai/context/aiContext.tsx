@@ -9,8 +9,12 @@ import {
   getBasicSystemPrompt,
   createConversationMessages,
 } from '@/features/ai/utils/promptTemplate'
-import { Project } from '@/shared/types'
-import { AIResponse, ContextUpdateTrigger } from '@/features/ai/types'
+import { KanbanColumn, KanbanTask, Project } from '@/shared/types'
+import {
+  AIResponse,
+  ContextUpdate,
+  ContextUpdateTrigger,
+} from '@/features/ai/types'
 import { MessageRole } from '@/features/ai/types'
 import { getChatResponse } from '@/features/ai/services/aiService'
 
@@ -34,7 +38,7 @@ interface AIContextState {
   projectContext: Project | null
   sendMessage: (message: string) => Promise<AIResponse>
   updateProjectContext: (project: Project) => void
-  invalidateContext: (updateType: ContextUpdateTrigger) => void
+  invalidateContext: (updateType: ContextUpdate) => void
   resetContext: () => void
   refreshContext: () => void
 }
@@ -52,16 +56,54 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
   const [projectContext, setProjectContext] = useState<Project | null>(null)
   const [isFirstLoad, setIsFirstLoad] = useState(true)
   const [pendingContextUpdates, setPendingContextUpdates] = useState<
-    ContextUpdateTrigger[]
+    ContextUpdate[]
   >([])
 
   // Memoize the basic system prompt to avoid regenerating it
   const basicSystemPrompt = useMemo(() => getBasicSystemPrompt(), [])
 
   // Invalidate the context when the project data is updated to force a refresh of context for AI
-  const invalidateContext = useCallback((updateType: ContextUpdateTrigger) => {
+  const invalidateContext = useCallback((update: ContextUpdate) => {
     setPendingContextUpdates((prev) => {
-      return prev?.includes(updateType) ? prev : [...prev, updateType]
+      // Find if there's an existing update of teh same type
+      const existingUpdateIndex = prev.findIndex((p) => p.type === update.type)
+
+      if (existingUpdateIndex === -1) {
+        return [...prev, update]
+      }
+
+      const existingUpdate = prev[existingUpdateIndex]
+      const mergedUpdate: ContextUpdate = {
+        type: update.type,
+        details: {
+          task: {
+            movements: [
+              ...(existingUpdate.details?.task?.movements || []),
+              ...(update.details?.task?.movements || []),
+            ],
+            additions: [
+              ...(existingUpdate.details?.task?.additions || []),
+              ...(update.details?.task?.additions || []),
+            ],
+            deletions: [
+              ...(existingUpdate.details?.task?.deletions || []),
+              ...(update.details?.task?.deletions || []),
+            ],
+            reorders: [
+              ...(existingUpdate.details?.task?.reorders || []),
+              ...(update.details?.task?.reorders || []),
+            ],
+          },
+          project: {
+            ...existingUpdate.details?.project,
+            ...update.details?.project,
+          },
+        },
+      }
+
+      const newUpdates = [...prev]
+      newUpdates[existingUpdateIndex] = mergedUpdate
+      return newUpdates
     })
   }, [])
 
@@ -132,6 +174,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
           pendingContextUpdates
         )
 
+        console.log(apiMessages)
         const response = await getChatResponse(apiMessages, projectContext?.id)
 
         setPendingContextUpdates([])
@@ -175,7 +218,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
               content: `Switched to project: ${project.title || project.id}`,
             },
           ])
-          invalidateContext(ContextUpdateTrigger.PROJECT_CHANGED)
+          invalidateContext({ type: ContextUpdateTrigger.PROJECT_CHANGED })
         } else {
           setMessages([
             {

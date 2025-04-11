@@ -87,8 +87,8 @@ export enum MessageRole {
 }
 
 export enum ContextUpdateTrigger {
-  DESCRIPTION = 'DESCRIPTION',
-  TITLE = 'TITLE',
+  PROJECT_TITLE = 'PROJECT_TITLE',
+  PROJECT_DESCRIPTION = 'PROJECT_DESCRIPTION',
   KANBAN_TASKS_MOVED = 'KANBAN_TASKS_MOVED',
   KANBAN_TASKS_REORDERED = 'KANBAN_TASKS_REORDERED',
   KANBAN_TASK_UPDATED = 'KANBAN_TASK_UPDATED',
@@ -96,6 +96,47 @@ export enum ContextUpdateTrigger {
   KANBAN_TASK_DELETED = 'KANBAN_TASK_DELETED',
   PROJECT_CHANGED = 'PROJECT_CHANGED',
   NEW_PROJECT_CREATED = 'NEW_PROJECT_CREATED',
+}
+
+export interface TaskAddition {
+  task: KanbanTask
+  column: KanbanColumn
+}
+
+export interface TaskDeletion {
+  task: KanbanTask
+  column: KanbanColumn
+}
+
+export interface TaskReorder {
+  task: KanbanTask
+  column: KanbanColumn
+  newIndex: number
+}
+
+export interface TaskMovement {
+  task: KanbanTask
+  fromColumn: KanbanColumn
+  toColumn: KanbanColumn
+}
+
+export interface ContextUpdate {
+  type: ContextUpdateTrigger
+  details?: {
+    task?: {
+      movements?: TaskMovement[]
+      additions?: TaskAddition[]
+      deletions?: TaskDeletion[]
+      reorders?: TaskReorder[]
+    }
+    project?: {
+      title?: string
+      description?: string
+    }
+    // future expansion:
+    // column?: { ... }
+    // other entities...
+  }
 }
 
 export enum MentionType {

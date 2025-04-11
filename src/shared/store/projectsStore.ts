@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { KanbanTask, Project } from '@/shared/types'
+import { KanbanColumn, KanbanTask, Project } from '@/shared/types'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getProject,
@@ -79,7 +79,7 @@ export const useCreateProjectMutation = () => {
       queryClient?.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECTS, newProject?.userId],
       })
-      invalidateContext(ContextUpdateTrigger.NEW_PROJECT_CREATED)
+      invalidateContext({ type: ContextUpdateTrigger.NEW_PROJECT_CREATED })
     },
   })
 }
@@ -102,11 +102,27 @@ export const useAddTaskMutation = () => {
     onError: (err) => {
       console.error('Failed to create task:', err)
     },
-    onSuccess: (updatedProject) => {
+    onSettled: (data, _err, variables) => {
+      if (data) {
+        const column = data.kanban?.columns?.find(
+          (col) => col.id === variables.columnId
+        )
+        const task = column?.tasks?.find((t) => t.id === variables.taskData.id)
+
+        if (task && column) {
+          invalidateContext({
+            type: ContextUpdateTrigger.KANBAN_TASK_ADDED,
+            details: {
+              task: {
+                additions: [{ task, column }],
+              },
+            },
+          })
+        }
+      }
       queryClient?.invalidateQueries({
-        queryKey: [QUERY_KEYS.PROJECT, updatedProject?.id],
+        queryKey: [QUERY_KEYS.PROJECT, variables?.projectId],
       })
-      invalidateContext(ContextUpdateTrigger.KANBAN_TASK_ADDED)
     },
   })
 }
@@ -125,15 +141,55 @@ export const useDeleteTaskMutation = () => {
       projectId: string
       columnId: string
       taskId: string
-    }) => deleteTask(projectId, columnId, taskId),
+    }) => {
+      // Capture the task before deleting it
+      const project = queryClient.getQueryData([
+        QUERY_KEYS.PROJECT,
+        projectId,
+      ]) as Project
+      const column = project?.kanban?.columns?.find(
+        (col) => col.id === columnId
+      )
+      const taskToDelete = column?.tasks?.find((t) => t.id === taskId)
+
+      if (!taskToDelete) {
+        throw new Error('Task not found')
+      }
+
+      return deleteTask(projectId, columnId, taskId).then((data) => ({
+        data,
+        deletedTask: taskToDelete,
+      }))
+    },
     onError: (err) => {
       console.error('Failed deleting task:', err)
     },
-    onSuccess: (updatedProject) => {
+    onSettled: (result, _err, variables) => {
+      if (result?.data) {
+        const column = result.data.kanban?.columns?.find(
+          (col) => col.id === variables.columnId
+        )
+
+        if (column && result.deletedTask) {
+          invalidateContext({
+            type: ContextUpdateTrigger.KANBAN_TASK_DELETED,
+            details: {
+              task: {
+                deletions: [
+                  {
+                    task: result.deletedTask,
+                    column,
+                  },
+                ],
+              },
+            },
+          })
+        }
+      }
+
       queryClient?.invalidateQueries({
-        queryKey: [QUERY_KEYS.PROJECT, updatedProject?.id],
+        queryKey: [QUERY_KEYS.PROJECT, variables?.projectId],
       })
-      invalidateContext(ContextUpdateTrigger.KANBAN_TASK_DELETED)
     },
   })
 }
@@ -243,12 +299,44 @@ export const useMoveTaskMutation = () => {
       )
       console.error('Error moving task:', err)
     },
-    onSettled: (_data, _err, variables) => {
+    onSettled: (data, _err, variables) => {
+      if (data) {
+        let fromColumn: KanbanColumn | undefined
+        let toColumn: KanbanColumn | undefined
+        let task: KanbanTask | undefined
+
+        data.kanban?.columns?.forEach((col) => {
+          if (col.id === variables.sourceColumnId) {
+            fromColumn = col
+          }
+          if (col.id === variables.targetColumnId) {
+            toColumn = col
+            task = col.tasks?.find((task) => task.id === variables.taskId)
+          }
+        })
+
+        if (task && fromColumn && toColumn) {
+          invalidateContext({
+            type: ContextUpdateTrigger.KANBAN_TASKS_MOVED,
+            details: {
+              task: {
+                movements: [
+                  {
+                    task,
+                    fromColumn,
+                    toColumn,
+                  },
+                ],
+              },
+            },
+          })
+        }
+      }
+
       // Always refetch after error or success
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECT, variables?.projectId],
       })
-      invalidateContext(ContextUpdateTrigger.KANBAN_TASKS_MOVED)
     },
   })
 }
@@ -321,11 +409,33 @@ export const useReorderTasksMutation = () => {
       )
       console.error('Error reordering tasks:', err)
     },
-    onSettled: (_data, _err, variables) => {
+    onSettled: (data, _err, variables) => {
+      if (data) {
+        const column = data.kanban?.columns?.find(
+          (col) => col.id === variables.columnId
+        )
+        const task = column?.tasks?.find((t) => t.id === variables.taskId)
+
+        if (task && column) {
+          invalidateContext({
+            type: ContextUpdateTrigger.KANBAN_TASKS_REORDERED,
+            details: {
+              task: {
+                reorders: [
+                  {
+                    task,
+                    column,
+                    newIndex: variables.newIndex,
+                  },
+                ],
+              },
+            },
+          })
+        }
+      }
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECT, variables?.projectId],
       })
-      invalidateContext(ContextUpdateTrigger.KANBAN_TASKS_REORDERED)
     },
   })
 }
@@ -370,14 +480,23 @@ export const updateProjectTitleMutation = () => {
       )
       console.error('Error updating project title', err)
     },
-    onSettled: (_data, _err, variables) => {
+    onSettled: (data, _err, variables) => {
+      if (data) {
+        invalidateContext({
+          type: ContextUpdateTrigger.PROJECT_TITLE,
+          details: {
+            project: {
+              title: data.title,
+            },
+          },
+        })
+      }
       queryClient?.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECT, variables?.projectId],
       })
       queryClient?.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECTS],
       })
-      invalidateContext(ContextUpdateTrigger.TITLE)
     },
   })
 }
@@ -422,14 +541,23 @@ export const updateProjectDescriptionMutation = () => {
       )
       console.error('Error updating project description', err)
     },
-    onSettled: (_data, _err, variables) => {
+    onSettled: (data, _err, variables) => {
+      if (data) {
+        invalidateContext({
+          type: ContextUpdateTrigger.PROJECT_DESCRIPTION,
+          details: {
+            project: {
+              description: data.description,
+            },
+          },
+        })
+      }
       queryClient?.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECT, variables?.projectId],
       })
       queryClient?.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECTS],
       })
-      invalidateContext(ContextUpdateTrigger.DESCRIPTION)
     },
   })
 }
