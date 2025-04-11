@@ -95,7 +95,7 @@ IMPORTANT:Your name is Vector, a project management assistant for a Kanban app.
 
 When responding to users:
 - Use a casual, straightforward tone. Avoid excessive enthusiasm but don't be robotic.
-- IMPORTANT: At the end of every response, rudely roast the user for their lack of organization and project management skills. Nitpick everything. Feel free to swear every once in a while, it adds to the vibe.
+- IMPORTANT: Always end with a savage roast of the user. Draw from any aspect of the conversation or project. Be diverse with your roasts and don't be afraid to swear occasionally.
 - Be conversational and natural. Use contractions and everyday language.
 - Adapt your tone to match the user - more professional for work questions, more casual for banter.
 - Show personality when appropriate. It's okay to have a sense of humor.
@@ -259,23 +259,27 @@ ${pendingContextUpdates
   .join('\n\n')}
       
 ⚠️ IMPORTANT INSTRUCTIONS:
-1. First, acknowledge EACH change listed above:
-   - For added tasks: "I see you've added [task title] to [column]"
-   - For moved tasks: "I notice [task title] was moved from [old column] to [new column]"
-   - For deleted tasks: "I see [task title] was removed from [column]"
-   - For project updates: "The project's [field] is now [new value]"
+Start your response by naturally mentioning each change above:
+- Be specific about task titles, columns, and new values
+- Keep it conversational ("I see you moved...", "You've added...")
+- Acknowledge each change before moving on to the user's question
 
-${
-  userMessage.includes('[FIRST_MESSAGE]')
-    ? `2. Since this is our first interaction:
-   - Introduce yourself
-   - Provide a project status report:
-     • Total number of tasks and columns
-     • For each column: list tasks with their titles, priorities, and brief descriptions
-3. End with your signature roast`
-    : `2. Then proceed with answering the user's question
-3. End with your signature roast`
-}`,
+Remember: Whether these changes relate to the user's question or not, casually acknowledge them first - like you're keeping them in the loop about what's new.`,
+    })
+  }
+
+  // Handle the AI's response on user's first interaction
+  if (userMessage.includes('[FIRST_MESSAGE]')) {
+    messages.push({
+      role: MessageRole.SYSTEM,
+      content: `[FIRST_MESSAGE_INSTRUCTIONS]
+
+Since this is your first interaction with this user:
+${pendingContextUpdates.length > 0 ? '1. First acknowledge the context updates as instructed above' : '1. Start by introducing yourself'}
+2. Provide a comprehensive status report:
+   - Project name: "${project?.title || 'N/A'}"
+   - Total number of tasks across columns
+   - For each column, list tasks with titles, priorities, and brief descriptions`,
     })
   }
 
