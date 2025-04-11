@@ -90,7 +90,7 @@ export const useAddTaskMutation = () => {
   const { invalidateContext } = useAI()
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       projectId,
       columnId,
       taskData,
@@ -98,27 +98,34 @@ export const useAddTaskMutation = () => {
       projectId: string
       columnId: string
       taskData: Partial<KanbanTask>
-    }) => addTask(projectId, columnId, taskData),
+    }) => {
+      const updatedProject = await addTask(projectId, columnId, taskData)
+      // Capture the newly added task in the response
+      const column = updatedProject.kanban?.columns?.find(
+        (col) => col.id === columnId
+      )
+      const tasks = column?.tasks || []
+      const newTask = tasks[tasks.length - 1]
+
+      return {
+        project: updatedProject,
+        newTask,
+        column,
+      }
+    },
     onError: (err) => {
       console.error('Failed to create task:', err)
     },
-    onSettled: (data, _err, variables) => {
-      if (data) {
-        const column = data.kanban?.columns?.find(
-          (col) => col.id === variables.columnId
-        )
-        const task = column?.tasks?.find((t) => t.id === variables.taskData.id)
-
-        if (task && column) {
-          invalidateContext({
-            type: ContextUpdateTrigger.KANBAN_TASK_ADDED,
-            details: {
-              task: {
-                additions: [{ task, column }],
-              },
+    onSettled: (result, _err, variables) => {
+      if (result?.project && result?.newTask && result?.column) {
+        invalidateContext({
+          type: ContextUpdateTrigger.KANBAN_TASK_ADDED,
+          details: {
+            task: {
+              additions: [{ task: result.newTask, column: result.column }],
             },
-          })
-        }
+          },
+        })
       }
       queryClient?.invalidateQueries({
         queryKey: [QUERY_KEYS.PROJECT, variables?.projectId],

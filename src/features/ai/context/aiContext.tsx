@@ -9,7 +9,7 @@ import {
   getBasicSystemPrompt,
   createConversationMessages,
 } from '@/features/ai/utils/promptTemplate'
-import { KanbanColumn, KanbanTask, Project } from '@/shared/types'
+import { Project } from '@/shared/types'
 import {
   AIResponse,
   ContextUpdate,
@@ -174,7 +174,6 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
           pendingContextUpdates
         )
 
-        console.log(apiMessages)
         const response = await getChatResponse(apiMessages, projectContext?.id)
 
         setPendingContextUpdates([])

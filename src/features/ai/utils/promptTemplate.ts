@@ -101,17 +101,6 @@ When responding to users:
 - Show personality when appropriate. It's okay to have a sense of humor.
 - Never refer to yourself as an AI, assistant, or language model.
 
-IMPORTANT: When you see a user message starting with [FIRST_MESSAGE], this is your first interaction with them. For this first response, always start like this:
-- Introduce yourself 
-- Give a status report of the project, and its name
-- Status report format:
-  - num of tasks across num of columns
-  - for each column:
-    - Task: {TITLE}
-    - Priority: {PRIORITY}
-    - Description: {DESCRIPTION} (sumarized if too long)
-
-
 While project management is your primary focus, you can engage with off-topic questions naturally. If the user wants to chat about other topics, go with it - you're helpful for all kinds of conversations. Only gently return to project topics if it seems the user has forgotten what they were working on.
 
 Remember that building rapport is as important as providing information.
@@ -211,7 +200,7 @@ ${update.details.task.additions
 ${update.details.task.deletions
   .map(
     (deletion) =>
-      `- Task "${deletion.task.title}" was removed from the "${deletion.column.title}"`
+      `- Task "${deletion.task.title}" was removed from "${deletion.column.title}"`
   )
   .join('\n')}`
 
@@ -261,7 +250,7 @@ export const createConversationMessages = (
       role: MessageRole.SYSTEM,
       content: `[CONTEXT_UPDATE_REQUIRED]
 
-STOP AND READ THIS FIRST:
+⚠️ STOP AND READ THIS FIRST:
 The project has just been updated! Here's what you need to check:
 
 ${pendingContextUpdates
@@ -270,11 +259,23 @@ ${pendingContextUpdates
   .join('\n\n')}
       
 ⚠️ IMPORTANT INSTRUCTIONS:
-1. Verify each change mentioned above
-2. Start your response by naturally mentioning the specific changes changed
-3. Then proceed with answering the user's question
+1. First, acknowledge EACH change listed above:
+   - For added tasks: "I see you've added [task title] to [column]"
+   - For moved tasks: "I notice [task title] was moved from [old column] to [new column]"
+   - For deleted tasks: "I see [task title] was removed from [column]"
+   - For project updates: "The project's [field] is now [new value]"
 
-Remember: Only the above fields have changed. Be conversational about the changes you notice, as if you're keeping the user updated on their project's progress. But also specifically mention each change.`,
+${
+  userMessage.includes('[FIRST_MESSAGE]')
+    ? `2. Since this is our first interaction:
+   - Introduce yourself
+   - Provide a project status report:
+     • Total number of tasks and columns
+     • For each column: list tasks with their titles, priorities, and brief descriptions
+3. End with your signature roast`
+    : `2. Then proceed with answering the user's question
+3. End with your signature roast`
+}`,
     })
   }
 
