@@ -1,11 +1,10 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   DragEndEvent,
-  DragOverEvent,
 } from '@dnd-kit/core'
 
 import { KanbanTask, Project, KanbanColumn } from '@/shared/types'
@@ -189,33 +188,24 @@ export function useKanbanBoard(project: Project | undefined) {
     )
   }
 
-  const updateTargetColumnWithPreview = useCallback(
-    (targetColumnId: string, previewTask: KanbanTask) => {
-      setLocalColumns((prevColumns) => {
-        const cleanCols = removePreviewTasks(prevColumns)
-
-        return cleanCols.map((col) => {
-          if (col.id === targetColumnId) {
-            return {
-              ...col,
-              tasks: [...col.tasks, previewTask],
-            }
-          }
-          return col
-        })
-      })
-    },
-    [removePreviewTasks]
-  )
-
   const handleWithinColumnReorder = (
     columnId: string,
     taskId: string,
     newIndex: number
   ) => {
+    const cleanCols = removePreviewTasks(localColumns)
+    const column = cleanCols.find((col) => col.id === columnId)
+
+    if (!column) return
+
+    const currentIndex = column.tasks.findIndex((task) => task.id === taskId)
+
+    if (currentIndex === -1) return
+
+    if (currentIndex === newIndex) return
+
     setIsUpdating(true)
 
-    const cleanCols = removePreviewTasks(localColumns)
     const updatedColumns = cleanCols.map((col) => {
       if (col?.id === columnId) {
         const currentTasks = [...col.tasks]
