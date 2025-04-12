@@ -14,6 +14,19 @@ export const projectTools = {
       required: ['title'],
     },
   },
+  [AIActionType.UPDATE_PROJECT_DESCRIPTION]: {
+    description: 'Update the description of the current project',
+    parameters: {
+      type: 'object',
+      properties: {
+        description: {
+          type: 'string',
+          description: 'New description for the project',
+        },
+      },
+      required: ['description'],
+    },
+  },
 }
 
 export const taskTools = {
@@ -111,6 +124,7 @@ export const getToolDefinitions = () => {
 
 export const toolToActionMap: Record<string, AIActionType> = {
   update_project_title: AIActionType.UPDATE_PROJECT_TITLE,
+  update_project_description: AIActionType.UPDATE_PROJECT_DESCRIPTION,
   create_task: AIActionType.CREATE_TASK,
   update_task: AIActionType.UPDATE_TASK,
   delete_task: AIActionType.DELETE_TASK,

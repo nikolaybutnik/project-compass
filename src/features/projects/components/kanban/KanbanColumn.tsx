@@ -32,6 +32,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = React.memo(
     children: React.ReactNode
   }) => {
     const columnBg = useColorModeValue('gray.200', 'gray.700')
+    const hoverBorderColor = useColorModeValue('blue.400', 'blue.300')
     const { setNodeRef, isOver } = useDroppable({
       id: `column-${column?.id}`,
     })
@@ -68,7 +69,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = React.memo(
               pointerEvents={isDragging ? 'none' : 'auto'}
               h='100%'
               _hover={{
-                borderColor: useColorModeValue('blue.400', 'blue.300'),
+                borderColor: hoverBorderColor,
                 bg: 'transparent',
               }}
               onClick={() => onAddTask(column?.id)}
@@ -101,7 +102,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = React.memo(
             cursor='pointer'
             _hover={{
               boxShadow: 'md',
-              borderColor: useColorModeValue('blue.400', 'blue.300'),
+              borderColor: hoverBorderColor,
               bg: 'transparent',
             }}
             transition='all 0.2s'

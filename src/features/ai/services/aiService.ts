@@ -12,7 +12,10 @@ import {
   ChatCompletion,
   ChatCompletionMessageParam,
 } from 'openai/resources/chat'
-import { updateTitle } from '@/features/projects/services/projectsService'
+import {
+  updateTitle,
+  updateDescription,
+} from '@/features/projects/services/projectsService'
 import { QUERY_KEYS } from '@/shared/store/projectsStore'
 import { QueryClient } from '@tanstack/react-query'
 
@@ -107,6 +110,40 @@ const handleTitleUpdateToolCall = async (
   return { success: true }
 }
 
+const handleDescriptionUpdateToolCall = async (
+  projectId: string,
+  newDescription: string,
+  callback: (update: ContextUpdate) => void
+) => {
+  await updateDescription(projectId, newDescription)
+
+  if (queryClientRef) {
+    queryClientRef.setQueryData(
+      [QUERY_KEYS.PROJECT, projectId],
+      (old: any) => ({ ...old, description: newDescription })
+    )
+
+    queryClientRef.invalidateQueries({
+      queryKey: [QUERY_KEYS.PROJECT, projectId],
+    })
+
+    queryClientRef.invalidateQueries({
+      queryKey: [QUERY_KEYS.PROJECTS],
+    })
+
+    callback({
+      type: ContextUpdateTrigger.PROJECT_DESCRIPTION,
+      details: {
+        project: {
+          description: newDescription,
+        },
+      },
+    })
+  }
+
+  return { success: true }
+}
+
 const requestAiResponse = (
   messages: ChatCompletionMessageParam[],
   model: string = 'gpt-4o-mini',
@@ -147,6 +184,9 @@ const requestPostToolFollowUp = async (
       switch (result.type) {
         case AIActionType.UPDATE_PROJECT_TITLE:
           resultMessage = `Project title updated to "${result.args.title}"`
+          break
+        case AIActionType.UPDATE_PROJECT_DESCRIPTION:
+          resultMessage = `Project description updated to "${result.args.description}"`
           break
 
         default:
@@ -213,6 +253,14 @@ export const getChatResponse = async (
               actionResult = await handleTitleUpdateToolCall(
                 projectId,
                 toolArgs.title,
+                dependencies.invalidateContext
+              )
+              break
+
+            case AIActionType.UPDATE_PROJECT_DESCRIPTION:
+              actionResult = await handleDescriptionUpdateToolCall(
+                projectId,
+                toolArgs.description,
                 dependencies.invalidateContext
               )
               break
