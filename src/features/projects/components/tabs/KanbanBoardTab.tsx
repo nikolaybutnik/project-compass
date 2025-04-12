@@ -19,8 +19,8 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Project, KanbanColumn as KanbanColumnType } from '@/shared/types'
 import { KanbanCard } from '@/features/projects/components/kanban/KanbanCard'
 import { KanbanColumn } from '@/features/projects/components/kanban/KanbanColumn'
-import { CreateTaskModal } from '@/features/projects/components/kanban/CreateTaskModal'
 import { useKanbanBoard } from '@/features/projects/hooks/useKanbanBoard'
+import { TaskDrawer } from '@/features/projects/components/kanban/TaskDrawer'
 
 interface KanbanBoardTabProps {
   project: Project | undefined
@@ -74,7 +74,8 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = memo(
     const {
       // States
       columns,
-      isAddTaskModalOpen,
+      isTaskDrawerOpen,
+      activeColumnId,
       dragState,
       draggedTaskForOverlay,
 
@@ -90,8 +91,8 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = memo(
       handleNewTaskSubmit,
       handleDeleteTask,
 
-      // Modal handlers
-      closeAddTaskModal,
+      // Drawer handlers
+      closeTaskDrawer,
     } = useKanbanBoard(project)
 
     if (isLoading) {
@@ -168,10 +169,13 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = memo(
             ))}
           </SimpleGrid>
 
-          <CreateTaskModal
-            isOpen={isAddTaskModalOpen}
-            onClose={closeAddTaskModal}
+          <TaskDrawer
+            isOpen={isTaskDrawerOpen}
+            onClose={closeTaskDrawer}
             onSubmit={handleNewTaskSubmit}
+            columnTitle={
+              columns.find((col) => col.id === activeColumnId)?.title
+            }
           />
 
           <DragOverlay

@@ -33,7 +33,7 @@ import { useDragAndDrop } from '@/features/projects/hooks/useDragAndDrop'
 export function useKanbanBoard(project: Project | undefined) {
   // State management
   const [isUpdating, setIsUpdating] = useState(false)
-  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
+  const [isTaskDrawerOpen, setIsTaskDrawerOpen] = useState(false)
   const [activeColumnId, setActiveColumnId] = useState<string | null>(null)
   const [localColumns, setLocalColumns] = useState<KanbanColumn[]>([])
 
@@ -112,7 +112,7 @@ export function useKanbanBoard(project: Project | undefined) {
 
   const handleAddTask = useCallback(async (columnId: string): Promise<void> => {
     setActiveColumnId(columnId)
-    setIsAddTaskModalOpen(true)
+    setIsTaskDrawerOpen(true)
   }, [])
 
   const handleNewTaskSubmit = useCallback(
@@ -261,8 +261,8 @@ export function useKanbanBoard(project: Project | undefined) {
     [dndHandlers, handleCrossColumnMove, handleWithinColumnReorder]
   )
 
-  const closeAddTaskModal = useCallback(() => {
-    setIsAddTaskModalOpen(false)
+  const closeTaskDrawer = useCallback(() => {
+    setIsTaskDrawerOpen(false)
     setActiveColumnId(null)
   }, [])
 
@@ -270,7 +270,8 @@ export function useKanbanBoard(project: Project | undefined) {
     () => ({
       // States
       columns: localColumns || [],
-      isAddTaskModalOpen,
+      isTaskDrawerOpen,
+      activeColumnId,
       dragState,
       draggedTaskForOverlay,
 
@@ -286,12 +287,13 @@ export function useKanbanBoard(project: Project | undefined) {
       handleNewTaskSubmit,
       handleDeleteTask,
 
-      // Modal handlers
-      closeAddTaskModal,
+      // Drawer handlers
+      closeTaskDrawer,
     }),
     [
       localColumns,
-      isAddTaskModalOpen,
+      isTaskDrawerOpen,
+      activeColumnId,
       dragState,
       draggedTaskForOverlay,
       sensors,
@@ -300,7 +302,7 @@ export function useKanbanBoard(project: Project | undefined) {
       handleAddTask,
       handleNewTaskSubmit,
       handleDeleteTask,
-      closeAddTaskModal,
+      closeTaskDrawer,
     ]
   )
 }

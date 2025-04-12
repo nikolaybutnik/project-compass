@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
 import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalCloseButton,
-  ModalBody,
-  ModalFooter,
+  Drawer,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
+  DrawerHeader,
+  DrawerBody,
+  DrawerFooter,
   Button,
   Input,
   FormLabel,
@@ -21,16 +21,18 @@ import {
 } from '@chakra-ui/react'
 import { KanbanTask, TaskPriority } from '@/shared/types'
 
-interface CreateTaskModalProps {
+interface TaskDrawerProps {
   isOpen: boolean
   onClose: () => void
   onSubmit: (taskFormData: Partial<KanbanTask>) => void
+  columnTitle?: string
 }
 
-export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
+export const TaskDrawer: React.FC<TaskDrawerProps> = ({
   isOpen,
   onClose,
   onSubmit,
+  columnTitle,
 }) => {
   const initTaskForm: Partial<KanbanTask> = {
     title: '',
@@ -70,12 +72,14 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Create a New Task</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody>
+    <Drawer isOpen={isOpen} onClose={onClose} placement='right' size='md'>
+      <DrawerOverlay />
+      <DrawerContent>
+        <DrawerCloseButton />
+        <DrawerHeader>
+          Create a New Task {columnTitle ? `in ${columnTitle}` : ''}
+        </DrawerHeader>
+        <DrawerBody>
           <FormControl mb={4} isRequired>
             <FormLabel>Title</FormLabel>
             <Input
@@ -86,13 +90,18 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               placeholder='Title'
             />
           </FormControl>
-          <Input
-            mb={4}
-            onChange={(e) =>
-              setFormData({ ...formData, description: e?.target?.value })
-            }
-            placeholder='Description'
-          ></Input>
+
+          <FormControl mb={4}>
+            <FormLabel>Description</FormLabel>
+            <Input
+              value={formData?.description || ''}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e?.target?.value })
+              }
+              placeholder='Description'
+            />
+          </FormControl>
+
           <FormControl mb={4}>
             <FormLabel>Priority</FormLabel>
             <Select
@@ -111,6 +120,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               <option value={TaskPriority.URGENT}>Urgent</option>
             </Select>
           </FormControl>
+
           <FormControl mb={4}>
             <FormLabel>Tags</FormLabel>
             <Flex direction='column'>
@@ -150,16 +160,21 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               )}
             </Flex>
           </FormControl>
-        </ModalBody>
-        <ModalFooter>
-          <Button colorScheme='blue' mr={3} onClick={handleSubmit}>
-            Save
-          </Button>
-          <Button variant='ghost' onClick={onClose}>
+        </DrawerBody>
+
+        <DrawerFooter>
+          <Button variant='outline' mr={3} onClick={onClose}>
             Cancel
           </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+          <Button
+            colorScheme='blue'
+            onClick={handleSubmit}
+            isDisabled={!formData.title?.trim()}
+          >
+            Save
+          </Button>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   )
 }
