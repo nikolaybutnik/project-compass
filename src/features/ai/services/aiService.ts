@@ -1,16 +1,21 @@
 import { AIResponse, AIActionType, MessageRole } from '@/features/ai/types'
-import {
-  getToolDefinitions,
-  toolToActionMap,
-} from '@/features/ai/utils/toolDefinitions'
+import { getToolDefinitions } from '@/features/ai/utils/toolDefinitions'
 import OpenAI from 'openai'
 import { ChatCompletionMessageParam } from 'openai/resources/chat'
+import { updateTitle } from '@/features/projects/services/projectsService'
+import { QUERY_KEYS } from '@/shared/store/projectsStore'
 
 const openai = new OpenAI({
   apiKey: import.meta.env.VITE_OPENAI_API_KEY,
   // TODO: Weigh my options. Do I need to bring up a backend?
   dangerouslyAllowBrowser: true,
 })
+
+let queryClientRef: any = null
+
+export const initializeQueryClientRef = (queryClient: any) => {
+  queryClientRef = queryClient
+}
 
 function mapToOpenAIMessages(
   messages: Array<{ role: MessageRole; content: string }>
@@ -47,50 +52,94 @@ export const getChatResponse = async (
     })
     const responseMessage = completion.choices[0].message
 
-    if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
-      const toolCall = responseMessage.tool_calls[0]
-      const toolName = toolCall.function.name
-      const toolArguments = JSON.parse(toolCall.function.arguments)
+    // Handle tool calls
+    if (responseMessage.tool_calls && projectId) {
+      const actionResults = []
 
-      const actionType = toolToActionMap[toolName] || AIActionType.NONE
+      for (const tool of responseMessage.tool_calls) {
+        const toolArgs = JSON.parse(tool.function.arguments)
+        const actionType = tool.function.name as AIActionType
+        let actionResult = null
 
-      let fallbackMessage = ''
-      switch (toolName) {
-        case AIActionType.CREATE_TASK.toLowerCase():
-          fallbackMessage = `I'll create a task${toolArguments.title ? ` called "${toolArguments.title}"` : ''} for you.`
-          break
-        case AIActionType.UPDATE_TASK.toLowerCase():
-          fallbackMessage = `I'll update that task for you.`
-          break
-        case AIActionType.DELETE_TASK.toLowerCase():
-          fallbackMessage = `I'll delete that task for you.`
-          break
-        default:
-          fallbackMessage = "I'll take care of that for you."
+        try {
+          switch (actionType) {
+            case AIActionType.UPDATE_PROJECT_TITLE:
+              await updateTitle(projectId, toolArgs.title)
+
+              if (queryClientRef) {
+                queryClientRef.setQueryData(
+                  [QUERY_KEYS.PROJECT, projectId],
+                  (old: any) => ({ ...old, title: toolArgs.title })
+                )
+
+                queryClientRef.invalidateQueries({
+                  queryKey: [QUERY_KEYS.PROJECT, projectId],
+                })
+
+                queryClientRef.invalidateQueries({
+                  queryKey: [QUERY_KEYS.PROJECTS],
+                })
+              }
+
+              actionResult = { success: true }
+              break
+
+            default:
+              actionResult = { success: false, error: 'Unknown tool call' }
+          }
+        } catch (error) {
+          console.error(`Error executing ${actionType}:`, error)
+          actionResult = { success: false, error: String(error) }
+        }
+
+        actionResults.push({
+          type: actionType,
+          result: actionResult,
+          args: toolArgs,
+        })
       }
 
-      return {
-        message: responseMessage.content || fallbackMessage,
-        action: {
-          type: actionType,
-          payload: toolArguments,
-        },
+      const fallbackMessage = "I've processed your request."
+      console.log(responseMessage)
+
+      if (actionResults.length === 1) {
+        return {
+          message: responseMessage.content || fallbackMessage,
+          action: {
+            type: actionResults[0].type,
+            payload: {
+              ...actionResults[0].args,
+              actions: actionResults,
+            },
+          },
+        }
+      } else {
+        return {
+          message: responseMessage.content || fallbackMessage,
+          action: {
+            type: AIActionType.MULTIPLE,
+            payload: { actions: actionResults },
+          },
+        }
       }
     }
 
+    // Return response for cases without tool calls
     return {
-      message:
-        responseMessage.content ||
-        "I'm not sure I understand, can you please explain in more detail?",
+      message: responseMessage.content || "I don't have a response for that.",
       action: {
         type: AIActionType.NONE,
+        payload: { actions: [] },
       },
     }
   } catch (error) {
     console.error('Error in AI service:', error)
     return {
       message: 'Sorry, there was a problem! Please try again.',
-      action: { type: AIActionType.NONE },
+      action: {
+        type: AIActionType.NONE,
+        payload: { actions: [] },
+      },
     }
   }
 }

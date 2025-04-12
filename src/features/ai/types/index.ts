@@ -2,26 +2,28 @@ import { KanbanColumn, KanbanTask, Project, TaskPriority } from '@/shared/types'
 
 export enum AIActionType {
   // Task actions
-  CREATE_TASK = 'CREATE_TASK',
-  UPDATE_TASK = 'UPDATE_TASK',
-  DELETE_TASK = 'DELETE_TASK',
+  CREATE_TASK = 'create_task',
+  UPDATE_TASK = 'update_task',
+  DELETE_TASK = 'delete_task',
   // Column actions
-  CREATE_COLUMN = 'CREATE_COLUMN',
-  UPDATE_COLUMN = 'UPDATE_COLUMN',
-  DELETE_COLUMN = 'DELETE_COLUMN',
+  CREATE_COLUMN = 'create_column',
+  UPDATE_COLUMN = 'update_column',
+  DELETE_COLUMN = 'delete_column',
   // Project actions
-  CREATE_PROJECT = 'CREATE_PROJECT',
-  UPDATE_PROJECT = 'UPDATE_PROJECT',
-  UPDATE_PROJECT_DESCRIPTION = 'UPDATE_PROJECT_DESCRIPTION',
-  UPDATE_PROJECT_STATUS = 'UPDATE_PROJECT_STATUS',
+  CREATE_PROJECT = 'create_project',
+  UPDATE_PROJECT_TITLE = 'update_project_title',
+  UPDATE_PROJECT_DESCRIPTION = 'update_project_description',
+  UPDATE_PROJECT_STATUS = 'update_project_status',
   // Search/filter actions
-  SEARCH_TASKS = 'SEARCH_TASKS',
-  FILTER_TASKS = 'FILTER_TASKS',
+  SEARCH_TASKS = 'search_tasks',
+  FILTER_TASKS = 'filter_tasks',
   // Analysis actions
-  ANALYZE_PROJECT_STATUS = 'ANALYZE_PROJECT_STATUS',
-  GENERATE_SUMMARY = 'GENERATE_SUMMARY',
+  ANALYZE_PROJECT_STATUS = 'analyze_project_status',
+  GENERATE_SUMMARY = 'generate_summary',
   // No action
-  NONE = 'NONE',
+  NONE = 'none',
+  // Multiple actions
+  MULTIPLE = 'multiple',
 }
 
 export interface TaskPayload {
@@ -61,15 +63,43 @@ export interface AnalysisPayload {
   analysisType?: 'status' | 'progress' | 'bottlenecks' | 'timeline'
 }
 
+export interface ActionResult {
+  success: boolean
+  error?: string
+}
+
 export interface AIAction {
   type: AIActionType
   projectId?: string
   payload?:
-    | TaskPayload
-    | ColumnPayload
-    | ProjectPayload
-    | SearchPayload
-    | AnalysisPayload
+    | {
+        // For single actions
+        actions: Array<{
+          type: AIActionType
+          result: ActionResult
+          args:
+            | TaskPayload
+            | ColumnPayload
+            | ProjectPayload
+            | SearchPayload
+            | AnalysisPayload
+        }>
+        // Also include the direct args for backwards compatibility
+        [key: string]: any
+      }
+    | {
+        // For multiple/no actions
+        actions: Array<{
+          type: AIActionType
+          result: ActionResult
+          args:
+            | TaskPayload
+            | ColumnPayload
+            | ProjectPayload
+            | SearchPayload
+            | AnalysisPayload
+        }>
+      }
 }
 
 export interface AIResponse {
