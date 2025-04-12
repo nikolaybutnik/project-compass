@@ -383,9 +383,54 @@ export const ProjectPage: React.FC = () => {
               >
                 {memoizedMessages}
                 {isAiLoading && (
-                  <Flex justify='center'>
-                    <Spinner />
-                  </Flex>
+                  <Box
+                    className='markdown-content'
+                    py={1}
+                    px={4}
+                    borderRadius='md'
+                    bg={aiBgColor}
+                    alignSelf='flex-start'
+                    maxW='90%'
+                    minW='65px'
+                  >
+                    <Box
+                      sx={{
+                        '@keyframes blink': {
+                          '0%': { opacity: 0.2 },
+                          '20%': { opacity: 1 },
+                          '100%': { opacity: 0.2 },
+                        },
+                      }}
+                    >
+                      <Box
+                        as='span'
+                        animation='blink 1.4s infinite 0.2s'
+                        mx='1px'
+                        fontSize='3xl'
+                        fontWeight='bold'
+                      >
+                        .
+                      </Box>
+                      <Box
+                        as='span'
+                        animation='blink 1.4s infinite 0.4s'
+                        mx='1px'
+                        fontSize='3xl'
+                        fontWeight='bold'
+                      >
+                        .
+                      </Box>
+                      <Box
+                        as='span'
+                        animation='blink 1.4s infinite 0.6s'
+                        mx='1px'
+                        fontSize='3xl'
+                        fontWeight='bold'
+                      >
+                        .
+                      </Box>
+                    </Box>
+                  </Box>
                 )}
                 <div ref={messagesEndRef} />
               </VStack>
