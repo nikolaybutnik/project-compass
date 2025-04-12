@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Drawer,
   DrawerOverlay,
@@ -19,20 +19,22 @@ import {
   InputGroup,
   InputRightElement,
 } from '@chakra-ui/react'
-import { KanbanTask, TaskPriority } from '@/shared/types'
+import { KanbanColumn, KanbanTask, TaskPriority } from '@/shared/types'
 
 interface TaskDrawerProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (taskFormData: Partial<KanbanTask>) => void
-  columnTitle?: string
+  onSubmit: (taskFormData: Partial<KanbanTask>, columnId: string) => void
+  initialColumnId?: string
+  columns: KanbanColumn[]
 }
 
 export const TaskDrawer: React.FC<TaskDrawerProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  columnTitle,
+  initialColumnId,
+  columns,
 }) => {
   const initTaskForm: Partial<KanbanTask> = {
     title: '',
@@ -43,9 +45,25 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
 
   const [formData, setFormData] = useState<Partial<KanbanTask>>(initTaskForm)
   const [tagInput, setTagInput] = useState('')
+  const [selectedColumnId, setSelectedColumnId] = useState<string>(
+    initialColumnId || ''
+  )
+
+  useEffect(() => {
+    if (initialColumnId) {
+      setSelectedColumnId(initialColumnId)
+    }
+  }, [initialColumnId])
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(initTaskForm)
+      setTagInput('')
+    }
+  }, [isOpen])
 
   const handleSubmit = () => {
-    onSubmit(formData)
+    onSubmit(formData, selectedColumnId)
     setFormData(initTaskForm)
     setTagInput('')
     onClose()
@@ -76,9 +94,7 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
       <DrawerOverlay />
       <DrawerContent>
         <DrawerCloseButton />
-        <DrawerHeader>
-          Create a New Task {columnTitle ? `in ${columnTitle}` : ''}
-        </DrawerHeader>
+        <DrawerHeader>Create a New Task</DrawerHeader>
         <DrawerBody>
           <FormControl mb={4} isRequired>
             <FormLabel>Title</FormLabel>
@@ -100,6 +116,21 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
               }
               placeholder='Description'
             />
+          </FormControl>
+
+          <FormControl mb={4} isRequired>
+            <FormLabel>Column</FormLabel>
+            <Select
+              value={selectedColumnId}
+              onChange={(e) => setSelectedColumnId(e.target.value)}
+              placeholder='Select a Column'
+            >
+              {columns.map((column) => (
+                <option key={column.id} value={column.id}>
+                  {column.title}
+                </option>
+              ))}
+            </Select>
           </FormControl>
 
           <FormControl mb={4}>

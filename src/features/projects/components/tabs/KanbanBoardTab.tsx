@@ -173,9 +173,8 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = memo(
             isOpen={isTaskDrawerOpen}
             onClose={closeTaskDrawer}
             onSubmit={handleNewTaskSubmit}
-            columnTitle={
-              columns.find((col) => col.id === activeColumnId)?.title
-            }
+            initialColumnId={activeColumnId || ''}
+            columns={columns}
           />
 
           <DragOverlay

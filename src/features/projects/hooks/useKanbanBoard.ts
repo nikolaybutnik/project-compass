@@ -116,18 +116,18 @@ export function useKanbanBoard(project: Project | undefined) {
   }, [])
 
   const handleNewTaskSubmit = useCallback(
-    async (taskData: Partial<KanbanTask>) => {
+    async (taskData: Partial<KanbanTask>, columnId: string) => {
       try {
         await addTaskMutation.mutateAsync({
           projectId: project?.id || '',
-          columnId: activeColumnId || '',
+          columnId,
           taskData: taskData,
         })
       } catch (error) {
         console.error('Error adding task:', error)
       }
     },
-    [project?.id, activeColumnId, addTaskMutation]
+    [project?.id, addTaskMutation]
   )
 
   const handleDeleteTask = useCallback(
