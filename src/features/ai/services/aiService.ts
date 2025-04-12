@@ -1,4 +1,10 @@
-import { AIResponse, AIActionType, MessageRole } from '@/features/ai/types'
+import {
+  AIResponse,
+  AIActionType,
+  MessageRole,
+  ContextUpdateTrigger,
+  ContextUpdate,
+} from '@/features/ai/types'
 import { getToolDefinitions } from '@/features/ai/utils/toolDefinitions'
 import OpenAI from 'openai'
 import { ChatCompletionMessageParam } from 'openai/resources/chat'
@@ -40,7 +46,10 @@ function mapToOpenAIMessages(
 
 export const getChatResponse = async (
   messages: Array<{ role: MessageRole; content: string }>,
-  projectId?: string
+  projectId?: string,
+  dependencies?: {
+    invalidateContext?: (update: ContextUpdate) => void
+  }
 ): Promise<AIResponse> => {
   try {
     const tools = getToolDefinitions()
@@ -53,7 +62,11 @@ export const getChatResponse = async (
     const responseMessage = completion.choices[0].message
 
     // Handle tool calls
-    if (responseMessage.tool_calls && projectId) {
+    if (
+      responseMessage.tool_calls &&
+      projectId &&
+      dependencies?.invalidateContext
+    ) {
       const actionResults = []
 
       for (const tool of responseMessage.tool_calls) {
@@ -79,6 +92,15 @@ export const getChatResponse = async (
                 queryClientRef.invalidateQueries({
                   queryKey: [QUERY_KEYS.PROJECTS],
                 })
+
+                dependencies.invalidateContext({
+                  type: ContextUpdateTrigger.PROJECT_TITLE,
+                  details: {
+                    project: {
+                      title: toolArgs.title,
+                    },
+                  },
+                })
               }
 
               actionResult = { success: true }
@@ -100,7 +122,6 @@ export const getChatResponse = async (
       }
 
       const fallbackMessage = "I've processed your request."
-      console.log(responseMessage)
 
       if (actionResults.length === 1) {
         return {
