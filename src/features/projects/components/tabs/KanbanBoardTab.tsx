@@ -43,7 +43,7 @@ const MemoizedColumn = memo<MemoizedColumnProps>(
       <KanbanColumn
         column={column}
         isDragging={isDragging}
-        onAddTask={() => onAddTask(column.id)}
+        onAddTask={onAddTask}
         children={children}
       />
     )
@@ -137,7 +137,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = memo(
                 isDragging={dragState.isDragInProgress}
                 hasPreview={dragState.preview?.targetColumnId === col.id}
                 hasSourceTask={dragState.activeTask?.columnId === col.id}
-                onAddTask={() => handleAddTask(col?.id)}
+                onAddTask={handleAddTask}
               >
                 <SortableContext
                   items={col?.tasks?.map((t) => t?.id) || []}
