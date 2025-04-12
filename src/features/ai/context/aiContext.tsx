@@ -148,7 +148,6 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
   // Handle user message submission to AI
   const sendMessage = useCallback(
     async (message: string): Promise<AIResponse> => {
-      const sentUpdates = [...pendingContextUpdates]
       setIsLoading(true)
 
       try {
@@ -181,13 +180,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
           { invalidateContext }
         )
 
-        setPendingContextUpdates((prev) => {
-          return prev.filter((update) => {
-            return !sentUpdates.some(
-              (sentUpdate) => sentUpdate.type === update.type
-            )
-          })
-        })
+        setPendingContextUpdates([])
         setMessages((prev) => [
           ...prev,
           { role: MessageRole.ASSISTANT, content: response.message },

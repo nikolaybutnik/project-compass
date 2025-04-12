@@ -4,12 +4,17 @@ import {
   MessageRole,
   ContextUpdateTrigger,
   ContextUpdate,
+  ActionResult,
 } from '@/features/ai/types'
 import { getToolDefinitions } from '@/features/ai/utils/toolDefinitions'
 import OpenAI from 'openai'
-import { ChatCompletionMessageParam } from 'openai/resources/chat'
+import {
+  ChatCompletion,
+  ChatCompletionMessageParam,
+} from 'openai/resources/chat'
 import { updateTitle } from '@/features/projects/services/projectsService'
 import { QUERY_KEYS } from '@/shared/store/projectsStore'
+import { QueryClient } from '@tanstack/react-query'
 
 const openai = new OpenAI({
   apiKey: import.meta.env.VITE_OPENAI_API_KEY,
@@ -17,15 +22,39 @@ const openai = new OpenAI({
   dangerouslyAllowBrowser: true,
 })
 
-let queryClientRef: any = null
+const FALLBACK_MESSAGE = "I've processed your request."
 
-export const initializeQueryClientRef = (queryClient: any) => {
+let queryClientRef: QueryClient
+
+export const initializeQueryClientRef = (queryClient: QueryClient) => {
   queryClientRef = queryClient
 }
 
-function mapToOpenAIMessages(
+const createErrorResponse = (error: any): AIResponse => ({
+  message: `Sorry, there was a problem: ${error}`,
+  action: { type: AIActionType.NONE, payload: { actions: [] } },
+})
+
+const createActionResponse = (
+  message: string | null,
+  actionResults: any[]
+): AIResponse => ({
+  message: message || FALLBACK_MESSAGE,
+  action:
+    actionResults.length === 1
+      ? {
+          type: actionResults[0].type,
+          payload: { ...actionResults[0].args, actions: actionResults },
+        }
+      : {
+          type: AIActionType.MULTIPLE,
+          payload: { actions: actionResults },
+        },
+})
+
+const mapToOpenAIMessages = (
   messages: Array<{ role: MessageRole; content: string }>
-): ChatCompletionMessageParam[] {
+): ChatCompletionMessageParam[] => {
   return messages
     .filter(
       (msg) =>
@@ -44,6 +73,116 @@ function mapToOpenAIMessages(
     })
 }
 
+const handleTitleUpdateToolCall = async (
+  projectId: string,
+  newTitle: string,
+  callback: (update: ContextUpdate) => void
+) => {
+  await updateTitle(projectId, newTitle)
+
+  if (queryClientRef) {
+    queryClientRef.setQueryData(
+      [QUERY_KEYS.PROJECT, projectId],
+      (old: any) => ({ ...old, title: newTitle })
+    )
+
+    queryClientRef.invalidateQueries({
+      queryKey: [QUERY_KEYS.PROJECT, projectId],
+    })
+
+    queryClientRef.invalidateQueries({
+      queryKey: [QUERY_KEYS.PROJECTS],
+    })
+
+    callback({
+      type: ContextUpdateTrigger.PROJECT_TITLE,
+      details: {
+        project: {
+          title: newTitle,
+        },
+      },
+    })
+  }
+
+  return { success: true }
+}
+
+const requestAiResponse = (
+  messages: ChatCompletionMessageParam[],
+  model: string = 'gpt-4o-mini',
+  tools = getToolDefinitions(),
+  toolChoice: 'auto' | 'none' | 'required' = 'auto'
+): Promise<ChatCompletion> => {
+  return openai.chat.completions.create({
+    model,
+    messages,
+    tools,
+    tool_choice: toolChoice,
+  })
+}
+
+const requestPostToolFollowUp = async (
+  messages: Array<{ role: MessageRole; content: string }>,
+  responseMessage: OpenAI.Chat.Completions.ChatCompletionMessage,
+  actionResults: {
+    type: AIActionType
+    result: ActionResult
+    args: any
+  }[]
+): Promise<AIResponse> => {
+  try {
+    const followUpMessages = [
+      ...mapToOpenAIMessages(messages),
+      {
+        role: MessageRole.ASSISTANT,
+        content: null,
+        tool_calls: responseMessage?.tool_calls || [],
+      },
+    ]
+
+    for (const [i, tool] of responseMessage?.tool_calls?.entries() || []) {
+      const result = actionResults[i]
+      let resultMessage: string
+
+      switch (result.type) {
+        case AIActionType.UPDATE_PROJECT_TITLE:
+          resultMessage = `Project title updated to "${result.args.title}"`
+          break
+
+        default:
+          resultMessage = result.result.success
+            ? 'Operation completed successfully'
+            : `Error: ${result.result.error}`
+      }
+
+      followUpMessages.push({
+        role: MessageRole.TOOL,
+        content: JSON.stringify({
+          success: result.result.success,
+          result: resultMessage,
+        }),
+        tool_call_id: tool.id,
+      })
+    }
+
+    followUpMessages.push({
+      role: MessageRole.SYSTEM,
+      content:
+        'Provide a conversational response acknowledging the changes made. Be friendly and concise.',
+    })
+
+    const followUpCompletion = await requestAiResponse(
+      followUpMessages as ChatCompletionMessageParam[]
+    )
+    return createActionResponse(
+      followUpCompletion.choices[0].message.content,
+      actionResults
+    )
+  } catch (error) {
+    return createErrorResponse(error)
+  }
+}
+
 export const getChatResponse = async (
   messages: Array<{ role: MessageRole; content: string }>,
   projectId?: string,
@@ -52,13 +191,7 @@ export const getChatResponse = async (
   }
 ): Promise<AIResponse> => {
   try {
-    const tools = getToolDefinitions()
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: mapToOpenAIMessages(messages),
-      tools: tools,
-      tool_choice: 'auto',
-    })
+    const completion = await requestAiResponse(mapToOpenAIMessages(messages))
     const responseMessage = completion.choices[0].message
 
     // Handle tool calls
@@ -72,38 +205,16 @@ export const getChatResponse = async (
       for (const tool of responseMessage.tool_calls) {
         const toolArgs = JSON.parse(tool.function.arguments)
         const actionType = tool.function.name as AIActionType
-        let actionResult = null
+        let actionResult: ActionResult = { success: false }
 
         try {
           switch (actionType) {
             case AIActionType.UPDATE_PROJECT_TITLE:
-              await updateTitle(projectId, toolArgs.title)
-
-              if (queryClientRef) {
-                queryClientRef.setQueryData(
-                  [QUERY_KEYS.PROJECT, projectId],
-                  (old: any) => ({ ...old, title: toolArgs.title })
-                )
-
-                queryClientRef.invalidateQueries({
-                  queryKey: [QUERY_KEYS.PROJECT, projectId],
-                })
-
-                queryClientRef.invalidateQueries({
-                  queryKey: [QUERY_KEYS.PROJECTS],
-                })
-
-                dependencies.invalidateContext({
-                  type: ContextUpdateTrigger.PROJECT_TITLE,
-                  details: {
-                    project: {
-                      title: toolArgs.title,
-                    },
-                  },
-                })
-              }
-
-              actionResult = { success: true }
+              actionResult = await handleTitleUpdateToolCall(
+                projectId,
+                toolArgs.title,
+                dependencies.invalidateContext
+              )
               break
 
             default:
@@ -121,46 +232,18 @@ export const getChatResponse = async (
         })
       }
 
-      const fallbackMessage = "I've processed your request."
-
-      if (actionResults.length === 1) {
-        return {
-          message: responseMessage.content || fallbackMessage,
-          action: {
-            type: actionResults[0].type,
-            payload: {
-              ...actionResults[0].args,
-              actions: actionResults,
-            },
-          },
-        }
-      } else {
-        return {
-          message: responseMessage.content || fallbackMessage,
-          action: {
-            type: AIActionType.MULTIPLE,
-            payload: { actions: actionResults },
-          },
-        }
-      }
+      // Process tool calls and get follow-up response
+      return await requestPostToolFollowUp(
+        messages,
+        responseMessage,
+        actionResults
+      )
     }
 
     // Return response for cases without tool calls
-    return {
-      message: responseMessage.content || "I don't have a response for that.",
-      action: {
-        type: AIActionType.NONE,
-        payload: { actions: [] },
-      },
-    }
+    return createActionResponse(responseMessage.content, [])
   } catch (error) {
     console.error('Error in AI service:', error)
-    return {
-      message: 'Sorry, there was a problem! Please try again.',
-      action: {
-        type: AIActionType.NONE,
-        payload: { actions: [] },
-      },
-    }
+    return createErrorResponse(error)
   }
 }

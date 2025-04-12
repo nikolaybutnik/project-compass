@@ -58,11 +58,6 @@ export interface SearchPayload {
   }
 }
 
-export interface AnalysisPayload {
-  summaryText?: string
-  analysisType?: 'status' | 'progress' | 'bottlenecks' | 'timeline'
-}
-
 export interface ActionResult {
   success: boolean
   error?: string
@@ -77,12 +72,7 @@ export interface AIAction {
         actions: Array<{
           type: AIActionType
           result: ActionResult
-          args:
-            | TaskPayload
-            | ColumnPayload
-            | ProjectPayload
-            | SearchPayload
-            | AnalysisPayload
+          args: TaskPayload | ColumnPayload | ProjectPayload | SearchPayload
         }>
         // Also include the direct args for backwards compatibility
         [key: string]: any
@@ -92,12 +82,7 @@ export interface AIAction {
         actions: Array<{
           type: AIActionType
           result: ActionResult
-          args:
-            | TaskPayload
-            | ColumnPayload
-            | ProjectPayload
-            | SearchPayload
-            | AnalysisPayload
+          args: TaskPayload | ColumnPayload | ProjectPayload | SearchPayload
         }>
       }
 }
