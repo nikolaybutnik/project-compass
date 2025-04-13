@@ -6,14 +6,17 @@ import { ROUTES } from '@/shared/constants'
 import { ChatMessage } from '@/features/chat/types'
 import { v4 as uuidv4 } from 'uuid'
 import { MessageRole } from '@/features/ai/types'
+import { useAI } from '@/features/ai/context/aiContext'
 
 export const ChatContainer: React.FC = () => {
   const location = useLocation()
+  const { sendMessage, messages: aiMessages, isLoading: aiLoading } = useAI()
 
   const [isOpen, setIsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [isTyping, setIsTyping] = useState(false)
 
   const hiddenRoutes = [ROUTES.HOME, ROUTES.LOGIN]
 
@@ -22,22 +25,37 @@ export const ChatContainer: React.FC = () => {
       location.pathname === path || location.pathname.startsWith(path + '/')
   )
 
-  if (hideChat) return null
-
-  // Placeholder message
   useEffect(() => {
-    if (messages.length === 0) {
-      setMessages([
-        {
+    if (aiMessages.length) {
+      const formattedMessages = aiMessages
+        .filter(
+          (msg) =>
+            msg.role === MessageRole.USER || msg.role === MessageRole.ASSISTANT
+        )
+        .map((msg) => ({
           id: uuidv4(),
-          role: MessageRole.ASSISTANT,
-          content:
-            "Hello! I'm Vector, your project assistant. How can I help you today?",
+          role: msg.role,
+          content: msg.content,
           timestamp: new Date(),
-        },
-      ])
+        }))
+
+      setMessages(formattedMessages)
+
+      // If chat is closed and there's a new AI message, show unread indicator
+      const lastMessage = aiMessages[aiMessages.length - 1]
+      if (
+        !isOpen &&
+        lastMessage &&
+        lastMessage.role === MessageRole.ASSISTANT
+      ) {
+        setHasUnreadMessages(true)
+      }
     }
-  }, [])
+  }, [aiMessages, isOpen])
+
+  useEffect(() => {
+    setIsTyping(aiLoading)
+  }, [aiLoading])
 
   const toggleChat = () => {
     setIsOpen(!isOpen)
@@ -50,34 +68,15 @@ export const ChatContainer: React.FC = () => {
     setIsExpanded(!isExpanded)
   }
 
-  const handleSendMessage = (content: string) => {
-    // Add user message
-    const userMessage: ChatMessage = {
-      id: uuidv4(),
-      role: MessageRole.USER,
-      content,
-      timestamp: new Date(),
+  const handleSendMessage = async (content: string) => {
+    try {
+      await sendMessage(content)
+    } catch (error) {
+      console.error('Error sending message:', error)
     }
-
-    setMessages((prev) => [...prev, userMessage])
-
-    // Mock AI response (we'll replace this with actual AI call later)
-    setTimeout(() => {
-      const aiMessage: ChatMessage = {
-        id: uuidv4(),
-        role: MessageRole.ASSISTANT,
-        content: `I received your message: "${content}". I'll help you with that soon!`,
-        timestamp: new Date(),
-      }
-
-      setMessages((prev) => [...prev, aiMessage])
-
-      // If chat is closed, show unread indicator
-      if (!isOpen) {
-        setHasUnreadMessages(true)
-      }
-    }, 1000)
   }
+
+  if (hideChat) return null
 
   return (
     <>
@@ -92,6 +91,7 @@ export const ChatContainer: React.FC = () => {
         isExpanded={isExpanded}
         messages={messages}
         onSendMessage={handleSendMessage}
+        isTyping={isTyping}
       />
     </>
   )

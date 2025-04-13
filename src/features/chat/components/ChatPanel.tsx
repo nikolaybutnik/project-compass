@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Box,
   Flex,
@@ -9,10 +9,16 @@ import {
   VStack,
   HStack,
   useColorModeValue,
+  Code,
+  UnorderedList,
+  OrderedList,
+  ListItem,
 } from '@chakra-ui/react'
 import { FaTimes, FaExpandAlt, FaCompress } from 'react-icons/fa'
 import { MessageRole } from '@/features/ai/types'
-import { ChatMessage } from '../types'
+import { ChatMessage } from '@/features/chat/types'
+import { TypingIndicator } from '@/features/chat/components/TypingIndicator'
+import ReactMarkdown from 'react-markdown'
 
 interface ChatPanelProps {
   isOpen: boolean
@@ -21,6 +27,7 @@ interface ChatPanelProps {
   isExpanded: boolean
   messages: ChatMessage[]
   onSendMessage: (message: string) => void
+  isTyping: boolean
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({
@@ -30,9 +37,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   isExpanded,
   messages,
   onSendMessage,
+  isTyping,
 }) => {
-  if (!isOpen) return null
-
   const userBgColor = useColorModeValue('blue.100', 'blue.900')
   const aiBgColor = useColorModeValue('gray.200', 'gray.700')
   const eventBgColor = useColorModeValue('yellow.100', 'gray.800')
@@ -58,13 +64,42 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   }
 
+  const memoizedMessages = useMemo(() => {
+    return messages.map((message) => (
+      <Box
+        key={message.id}
+        alignSelf={message.role === 'user' ? 'flex-end' : 'flex-start'}
+        bg={message.role === 'user' ? userBgColor : aiBgColor}
+        py={2}
+        px={3}
+        borderRadius='lg'
+        maxWidth='70%'
+        boxShadow='sm'
+      >
+        <ReactMarkdown
+          components={{
+            p: (props) => <Text mb={2} {...props} />,
+            code: (props) => <Code p={1} {...props} />,
+            ul: (props) => <UnorderedList pl={4} mb={2} {...props} />,
+            ol: (props) => <OrderedList pl={4} mb={2} {...props} />,
+            li: (props) => <ListItem {...props} />,
+          }}
+        >
+          {message.content}
+        </ReactMarkdown>
+      </Box>
+    ))
+  }, [messages, userBgColor, aiBgColor])
+
+  if (!isOpen) return null
+
   return (
     <Box
       position='fixed'
       right='20px'
       bottom='80px'
-      width={isExpanded ? '400px' : '320px'}
-      height={isExpanded ? '500px' : '400px'}
+      width={isExpanded ? '450px' : '320px'}
+      height={isExpanded ? '550px' : '400px'}
       bg='white'
       borderRadius='md'
       boxShadow='xl'
@@ -122,40 +157,36 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         spacing={3}
         align='stretch'
         bg='gray.50'
+        css={{
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            width: '10px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: 'rgba(0, 0, 0, 0.2)',
+            borderRadius: '24px',
+          },
+        }}
       >
         {messages.length === 0 ? (
           <Text color='gray.500' fontSize='sm' textAlign='center'>
             Start a conversation with Vector!
           </Text>
         ) : (
-          messages.map((message) => (
-            <Box
-              key={message.id}
-              alignSelf={
-                message.role === MessageRole.USER ? 'flex-end' : 'flex-start'
-              }
-              bg={
-                message.role === MessageRole.USER
-                  ? userBgColor
-                  : message.role === MessageRole.ASSISTANT
-                    ? aiBgColor
-                    : eventBgColor
-              }
-              py={2}
-              px={3}
-              borderRadius='lg'
-              maxWidth='70%'
-              boxShadow='sm'
-            >
-              <Text fontSize='sm'>{message.content}</Text>
-            </Box>
-          ))
+          <>
+            {memoizedMessages}
+            {isTyping && <TypingIndicator />}
+          </>
         )}
         <div ref={messagesEndRef} />
       </VStack>
 
       <Flex p={3} borderTop='1px solid' borderColor='gray.200'>
         <Input
+          id='chat-message-input'
+          name='message'
           placeholder='Type a message...'
           mr={2}
           value={inputValue}
