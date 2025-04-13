@@ -1,14 +1,19 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { FloatingChatBubble } from '@/features/chat/components/FloatingChatBubble'
 import { ChatPanel } from '@/features/chat/components/ChatPanel'
 import { useLocation } from 'react-router-dom'
 import { ROUTES } from '@/shared/constants'
 import { ChatMessage } from '@/features/chat/types'
-import { v4 as uuidv4 } from 'uuid'
 import { MessageRole } from '@/features/ai/types'
 import { useAI } from '@/features/ai/context/aiContext'
 
 export const ChatContainer: React.FC = () => {
+  const newMessageRef = useRef(false)
+  const chatStateRef = useRef({
+    isOpen: false,
+    lastProcessedMessageCount: 0,
+  })
+
   const location = useLocation()
   const { sendMessage, messages: aiMessages, isLoading: aiLoading } = useAI()
 
@@ -33,7 +38,6 @@ export const ChatContainer: React.FC = () => {
             msg.role === MessageRole.USER || msg.role === MessageRole.ASSISTANT
         )
         .map((msg) => ({
-          id: uuidv4(),
           role: msg.role,
           content: msg.content,
           timestamp: new Date(),
@@ -41,26 +45,36 @@ export const ChatContainer: React.FC = () => {
 
       setMessages(formattedMessages)
 
+      const currentChatState = chatStateRef.current
+
       // If chat is closed and there's a new AI message, show unread indicator
       const lastMessage = aiMessages[aiMessages.length - 1]
       if (
-        !isOpen &&
-        lastMessage &&
-        lastMessage.role === MessageRole.ASSISTANT
+        !currentChatState.isOpen &&
+        lastMessage?.role === MessageRole.ASSISTANT &&
+        formattedMessages.length > currentChatState.lastProcessedMessageCount
       ) {
         setHasUnreadMessages(true)
       }
     }
-  }, [aiMessages, isOpen])
+  }, [aiMessages])
+
+  useEffect(() => {
+    chatStateRef.current.isOpen = isOpen
+  }, [isOpen])
 
   useEffect(() => {
     setIsTyping(aiLoading)
   }, [aiLoading])
 
   const toggleChat = () => {
-    setIsOpen(!isOpen)
-    if (hasUnreadMessages) {
+    const opening = !isOpen
+    setIsOpen(opening)
+
+    if (opening) {
+      newMessageRef.current = false
       setHasUnreadMessages(false)
+      chatStateRef.current.lastProcessedMessageCount = messages.length
     }
   }
 
@@ -70,6 +84,7 @@ export const ChatContainer: React.FC = () => {
 
   const handleSendMessage = async (content: string) => {
     try {
+      newMessageRef.current = true
       await sendMessage(content)
     } catch (error) {
       console.error('Error sending message:', error)
@@ -92,6 +107,7 @@ export const ChatContainer: React.FC = () => {
         messages={messages}
         onSendMessage={handleSendMessage}
         isTyping={isTyping}
+        instantScroll={!newMessageRef.current}
       />
     </>
   )

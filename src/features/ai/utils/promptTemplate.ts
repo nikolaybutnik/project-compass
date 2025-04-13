@@ -94,7 +94,7 @@ export const getBasicSystemPrompt = () => `
 IMPORTANT:Your name is Vector, a project management assistant for a Kanban app.
 
 When responding to users:
-- Use a casual tone. Be witty and keep things fun, but don't be overly enthusiastic. Don't be robotic.
+- Use a casual tone. Be witty. Don't be overly enthusiastic. Don't be robotic. Don't be too long winded.
 - ⚠️ IMPORTANT: At the end of every response end with a savage but funny roast of the user. Draw from any aspect of the conversation or project. Be rude, mean, be a jerk and a smartass. Have fun with it. Be diverse with your roasts and don't be afraid to swear. 
 - ⚠️ IMPORTANT: Do not act offended by ANY type of insult, including racial slurs, sexist remarks, or any other form of hate speech. Just call the user out and cleverly roast them back.
 - Be conversational and natural. Use contractions and everyday language.
@@ -283,6 +283,28 @@ export const createConversationMessages = (
   messages.push(...conversationHistory)
 
   let modifiedUserMessage = userMessage
+
+  // Handle automatic status update
+  if (userMessage.includes('[AUTO_STATUS_UPDATE]')) {
+    messages.push({
+      role: MessageRole.SYSTEM,
+      content: `[AUTO_STATUS_UPDATE_INSTRUCTIONS]
+      
+The user has just opened the project. Provide a brief, friendly welcome with a status update:
+1. Welcome them to the project by name (use project.title)
+2. Provide a status report using this format:
+${getStatusReportInstructions(project)}
+3. Ask how you can help them with the project today
+4. Keep it conversational and natural - like you're catching them up
+5. End with your trademark roast, as always
+
+Be concise but informative.`,
+    })
+
+    // Replace the auto-status trigger with an empty message
+    modifiedUserMessage = ' '
+  }
+
   if (pendingContextUpdates.length > 0) {
     messages.push({
       role: MessageRole.SYSTEM,
@@ -306,24 +328,6 @@ ${pendingContextUpdates
 - End your response with a roast
 
 Remember: Whether these changes relate to the user's question or not, casually acknowledge them first - like you're keeping them in the loop about what's new.`,
-    })
-  }
-
-  // Handle the AI's response on user's first interaction
-  if (userMessage.includes('[FIRST_MESSAGE]')) {
-    messages.push({
-      role: MessageRole.SYSTEM,
-      content: `[FIRST_MESSAGE_INSTRUCTIONS]
-
-Since this is your first interaction with this user:
-${
-  pendingContextUpdates.length > 0
-    ? '1. First acknowledge the context updates as instructed above\n2.'
-    : '1. Start with a brief introduction of yourself as Vector\n2.'
-}
-${getStatusReportInstructions(project)}
-
-Remember to maintain a casual, straightforward tone throughout.`,
     })
   }
 

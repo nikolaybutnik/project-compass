@@ -151,25 +151,22 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsLoading(true)
 
       try {
+        const isAutoStatusUpdate = message.includes('[AUTO_STATUS_UPDATE]')
         const isFirstUserMessage = !messages.some(
           (msg) => msg.role === MessageRole.USER
         )
 
-        const displayMessage = {
-          role: MessageRole.USER,
-          content: message,
+        if (!isAutoStatusUpdate) {
+          const displayMessage = {
+            role: MessageRole.USER,
+            content: message,
+          }
+          setMessages((prev) => [...prev, displayMessage])
         }
-
-        // [FIRST_MESSAGE] flag for AI to know if this is the start of conversation
-        const userMessageContent = isFirstUserMessage
-          ? `[FIRST_MESSAGE] ${message}`
-          : message
-
-        setMessages((prev) => [...prev, displayMessage])
 
         const apiMessages = createConversationMessages(
           projectContext, // This can be null for non-project conversations
-          userMessageContent,
+          message,
           messages,
           pendingContextUpdates
         )

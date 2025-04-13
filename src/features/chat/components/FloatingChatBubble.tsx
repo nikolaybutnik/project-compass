@@ -31,7 +31,14 @@ export const FloatingChatBubble: React.FC<FloatingChatBubbleProps> = ({
           top='-2px'
           right='-2px'
           borderRadius='full'
-          colorScheme='red'
+          bg='red.500'
+          boxSize='14px'
+          borderWidth='2px'
+          borderColor='white'
+          p={0}
+          display='flex'
+          alignItems='center'
+          justifyContent='center'
         />
       )}
     </Box>

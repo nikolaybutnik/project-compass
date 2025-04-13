@@ -1,4 +1,10 @@
-import React, { useState, useEffect, FocusEvent, KeyboardEvent } from 'react'
+import React, {
+  useState,
+  useEffect,
+  FocusEvent,
+  KeyboardEvent,
+  useRef,
+} from 'react'
 import {
   Heading,
   Tabs,
@@ -26,6 +32,7 @@ import { useSetActiveProjectMutation } from '@/shared/store/usersStore'
 import { useAI } from '@/features/ai/context/aiContext'
 import { EditIcon } from '@chakra-ui/icons'
 import { ProjectOverviewTab } from '../components/tabs/ProjectOverviewTab'
+import { MessageRole } from '@/features/ai/types'
 
 enum ProjectViewTabs {
   KANBAN = 0,
@@ -45,13 +52,7 @@ export const ProjectPage: React.FC = () => {
   const setActiveProjectMutation = useSetActiveProjectMutation()
   const updateTitle = updateProjectTitleMutation()
   const updateDescription = updateProjectDescriptionMutation()
-  const { updateProjectContext } = useAI()
-
-  useEffect(() => {
-    if (project) {
-      updateProjectContext(project)
-    }
-  }, [project, updateProjectContext])
+  const { projectContext, sendMessage, updateProjectContext } = useAI()
 
   const [isSettingActive, setIsSettingActive] = useState(false)
   const [tabIndex, setTabIndex] = useState(ProjectViewTabs.KANBAN)
@@ -61,6 +62,38 @@ export const ProjectPage: React.FC = () => {
     project?.description || ''
   )
   const [isEditingDescription, setIsEditingDescription] = useState(false)
+
+  const hasAutoMessageBeenSent = useRef(false)
+
+  useEffect(() => {
+    if (project) {
+      updateProjectContext(project)
+    }
+  }, [project, updateProjectContext])
+
+  // TODO fix the message not being set when user switches projects
+  useEffect(() => {
+    if (
+      project &&
+      projectContext &&
+      project.id === projectContext.id &&
+      !hasAutoMessageBeenSent.current
+    ) {
+      const timer = setTimeout(() => {
+        sendMessage('[AUTO_STATUS_UPDATE]')
+          .then(() => {
+            hasAutoMessageBeenSent.current = true
+          })
+          .catch((error) => {
+            console.error('Error sending auto status:', error)
+          })
+      }, 1000)
+
+      return () => clearTimeout(timer)
+    }
+
+    return
+  }, [project, projectContext, sendMessage])
 
   useEffect(() => {
     setProjectTitle(project?.title || '')

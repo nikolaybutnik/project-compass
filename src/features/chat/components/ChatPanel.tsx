@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Box,
   Flex,
@@ -15,7 +15,6 @@ import {
   ListItem,
 } from '@chakra-ui/react'
 import { FaTimes, FaExpandAlt, FaCompress } from 'react-icons/fa'
-import { MessageRole } from '@/features/ai/types'
 import { ChatMessage } from '@/features/chat/types'
 import { TypingIndicator } from '@/features/chat/components/TypingIndicator'
 import ReactMarkdown from 'react-markdown'
@@ -28,6 +27,7 @@ interface ChatPanelProps {
   messages: ChatMessage[]
   onSendMessage: (message: string) => void
   isTyping: boolean
+  instantScroll?: boolean
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({
@@ -38,17 +38,28 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   messages,
   onSendMessage,
   isTyping,
+  instantScroll,
 }) => {
   const userBgColor = useColorModeValue('blue.100', 'blue.900')
   const aiBgColor = useColorModeValue('gray.200', 'gray.700')
-  const eventBgColor = useColorModeValue('yellow.100', 'gray.800')
 
   const [inputValue, setInputValue] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: instantScroll ? 'auto' : 'smooth',
+        block: 'end',
+      })
+    }
+  }, [instantScroll])
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    if (isOpen) {
+      scrollToBottom()
+    }
+  }, [messages, isOpen, scrollToBottom])
 
   const handleSend = () => {
     if (inputValue.trim()) {
@@ -65,9 +76,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   }
 
   const memoizedMessages = useMemo(() => {
-    return messages.map((message) => (
+    return messages.map((message, index) => (
       <Box
-        key={message.id}
+        key={`${message.timestamp.toISOString()}-${index}`}
         alignSelf={message.role === 'user' ? 'flex-end' : 'flex-start'}
         bg={message.role === 'user' ? userBgColor : aiBgColor}
         py={2}
@@ -187,6 +198,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         <Input
           id='chat-message-input'
           name='message'
+          autoComplete='off'
           placeholder='Type a message...'
           mr={2}
           value={inputValue}
