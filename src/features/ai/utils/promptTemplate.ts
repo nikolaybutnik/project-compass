@@ -72,14 +72,6 @@ const CONTEXT_UPDATE_LOCATIONS: Record<
       end: '</task>',
     },
   },
-  [ContextUpdateTrigger.PROJECT_CHANGED]: {
-    description: 'project switch',
-    location: 'in the entire Project Context section',
-    marker: {
-      start: '--- Project Context Start ---',
-      end: '--- Project Context End ---',
-    },
-  },
   [ContextUpdateTrigger.NEW_PROJECT_CREATED]: {
     description: 'new project',
     location: 'in the entire Project Context section',
@@ -290,19 +282,21 @@ export const createConversationMessages = (
       role: MessageRole.SYSTEM,
       content: `[AUTO_STATUS_UPDATE_INSTRUCTIONS]
       
-The user has just opened the project. Provide a brief, friendly welcome with a status update:
+The user has just opened the project. This is a SYSTEM-INITIATED status update.
+IMPORTANT: The user message contains a special placeholder. DO NOT acknowledge, comment on, or respond to this placeholder text directly.
+
 1. Welcome them to the project by name (use project.title)
 2. Provide a status report using this format:
 ${getStatusReportInstructions(project)}
 3. Ask how you can help them with the project today
-4. Keep it conversational and natural - like you're catching them up
+4. Keep it conversational and natural - like you're catching them up, but be as concise as possible, especially if there are a lot of tasks.
 5. End with your trademark roast, as always
 
 Be concise but informative.`,
     })
 
     // Replace the auto-status trigger with an empty message
-    modifiedUserMessage = ' '
+    modifiedUserMessage = '[SYSTEM_INITIATED_STATUS_UPDATE - NO USER INPUT]'
   }
 
   if (pendingContextUpdates.length > 0) {

@@ -32,7 +32,6 @@ import { useSetActiveProjectMutation } from '@/shared/store/usersStore'
 import { useAI } from '@/features/ai/context/aiContext'
 import { EditIcon } from '@chakra-ui/icons'
 import { ProjectOverviewTab } from '../components/tabs/ProjectOverviewTab'
-import { MessageRole } from '@/features/ai/types'
 
 enum ProjectViewTabs {
   KANBAN = 0,
@@ -71,6 +70,12 @@ export const ProjectPage: React.FC = () => {
     }
   }, [project, updateProjectContext])
 
+  useEffect(() => {
+    if (project?.id) {
+      hasAutoMessageBeenSent.current = false
+    }
+  }, [project?.id])
+
   // TODO fix the message not being set when user switches projects
   useEffect(() => {
     if (
@@ -87,7 +92,7 @@ export const ProjectPage: React.FC = () => {
           .catch((error) => {
             console.error('Error sending auto status:', error)
           })
-      }, 1000)
+      }, 2000)
 
       return () => clearTimeout(timer)
     }

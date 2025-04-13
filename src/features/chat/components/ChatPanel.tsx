@@ -18,6 +18,7 @@ import { FaTimes, FaExpandAlt, FaCompress } from 'react-icons/fa'
 import { ChatMessage } from '@/features/chat/types'
 import { TypingIndicator } from '@/features/chat/components/TypingIndicator'
 import ReactMarkdown from 'react-markdown'
+import { MessageRole } from '@/features/ai/types'
 
 interface ChatPanelProps {
   isOpen: boolean
@@ -42,6 +43,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 }) => {
   const userBgColor = useColorModeValue('blue.100', 'blue.900')
   const aiBgColor = useColorModeValue('gray.200', 'gray.700')
+  const systemEventBgColor = useColorModeValue('gray.100', 'gray.700')
+  const systemEventTextColor = useColorModeValue('gray.500', 'gray.400')
 
   const [inputValue, setInputValue] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -79,25 +82,43 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     return messages.map((message, index) => (
       <Box
         key={`${message.timestamp.toISOString()}-${index}`}
-        alignSelf={message.role === 'user' ? 'flex-end' : 'flex-start'}
-        bg={message.role === 'user' ? userBgColor : aiBgColor}
-        py={2}
-        px={3}
-        borderRadius='lg'
-        maxWidth='70%'
-        boxShadow='sm'
+        alignSelf={
+          message.role === MessageRole.EVENT
+            ? 'center'
+            : message.role === MessageRole.USER
+              ? 'flex-end'
+              : 'flex-start'
+        }
+        bg={
+          message.role === MessageRole.EVENT
+            ? systemEventBgColor
+            : message.role === MessageRole.USER
+              ? userBgColor
+              : aiBgColor
+        }
+        width={message.role === MessageRole.EVENT ? '100%' : 'auto'}
+        maxWidth={message.role === MessageRole.EVENT ? '100%' : '80%'}
+        p={message.role === MessageRole.EVENT ? 2 : 3}
+        borderRadius={message.role === MessageRole.EVENT ? 0 : '8px'}
+        mb={2}
       >
-        <ReactMarkdown
-          components={{
-            p: (props) => <Text mb={2} {...props} />,
-            code: (props) => <Code p={1} {...props} />,
-            ul: (props) => <UnorderedList pl={4} mb={2} {...props} />,
-            ol: (props) => <OrderedList pl={4} mb={2} {...props} />,
-            li: (props) => <ListItem {...props} />,
-          }}
-        >
-          {message.content}
-        </ReactMarkdown>
+        {message.role === MessageRole.EVENT ? (
+          <Text fontSize='xs' color={systemEventTextColor} textAlign='center'>
+            {message.content}
+          </Text>
+        ) : (
+          <ReactMarkdown
+            components={{
+              p: (props) => <Text mb={2} {...props} />,
+              code: (props) => <Code p={1} {...props} />,
+              ul: (props) => <UnorderedList pl={4} mb={2} {...props} />,
+              ol: (props) => <OrderedList pl={4} mb={2} {...props} />,
+              li: (props) => <ListItem {...props} />,
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
+        )}
       </Box>
     ))
   }, [messages, userBgColor, aiBgColor])

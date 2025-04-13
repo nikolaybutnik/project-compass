@@ -9,10 +9,8 @@ import { useAI } from '@/features/ai/context/aiContext'
 
 export const ChatContainer: React.FC = () => {
   const newMessageRef = useRef(false)
-  const chatStateRef = useRef({
-    isOpen: false,
-    lastProcessedMessageCount: 0,
-  })
+  const lastSeenMessageCount = useRef(0)
+  const justOpenedRef = useRef(false)
 
   const location = useLocation()
   const { sendMessage, messages: aiMessages, isLoading: aiLoading } = useAI()
@@ -31,50 +29,74 @@ export const ChatContainer: React.FC = () => {
   )
 
   useEffect(() => {
+    // If chat is open and we get new messages, mark them as seen
+    if (isOpen && messages.length > 0) {
+      lastSeenMessageCount.current = messages.length
+    }
+  }, [messages, isOpen])
+
+  useEffect(() => {
     if (aiMessages.length) {
       const formattedMessages = aiMessages
-        .filter(
-          (msg) =>
-            msg.role === MessageRole.USER || msg.role === MessageRole.ASSISTANT
-        )
-        .map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-          timestamp: new Date(),
-        }))
+        .filter((msg) => msg.role !== MessageRole.SYSTEM)
+        .map((msg) => {
+          if (
+            msg.role !== MessageRole.EVENT ||
+            !msg.content.includes('===DISPLAY_TEXT===')
+          ) {
+            return {
+              role: msg.role,
+              content: msg.content,
+              timestamp: new Date(),
+            }
+          }
+
+          const parts = msg.content.split('===DISPLAY_TEXT===')
+          const displayText = parts.length > 1 ? parts[1].trim() : msg.content
+
+          return {
+            role: msg.role,
+            content: displayText,
+            timestamp: new Date(),
+          }
+        })
 
       setMessages(formattedMessages)
-
-      const currentChatState = chatStateRef.current
 
       // If chat is closed and there's a new AI message, show unread indicator
       const lastMessage = aiMessages[aiMessages.length - 1]
       if (
-        !currentChatState.isOpen &&
+        !isOpen &&
         lastMessage?.role === MessageRole.ASSISTANT &&
-        formattedMessages.length > currentChatState.lastProcessedMessageCount
+        formattedMessages.length > lastSeenMessageCount.current
       ) {
         setHasUnreadMessages(true)
       }
     }
-  }, [aiMessages])
-
-  useEffect(() => {
-    chatStateRef.current.isOpen = isOpen
-  }, [isOpen])
+  }, [aiMessages, isOpen])
 
   useEffect(() => {
     setIsTyping(aiLoading)
   }, [aiLoading])
+
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        justOpenedRef.current = false
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+    return
+  }, [isOpen])
 
   const toggleChat = () => {
     const opening = !isOpen
     setIsOpen(opening)
 
     if (opening) {
-      newMessageRef.current = false
+      justOpenedRef.current = true
       setHasUnreadMessages(false)
-      chatStateRef.current.lastProcessedMessageCount = messages.length
+      lastSeenMessageCount.current = messages.length
     }
   }
 
@@ -107,7 +129,7 @@ export const ChatContainer: React.FC = () => {
         messages={messages}
         onSendMessage={handleSendMessage}
         isTyping={isTyping}
-        instantScroll={!newMessageRef.current}
+        instantScroll={justOpenedRef.current}
       />
     </>
   )

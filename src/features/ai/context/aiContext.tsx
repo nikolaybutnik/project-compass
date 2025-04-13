@@ -152,9 +152,6 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
 
       try {
         const isAutoStatusUpdate = message.includes('[AUTO_STATUS_UPDATE]')
-        const isFirstUserMessage = !messages.some(
-          (msg) => msg.role === MessageRole.USER
-        )
 
         if (!isAutoStatusUpdate) {
           const displayMessage = {
@@ -170,7 +167,6 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
           messages,
           pendingContextUpdates
         )
-
         const response = await getChatResponse(
           apiMessages,
           projectContext?.id,
@@ -191,7 +187,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLoading(false)
       }
     },
-    [messages, projectContext, basicSystemPrompt, pendingContextUpdates]
+    [messages, projectContext, pendingContextUpdates]
   )
 
   // Clear the message history and reset to the initial system prompt
@@ -211,14 +207,21 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (isNewProject) {
         if (!isFirstLoad) {
+          setPendingContextUpdates([])
+
           setMessages((prev) => [
-            prev[0], // Keep existing system prompt
+            ...prev, // Keep existing conversation
             {
               role: MessageRole.EVENT,
-              content: `Switched to project: ${project.title || project.id}`,
+              content: `[SYSTEM_PROJECT_SWITCH]
+              ===AI_INSTRUCTIONS===
+              The user has switched from project "${projectContext?.title || 'None'}" to project "${project.title}". 
+              Maintain conversation continuity but be aware that context has changed to a new project.
+              Aknowledge the change in your status report.
+              ===DISPLAY_TEXT===
+              Switched to project: ${project.title}`,
             },
           ])
-          invalidateContext({ type: ContextUpdateTrigger.PROJECT_CHANGED })
         } else {
           setMessages([
             {
@@ -233,7 +236,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
 
       setProjectContext(project)
     },
-    [projectContext, basicSystemPrompt]
+    [projectContext, basicSystemPrompt, invalidateContext]
   )
 
   // Memoize the context value to prevent unnecessary re-renders
