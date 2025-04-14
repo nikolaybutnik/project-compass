@@ -103,17 +103,25 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         mb={2}
       >
         {message.role === MessageRole.EVENT ? (
-          <Text fontSize='xs' color={systemEventTextColor} textAlign='center'>
+          <Text
+            fontSize={message.role === MessageRole.EVENT ? 'xs' : 'sm'}
+            color={systemEventTextColor}
+            textAlign='center'
+          >
             {message.content}
           </Text>
         ) : (
           <ReactMarkdown
             components={{
-              p: (props) => <Text mb={2} {...props} />,
-              code: (props) => <Code p={1} {...props} />,
-              ul: (props) => <UnorderedList pl={4} mb={2} {...props} />,
-              ol: (props) => <OrderedList pl={4} mb={2} {...props} />,
-              li: (props) => <ListItem {...props} />,
+              p: (props) => <Text fontSize='sm' mb={2} {...props} />,
+              code: (props) => <Code fontSize='sm' p={1} {...props} />,
+              ul: (props) => (
+                <UnorderedList fontSize='sm' pl={4} mb={2} {...props} />
+              ),
+              ol: (props) => (
+                <OrderedList fontSize='sm' pl={4} mb={2} {...props} />
+              ),
+              li: (props) => <ListItem fontSize='sm' {...props} />,
             }}
           >
             {message.content}
