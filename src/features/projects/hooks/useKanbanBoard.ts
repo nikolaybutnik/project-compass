@@ -36,6 +36,10 @@ export function useKanbanBoard(project: Project | undefined) {
   const [isTaskDrawerOpen, setIsTaskDrawerOpen] = useState(false)
   const [activeColumnId, setActiveColumnId] = useState<string | null>(null)
   const [localColumns, setLocalColumns] = useState<KanbanColumn[]>([])
+  const [previewTask, setPreviewTask] = useState<{
+    task: KanbanTask
+    targetColumnId: string
+  } | null>(null)
 
   const {
     state: dragState,
@@ -75,40 +79,32 @@ export function useKanbanBoard(project: Project | undefined) {
     )
   }, [project?.kanban.columns, isUpdating])
 
-  const removePreviewTasks = useCallback(
-    (columns: KanbanColumn[]): KanbanColumn[] =>
-      columns.map((col) => ({
-        ...col,
-        tasks: col.tasks.filter(
-          (task) => !task?.id?.toString()?.startsWith('preview-')
-        ),
-      })),
-    []
-  )
-
-  // Updates UI with task previews during drag operations for immediate visual feedback
-  // Avoid reliance on localColumns to avoid unnecessary re-renders
   useEffect(() => {
     if (!localColumns.length) return
 
-    setLocalColumns((currentColumns) => {
-      const cleanColumns = removePreviewTasks(currentColumns)
+    if (dragState.preview) {
+      setPreviewTask({
+        task: dragState.preview.task,
+        targetColumnId: dragState.preview.targetColumnId,
+      })
+    } else {
+      setPreviewTask(null)
+    }
+  }, [dragState.preview, localColumns])
 
-      if (dragState.preview) {
-        return cleanColumns.map((col) => {
-          if (col.id === dragState.preview?.targetColumnId) {
-            return {
-              ...col,
-              tasks: [...col.tasks, dragState.preview.task],
-            }
-          }
-          return col
-        })
-      } else {
-        return cleanColumns
+  const columnsWithPreview = useMemo(() => {
+    if (!previewTask) return localColumns
+
+    return localColumns.map((col) => {
+      if (col.id === previewTask.targetColumnId) {
+        return {
+          ...col,
+          tasks: [...col.tasks, previewTask.task],
+        }
       }
+      return col
     })
-  }, [dragState.preview, removePreviewTasks])
+  }, [localColumns, previewTask])
 
   const handleAddTask = useCallback(async (columnId: string): Promise<void> => {
     setActiveColumnId(columnId)
@@ -149,8 +145,7 @@ export function useKanbanBoard(project: Project | undefined) {
     (sourceColumnId: string, targetColumnId: string, taskId: string) => {
       setIsUpdating(true)
 
-      const cleanCols = removePreviewTasks(localColumns)
-      const updatedColumns = cleanCols.map((col) => {
+      const updatedColumns = localColumns.map((col) => {
         if (col?.id === sourceColumnId) {
           return {
             ...col,
@@ -171,6 +166,7 @@ export function useKanbanBoard(project: Project | undefined) {
         return col
       })
 
+      setPreviewTask(null)
       setLocalColumns(updatedColumns)
 
       moveTaskMutation.mutate(
@@ -187,19 +183,12 @@ export function useKanbanBoard(project: Project | undefined) {
         }
       )
     },
-    [
-      project?.id,
-      localColumns,
-      dragState.activeTask,
-      removePreviewTasks,
-      moveTaskMutation,
-    ]
+    [project?.id, localColumns, dragState.activeTask, moveTaskMutation]
   )
 
   const handleWithinColumnReorder = useCallback(
     (columnId: string, taskId: string, newIndex: number) => {
-      const cleanCols = removePreviewTasks(localColumns)
-      const column = cleanCols.find((col) => col.id === columnId)
+      const column = localColumns.find((col) => col.id === columnId)
 
       if (!column) return
 
@@ -211,7 +200,7 @@ export function useKanbanBoard(project: Project | undefined) {
 
       setIsUpdating(true)
 
-      const updatedColumns = cleanCols.map((col) => {
+      const updatedColumns = localColumns.map((col) => {
         if (col?.id === columnId) {
           const currentTasks = [...col.tasks]
           const startingTaskIndex = currentTasks.findIndex(
@@ -248,7 +237,7 @@ export function useKanbanBoard(project: Project | undefined) {
         }
       )
     },
-    [project?.id, localColumns, removePreviewTasks, reorderTasksMutation]
+    [project?.id, localColumns, reorderTasksMutation]
   )
 
   const handleDragEnd = useCallback(
@@ -269,7 +258,7 @@ export function useKanbanBoard(project: Project | undefined) {
   return useMemo(
     () => ({
       // States
-      columns: localColumns || [],
+      columns: columnsWithPreview || [],
       isTaskDrawerOpen,
       activeColumnId,
       dragState,
@@ -291,7 +280,7 @@ export function useKanbanBoard(project: Project | undefined) {
       closeTaskDrawer,
     }),
     [
-      localColumns,
+      columnsWithPreview,
       isTaskDrawerOpen,
       activeColumnId,
       dragState,

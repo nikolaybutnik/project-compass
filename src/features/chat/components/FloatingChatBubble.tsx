@@ -39,7 +39,7 @@ export const FloatingChatBubble = memo(
     const sensors = useSensors(
       useSensor(PointerSensor, {
         activationConstraint: {
-          delay: 75,
+          delay: 100,
           tolerance: 5,
         },
       })

@@ -101,15 +101,15 @@ const identifyDragElements = (
   active: Active,
   over: Over | null,
   columns: KanbanColumn[],
-  draggedTask: KanbanTask
+  dragState: DragState
 ): {
   activeTaskId: string
   sourceColumnId: string
   targetColumnId: string
   draggedOverTaskIndex: number
 } => {
-  const activeTaskId = active?.id?.toString()
-  const sourceColumnId = draggedTask.columnId
+  const activeTaskId = active.id?.toString()
+  const sourceColumnId = dragState.activeTask?.columnId || ''
 
   let targetColumnId: string = ''
   let draggedOverTaskIndex: number = -1
@@ -127,6 +127,8 @@ const identifyDragElements = (
 
   if (draggedOverItemId?.startsWith('column-')) {
     targetColumnId = draggedOverItemId?.replace('column-', '')
+  } else if (draggedOverItemId?.startsWith('preview-')) {
+    targetColumnId = dragState.preview?.targetColumnId || ''
   } else {
     const targetColumn = columns.find((column) =>
       column.tasks.some((task) => task.id === draggedOverItemId)
@@ -211,7 +213,7 @@ export const useDragAndDrop = (columns: KanbanColumn[] = []) => {
       sourceColumnId,
       targetColumnId,
       draggedOverTaskIndex,
-    } = identifyDragElements(active, over, columns, dragState.activeTask)
+    } = identifyDragElements(active, over, columns, dragState)
 
     if (!sourceColumnId || !targetColumnId) return
 
@@ -239,17 +241,21 @@ export const useDragAndDrop = (columns: KanbanColumn[] = []) => {
       active,
       over,
       columns,
-      dragState.activeTask
+      dragState
     )
 
-    if (dragState.preview?.targetColumnId === targetColumnId) return
-
     if (sourceColumnId === targetColumnId) {
-      throttledDispatch({ type: DragActionType.CLEAR_PREVIEWS })
+      if (dragState.preview) {
+        throttledDispatch({ type: DragActionType.CLEAR_PREVIEWS })
+      }
       return
     }
 
-    if (dragState.activeTask) {
+    if (dragState.preview?.targetColumnId === targetColumnId) {
+      return
+    }
+
+    if (dragState.activeTask && targetColumnId) {
       const previewTask = {
         ...dragState.activeTask,
         id: `preview-${dragState.activeTask.id}`,
