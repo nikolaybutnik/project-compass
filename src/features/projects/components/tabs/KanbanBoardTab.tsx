@@ -1,5 +1,4 @@
-import React from 'react'
-import { memo } from 'react'
+import React, { memo } from 'react'
 import {
   Box,
   Heading,
@@ -11,7 +10,6 @@ import {
 import {
   DndContext,
   DragOverlay,
-  rectIntersection,
   defaultDropAnimationSideEffects,
   MeasuringStrategy,
 } from '@dnd-kit/core'
@@ -21,6 +19,7 @@ import { KanbanCard } from '@/features/projects/components/kanban/KanbanCard'
 import { KanbanColumn } from '@/features/projects/components/kanban/KanbanColumn'
 import { useKanbanBoard } from '@/features/projects/hooks/useKanbanBoard'
 import { TaskDrawer } from '@/features/projects/components/kanban/TaskDrawer'
+import { chatAwareCollision } from '@/features/projects/utils/chatAwareCollision'
 
 interface KanbanBoardTabProps {
   project: Project | undefined
@@ -120,7 +119,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = memo(
       <Box h='calc(100vh - 270px)' overflow='hidden'>
         <DndContext
           sensors={sensors}
-          collisionDetection={rectIntersection}
+          collisionDetection={chatAwareCollision}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
@@ -178,7 +177,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = memo(
           />
 
           <DragOverlay
-            zIndex={999}
+            zIndex={9999}
             dropAnimation={{
               duration: 250,
               easing: 'cubic-bezier(0.2, 0, 0.2, 1)',

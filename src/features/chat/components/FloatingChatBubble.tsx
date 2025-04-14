@@ -12,7 +12,13 @@ export const FloatingChatBubble: React.FC<FloatingChatBubbleProps> = ({
   hasUnreadMessages = false,
 }) => {
   return (
-    <Box position='fixed' right='20px' bottom='20px' zIndex={999}>
+    <Box
+      className='chat-bubble'
+      position='fixed'
+      right='20px'
+      bottom='20px'
+      zIndex={999}
+    >
       <IconButton
         aria-label='Chat with Vector'
         icon={<FaComment />}

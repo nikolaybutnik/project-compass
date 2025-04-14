@@ -135,6 +135,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
   return (
     <Box
+      className='chat-panel'
       position='fixed'
       right='20px'
       bottom='80px'
