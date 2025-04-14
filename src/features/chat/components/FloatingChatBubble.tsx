@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   DndContext,
   DragEndEvent,
@@ -14,13 +14,22 @@ export interface FloatingChatBubbleProps {
   hasUnreadMessages?: boolean
 }
 
+const extraMargins = {
+  top: 80,
+  right: 20,
+  bottom: 20,
+  left: 20,
+}
+
 export const FloatingChatBubble: React.FC<FloatingChatBubbleProps> = (
   props
 ) => {
   const [bubblePosition, setBubblePosition] = useState({
-    x: 20,
-    y: 20,
+    x: 20, // 20px from right
+    y: 20, // 20px from bottom
   })
+
+  const bubbleRef = useRef<HTMLDivElement | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -31,18 +40,30 @@ export const FloatingChatBubble: React.FC<FloatingChatBubbleProps> = (
     })
   )
 
+  useEffect(() => {
+    const updatePositionOnResize = () => {
+      if (bubbleRef.current) {
+        const rect = bubbleRef.current.getBoundingClientRect()
+        const maxX = window.innerWidth - rect.width - extraMargins.right
+        const maxY = window.innerHeight - rect.height - extraMargins.bottom
+
+        setBubblePosition((prev) => ({
+          x: Math.min(prev.x, maxX),
+          y: Math.min(prev.y, maxY),
+        }))
+      }
+    }
+
+    updatePositionOnResize()
+    window.addEventListener('resize', updatePositionOnResize)
+    return () => window.removeEventListener('resize', updatePositionOnResize)
+  }, [])
+
   const withMargin: Modifier = ({
     transform,
     draggingNodeRect,
     containerNodeRect,
   }) => {
-    const extraMargins = {
-      top: 80,
-      right: 20,
-      bottom: 20,
-      left: 20,
-    }
-
     // If no rect is available, return the original transform to avoid breaking
     if (!draggingNodeRect || !containerNodeRect) {
       return transform
@@ -72,10 +93,19 @@ export const FloatingChatBubble: React.FC<FloatingChatBubbleProps> = (
 
   const onDragEnd = (event: DragEndEvent) => {
     const { delta } = event
-    setBubblePosition((prev) => ({
-      x: prev.x - delta.x,
-      y: prev.y - delta.y,
-    }))
+
+    if (bubbleRef.current) {
+      const rect = bubbleRef.current.getBoundingClientRect()
+      const newX = bubblePosition.x - delta.x
+      const newY = bubblePosition.y - delta.y
+      const maxX = window.innerWidth - rect.width - extraMargins.right
+      const maxY = window.innerHeight - rect.height - extraMargins.bottom
+
+      setBubblePosition({
+        x: Math.max(20, Math.min(newX, maxX)),
+        y: Math.max(20, Math.min(newY, maxY)),
+      })
+    }
   }
 
   return (
@@ -84,7 +114,11 @@ export const FloatingChatBubble: React.FC<FloatingChatBubbleProps> = (
       onDragEnd={onDragEnd}
       modifiers={[withMargin]}
     >
-      <DraggableChatBubble {...props} position={bubblePosition} />
+      <DraggableChatBubble
+        {...props}
+        position={bubblePosition}
+        ref={bubbleRef}
+      />
     </DndContext>
   )
 }

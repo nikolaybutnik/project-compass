@@ -1,20 +1,34 @@
-import React from 'react'
+import React, { forwardRef } from 'react'
 import { Badge, Box, IconButton } from '@chakra-ui/react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { FloatingChatBubbleProps } from './FloatingChatBubble'
 import { FaComment } from 'react-icons/fa'
 
-export const DraggableChatBubble: React.FC<
-  FloatingChatBubbleProps & { position: { x: number; y: number } }
-> = ({ onClick, hasUnreadMessages = false, position }) => {
+export interface DraggableChatBubbleProps extends FloatingChatBubbleProps {
+  position: { x: number; y: number }
+}
+
+export const DraggableChatBubble = forwardRef<
+  HTMLDivElement,
+  DraggableChatBubbleProps
+>(({ onClick, hasUnreadMessages = false, position }, ref) => {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: 'draggable-bubble',
   })
 
   return (
     <Box
-      ref={setNodeRef}
+      ref={(node) => {
+        setNodeRef(node) // Pass node to dnd-kit for drag tracking
+        if (typeof ref === 'function') {
+          // Call parent’s callback ref, if provided (currently not used)
+          ref(node)
+        } else if (ref) {
+          // Assign node to parent’s RefObject for size calculations (drag/resize)
+          ref.current = node
+        }
+      }}
       {...attributes}
       {...listeners}
       className='chat-bubble'
@@ -56,4 +70,4 @@ export const DraggableChatBubble: React.FC<
       )}
     </Box>
   )
-}
+})
