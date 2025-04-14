@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   DndContext,
   DragEndEvent,
@@ -9,9 +9,14 @@ import {
 } from '@dnd-kit/core'
 import { DraggableChatBubble } from './DraggableChatBubble'
 
-export interface FloatingChatBubbleProps {
+interface FloatingChatBubbleProps {
   onClick: () => void
   hasUnreadMessages?: boolean
+  bubbleRef: React.RefObject<HTMLDivElement>
+  bubblePosition: { x: number; y: number }
+  setBubblePosition: React.Dispatch<
+    React.SetStateAction<{ x: number; y: number }>
+  >
 }
 
 const extraMargins = {
@@ -21,20 +26,18 @@ const extraMargins = {
   left: 20,
 }
 
-export const FloatingChatBubble: React.FC<FloatingChatBubbleProps> = (
-  props
-) => {
-  const [bubblePosition, setBubblePosition] = useState({
-    x: 20, // 20px from right
-    y: 20, // 20px from bottom
-  })
-
-  const bubbleRef = useRef<HTMLDivElement | null>(null)
-
+export const FloatingChatBubble: React.FC<FloatingChatBubbleProps> = ({
+  onClick,
+  hasUnreadMessages,
+  bubbleRef,
+  bubblePosition,
+  setBubblePosition,
+}) => {
+  const [isDropped, setIsDropped] = useState(false)
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        delay: 100,
+        delay: 75,
         tolerance: 5,
       },
     })
@@ -57,7 +60,7 @@ export const FloatingChatBubble: React.FC<FloatingChatBubbleProps> = (
     updatePositionOnResize()
     window.addEventListener('resize', updatePositionOnResize)
     return () => window.removeEventListener('resize', updatePositionOnResize)
-  }, [])
+  }, [bubbleRef, setBubblePosition])
 
   const withMargin: Modifier = ({
     transform,
@@ -105,6 +108,9 @@ export const FloatingChatBubble: React.FC<FloatingChatBubbleProps> = (
         x: Math.max(20, Math.min(newX, maxX)),
         y: Math.max(20, Math.min(newY, maxY)),
       })
+
+      setIsDropped(true)
+      setTimeout(() => setIsDropped(false), 300)
     }
   }
 
@@ -115,9 +121,11 @@ export const FloatingChatBubble: React.FC<FloatingChatBubbleProps> = (
       modifiers={[withMargin]}
     >
       <DraggableChatBubble
-        {...props}
-        position={bubblePosition}
+        onClick={onClick}
+        hasUnreadMessages={hasUnreadMessages}
+        bubblePosition={bubblePosition}
         ref={bubbleRef}
+        isDropped={isDropped}
       />
     </DndContext>
   )

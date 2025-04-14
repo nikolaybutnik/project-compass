@@ -29,6 +29,8 @@ interface ChatPanelProps {
   onSendMessage: (message: string) => void
   isTyping: boolean
   instantScroll?: boolean
+  bubblePosition: { x: number; y: number }
+  bubbleRef: React.RefObject<HTMLDivElement>
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({
@@ -40,6 +42,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   onSendMessage,
   isTyping,
   instantScroll,
+  bubblePosition,
+  bubbleRef,
 }) => {
   const userBgColor = useColorModeValue('blue.100', 'blue.900')
   const aiBgColor = useColorModeValue('gray.200', 'gray.700')
@@ -77,6 +81,49 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       handleSend()
     }
   }
+
+  const panelWidth = isExpanded ? 450 : 320
+  const panelHeight = isExpanded ? 550 : 400
+  const extraMargins = { top: 80, right: 20, bottom: 20, left: 20 }
+  const gap = 10
+
+  const calculatePosition = () => {
+    if (!bubbleRef.current) {
+      return { left: 'auto', top: 'auto', right: '20px', bottom: '80px' } // Fallback
+    }
+
+    const bubbleRect = bubbleRef.current.getBoundingClientRect()
+
+    // Panel’s right aligns with bubble’s right
+    let panelRight = bubblePosition.x // bubblePosition.x is the bubble’s right distance
+    let panelBottom = bubblePosition.y + bubbleRect.height + gap // Prefer above, clear bubble’s top + gap
+
+    // Check if panel fits above (top margin 80px)
+    const panelTop = window.innerHeight - panelBottom - panelHeight
+    if (panelTop < extraMargins.top) {
+      // Flip to below
+      panelBottom = bubblePosition.y - panelHeight - gap // Panel’s top at bubble’s bottom + gap
+    }
+
+    // Clamp to viewport bounds
+    const maxRight = window.innerWidth - panelWidth - extraMargins.right
+    const maxBottom = window.innerHeight - panelHeight - extraMargins.bottom
+
+    panelRight = Math.max(extraMargins.right, Math.min(panelRight, maxRight))
+    panelBottom = Math.max(
+      extraMargins.bottom,
+      Math.min(panelBottom, maxBottom)
+    )
+
+    return {
+      left: 'auto',
+      top: 'auto',
+      right: `${panelRight}px`,
+      bottom: `${panelBottom}px`,
+    }
+  }
+
+  const panelPosition = calculatePosition()
 
   const memoizedMessages = useMemo(() => {
     return messages.map((message, index) => (
@@ -137,10 +184,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     <Box
       className='chat-panel'
       position='fixed'
-      right='20px'
-      bottom='80px'
-      width={isExpanded ? '450px' : '320px'}
-      height={isExpanded ? '550px' : '400px'}
+      left={panelPosition.left}
+      top={panelPosition.top}
+      right={panelPosition.right}
+      bottom={panelPosition.bottom}
+      width={`${panelWidth}px`}
+      height={`${panelHeight}px`}
       bg='white'
       borderRadius='md'
       boxShadow='xl'

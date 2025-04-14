@@ -11,6 +11,7 @@ export const ChatContainer: React.FC = () => {
   const newMessageRef = useRef(false)
   const lastSeenMessageCount = useRef(0)
   const justOpenedRef = useRef(false)
+  const bubbleRef = useRef<HTMLDivElement | null>(null)
 
   const location = useLocation()
   const { sendMessage, messages: aiMessages, isLoading: aiLoading } = useAI()
@@ -20,6 +21,10 @@ export const ChatContainer: React.FC = () => {
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isTyping, setIsTyping] = useState(false)
+  const [bubblePosition, setBubblePosition] = useState({
+    x: 20, // 20px from right
+    y: 20, // 20px from bottom
+  })
 
   const hiddenRoutes = [ROUTES.HOME, ROUTES.LOGIN]
 
@@ -120,6 +125,9 @@ export const ChatContainer: React.FC = () => {
       <FloatingChatBubble
         onClick={toggleChat}
         hasUnreadMessages={hasUnreadMessages}
+        bubbleRef={bubbleRef}
+        bubblePosition={bubblePosition}
+        setBubblePosition={setBubblePosition}
       />
       <ChatPanel
         isOpen={isOpen}
@@ -130,6 +138,8 @@ export const ChatContainer: React.FC = () => {
         onSendMessage={handleSendMessage}
         isTyping={isTyping}
         instantScroll={justOpenedRef.current}
+        bubblePosition={bubblePosition}
+        bubbleRef={bubbleRef}
       />
     </>
   )

@@ -2,20 +2,24 @@ import React, { forwardRef } from 'react'
 import { Badge, Box, IconButton } from '@chakra-ui/react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { FloatingChatBubbleProps } from './FloatingChatBubble'
 import { FaComment } from 'react-icons/fa'
 
-export interface DraggableChatBubbleProps extends FloatingChatBubbleProps {
-  position: { x: number; y: number }
+interface DraggableChatBubbleProps {
+  onClick: () => void
+  hasUnreadMessages?: boolean
+  ref: React.RefObject<HTMLDivElement>
+  bubblePosition: { x: number; y: number }
+  isDropped: boolean
 }
 
 export const DraggableChatBubble = forwardRef<
   HTMLDivElement,
   DraggableChatBubbleProps
->(({ onClick, hasUnreadMessages = false, position }, ref) => {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id: 'draggable-bubble',
-  })
+>(({ onClick, hasUnreadMessages = false, bubblePosition, isDropped }, ref) => {
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: 'draggable-bubble',
+    })
 
   return (
     <Box
@@ -33,11 +37,19 @@ export const DraggableChatBubble = forwardRef<
       {...listeners}
       className='chat-bubble'
       position='fixed'
-      right={`${position.x}px`}
-      bottom={`${position.y}px`}
+      right={`${bubblePosition.x}px`}
+      bottom={`${bubblePosition.y}px`}
       zIndex={999}
       style={{
         transform: transform ? CSS.Transform.toString(transform) : undefined,
+      }}
+      sx={{
+        animation: isDropped ? 'bubbleDrop 0.3s ease-out' : 'none',
+        '@keyframes bubbleDrop': {
+          '0%': { transform: 'scale(1.1)' },
+          '50%': { transform: 'scale(0.9)' },
+          '100%': { transform: 'scale(1)' },
+        },
       }}
     >
       <IconButton
@@ -47,8 +59,17 @@ export const DraggableChatBubble = forwardRef<
         borderRadius='full'
         colorScheme='blue'
         size='lg'
-        boxShadow='lg'
-        _hover={{ transform: 'scale(1.05)' }}
+        boxShadow={
+          isDragging
+            ? '0 0 15px -2px rgba(0, 0, 0, 0.25), 6px 6px 10px -5px rgba(0, 0, 0, 0.2), -6px 6px 10px -5px rgba(0, 0, 0, 0.2), 0 -6px 10px -5px rgba(0, 0, 0, 0.2), 6px -6px 10px -5px rgba(0, 0, 0, 0.2), -6px -6px 10px -5px rgba(0, 0, 0, 0.2)'
+            : 'lg'
+        }
+        transform={isDragging ? 'translateY(-3px)' : 'none'}
+        _hover={{ transform: 'scale(1.1)' }}
+        _active={{
+          bg: 'blue.500',
+          opacity: 0.9,
+        }}
         transition='all 0.2s'
       />
 
