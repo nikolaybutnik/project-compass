@@ -1,4 +1,4 @@
-import { useReducer, useRef } from 'react'
+import { useEffect, useReducer, useRef } from 'react'
 import { KanbanTask, KanbanColumn } from '@/shared/types'
 import {
   Active,
@@ -97,59 +97,6 @@ const dragReducer = (state: DragState, action: DragAction): DragState => {
   }
 }
 
-const identifyDragElements = (
-  active: Active,
-  over: Over | null,
-  columns: KanbanColumn[],
-  dragState: DragState
-): {
-  activeTaskId: string
-  sourceColumnId: string
-  targetColumnId: string
-  draggedOverTaskIndex: number
-} => {
-  const activeTaskId = active.id?.toString()
-  const sourceColumnId = dragState.activeTask?.columnId || ''
-
-  let targetColumnId: string = ''
-  let draggedOverTaskIndex: number = -1
-
-  if (!over) {
-    return {
-      activeTaskId,
-      sourceColumnId,
-      targetColumnId,
-      draggedOverTaskIndex,
-    }
-  }
-
-  const draggedOverItemId = over?.id?.toString()
-
-  if (draggedOverItemId?.startsWith('column-')) {
-    targetColumnId = draggedOverItemId?.replace('column-', '')
-  } else if (draggedOverItemId?.startsWith('preview-')) {
-    targetColumnId = dragState.preview?.targetColumnId || ''
-  } else {
-    const targetColumn = columns.find((column) =>
-      column.tasks.some((task) => task.id === draggedOverItemId)
-    )
-
-    if (targetColumn) {
-      targetColumnId = targetColumn.id
-      draggedOverTaskIndex = targetColumn.tasks.findIndex(
-        (task) => task.id === draggedOverItemId
-      )
-    }
-  }
-
-  return {
-    activeTaskId,
-    sourceColumnId,
-    targetColumnId,
-    draggedOverTaskIndex,
-  }
-}
-
 /**
  * useDragAndDrop - Core drag mechanics
  * SHOULD handle:
@@ -166,6 +113,17 @@ const identifyDragElements = (
 export const useDragAndDrop = (columns: KanbanColumn[] = []) => {
   const [dragState, dispatch] = useReducer(dragReducer, initialDragState)
   const draggedTaskForOverlay = useRef<KanbanTask | null>(null)
+
+  const taskToColumnMap = useRef(new Map<string, string>()).current
+
+  useEffect(() => {
+    taskToColumnMap.clear()
+    columns.forEach((column) => {
+      column.tasks.forEach((task) => {
+        taskToColumnMap.set(task.id, column.id)
+      })
+    })
+  }, [columns, taskToColumnMap])
 
   const throttledDispatch = useRef(
     throttle((action: DragAction) => {
@@ -304,6 +262,62 @@ export const useDragAndDrop = (columns: KanbanColumn[] = []) => {
       key: `${isPreview ? 'preview-' : ''}${task.id}-in-${columnId}`,
       isPreview,
       isCrossColumnSource,
+    }
+  }
+
+  const identifyDragElements = (
+    active: Active,
+    over: Over | null,
+    columns: KanbanColumn[],
+    dragState: DragState
+  ): {
+    activeTaskId: string
+    sourceColumnId: string
+    targetColumnId: string
+    draggedOverTaskIndex: number
+  } => {
+    const activeTaskId = active.id?.toString()
+    const sourceColumnId = dragState.activeTask?.columnId || ''
+
+    let targetColumnId: string = ''
+    let draggedOverTaskIndex: number = -1
+
+    if (!over) {
+      return {
+        activeTaskId,
+        sourceColumnId,
+        targetColumnId,
+        draggedOverTaskIndex,
+      }
+    }
+
+    const draggedOverItemId = over?.id?.toString()
+
+    if (draggedOverItemId?.startsWith('column-')) {
+      // Dragged directly over a column
+      targetColumnId = draggedOverItemId?.replace('column-', '')
+    } else if (draggedOverItemId?.startsWith('preview-')) {
+      // Dragged over a preview element
+      targetColumnId = dragState.preview?.targetColumnId || ''
+    } else if (draggedOverItemId) {
+      // Dragged over a task
+      targetColumnId = taskToColumnMap.get(draggedOverItemId) || ''
+
+      if (targetColumnId) {
+        const targetColumn = columns.find((col) => col.id === targetColumnId)
+        if (targetColumn) {
+          draggedOverTaskIndex = targetColumn.tasks.findIndex(
+            (task) => task.id === draggedOverItemId
+          )
+        }
+      }
+    }
+
+    return {
+      activeTaskId,
+      sourceColumnId,
+      targetColumnId,
+      draggedOverTaskIndex,
     }
   }
 
