@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FloatingChatBubble } from '@/features/chat/components/FloatingChatBubble'
 import { ChatPanel } from '@/features/chat/components/ChatPanel'
 import { useLocation } from 'react-router-dom'
@@ -28,44 +28,58 @@ export const ChatContainer: React.FC = () => {
 
   const hiddenRoutes = [ROUTES.HOME, ROUTES.LOGIN]
 
-  const hideChat = hiddenRoutes.some(
-    (path) =>
-      location.pathname === path || location.pathname.startsWith(path + '/')
+  const hideChat = useMemo(
+    () =>
+      hiddenRoutes.some(
+        (path) =>
+          location.pathname === path || location.pathname.startsWith(path + '/')
+      ),
+    [location.pathname]
   )
 
   useEffect(() => {
-    // If chat is open and we get new messages, mark them as seen
     if (isOpen && messages.length > 0) {
       lastSeenMessageCount.current = messages.length
     }
-  }, [messages, isOpen])
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        justOpenedRef.current = false
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+    return
+  }, [isOpen, messages])
 
   useEffect(() => {
-    if (aiMessages.length) {
-      const formattedMessages = aiMessages
-        .filter((msg) => msg.role !== MessageRole.SYSTEM)
-        .map((msg) => {
-          if (
-            msg.role !== MessageRole.EVENT ||
-            !msg.content.includes('===DISPLAY_TEXT===')
-          ) {
-            return {
-              role: msg.role,
-              content: msg.content,
-              timestamp: new Date(),
-            }
-          }
+    setIsTyping(aiLoading)
+  }, [aiLoading])
 
-          const parts = msg.content.split('===DISPLAY_TEXT===')
-          const displayText = parts.length > 1 ? parts[1].trim() : msg.content
-
+  const formattedMessages = useMemo(() => {
+    return aiMessages
+      .filter((msg) => msg.role !== MessageRole.SYSTEM)
+      .map((msg) => {
+        if (
+          msg.role !== MessageRole.EVENT ||
+          !msg.content.includes('===DISPLAY_TEXT===')
+        ) {
           return {
             role: msg.role,
-            content: displayText,
+            content: msg.content,
             timestamp: new Date(),
           }
-        })
+        }
+        const parts = msg.content.split('===DISPLAY_TEXT===')
+        const displayText = parts.length > 1 ? parts[1].trim() : msg.content
+        return {
+          role: msg.role,
+          content: displayText,
+          timestamp: new Date(),
+        }
+      })
+  }, [aiMessages])
 
+  useEffect(() => {
+    if (formattedMessages?.length) {
       setMessages(formattedMessages)
 
       // If chat is closed and there's a new AI message, show unread indicator
@@ -78,23 +92,9 @@ export const ChatContainer: React.FC = () => {
         setHasUnreadMessages(true)
       }
     }
-  }, [aiMessages, isOpen])
+  }, [formattedMessages, aiMessages, isOpen])
 
-  useEffect(() => {
-    setIsTyping(aiLoading)
-  }, [aiLoading])
-
-  useEffect(() => {
-    if (isOpen) {
-      const timer = setTimeout(() => {
-        justOpenedRef.current = false
-      }, 100)
-      return () => clearTimeout(timer)
-    }
-    return
-  }, [isOpen])
-
-  const toggleChat = () => {
+  const toggleChat = useCallback(() => {
     const opening = !isOpen
     setIsOpen(opening)
 
@@ -103,20 +103,23 @@ export const ChatContainer: React.FC = () => {
       setHasUnreadMessages(false)
       lastSeenMessageCount.current = messages.length
     }
-  }
+  }, [isOpen, messages.length])
 
-  const toggleExpand = () => {
+  const toggleExpand = useCallback(() => {
     setIsExpanded(!isExpanded)
-  }
+  }, [isExpanded])
 
-  const handleSendMessage = async (content: string) => {
-    try {
-      newMessageRef.current = true
-      await sendMessage(content)
-    } catch (error) {
-      console.error('Error sending message:', error)
-    }
-  }
+  const handleSendMessage = useCallback(
+    async (content: string) => {
+      try {
+        newMessageRef.current = true
+        await sendMessage(content)
+      } catch (error) {
+        console.error('Error sending message:', error)
+      }
+    },
+    [sendMessage]
+  )
 
   if (hideChat) return null
 
