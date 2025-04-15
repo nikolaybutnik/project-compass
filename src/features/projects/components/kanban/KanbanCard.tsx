@@ -72,7 +72,7 @@ export const KanbanCard = memo(
         transition: cardTransition,
         zIndex: isDragging ? 999 : 'auto',
         cursor: isDragOverlay ? 'grabbing' : 'pointer',
-        willChange: 'transform',
+        willChange: isDragging ? 'transform' : 'auto',
       }),
       [transform, cardTransition, isDragging, isDragOverlay]
     )

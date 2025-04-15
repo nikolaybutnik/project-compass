@@ -1,4 +1,4 @@
-import React, { memo } from 'react'
+import React, { memo, useMemo } from 'react'
 import {
   Box,
   Heading,
@@ -14,7 +14,11 @@ import {
   MeasuringStrategy,
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { Project, KanbanColumn as KanbanColumnType } from '@/shared/types'
+import {
+  Project,
+  KanbanColumn as KanbanColumnType,
+  KanbanTask,
+} from '@/shared/types'
 import { KanbanCard } from '@/features/projects/components/kanban/KanbanCard'
 import { KanbanColumn } from '@/features/projects/components/kanban/KanbanColumn'
 import { useKanbanBoard } from '@/features/projects/hooks/useKanbanBoard'
@@ -68,6 +72,30 @@ const MemoizedColumn = memo<MemoizedColumnProps>(
   }
 )
 
+interface MemoizedTaskListProps {
+  tasks: KanbanTask[]
+  columnId: string
+  onDelete: (columnId: string, taskId: string) => void
+}
+
+const MemoizedTaskList = memo(
+  ({ tasks, columnId, onDelete }: MemoizedTaskListProps) => {
+    return tasks.map((task) => (
+      <KanbanCard
+        key={task.id}
+        task={{ ...task, columnId }}
+        onDelete={onDelete}
+        disabled={false}
+        isPreview={false}
+        isDraggingToAnotherColumn={false}
+      />
+    ))
+  },
+  (prev, next) => {
+    return prev.tasks === next.tasks && prev.columnId === next.columnId
+  }
+)
+
 export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = memo(
   ({ project, isLoading, error }) => {
     const {
@@ -93,6 +121,13 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = memo(
       // Drawer handlers
       closeTaskDrawer,
     } = useKanbanBoard(project)
+
+    const columnTaskItems = useMemo(() => {
+      return columns.map((col) => ({
+        id: col.id,
+        taskIds: col.tasks.map((t) => t.id),
+      }))
+    }, [columns])
 
     if (isLoading) {
       return (
@@ -130,42 +165,56 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = memo(
           }}
         >
           <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} h='100%'>
-            {columns?.map((col: KanbanColumnType) => (
-              <MemoizedColumn
-                key={`column-${col?.id || Math.random()}`}
-                column={col}
-                isDragging={dragState.isDragInProgress}
-                hasPreview={dragState.preview?.targetColumnId === col.id}
-                hasSourceTask={dragState.activeTask?.columnId === col.id}
-                onAddTask={handleAddTask}
-              >
-                <SortableContext
-                  items={col?.tasks?.map((t) => t?.id) || []}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {col.tasks?.map((task) => {
-                    const taskDragInfo = getDragStateInfo(
-                      task,
-                      col.id,
-                      dragState
-                    )
+            {columns?.map((col: KanbanColumnType, index: number) => {
+              const hasPreview = dragState.preview?.targetColumnId === col.id
+              const hasSourceTask = dragState.activeTask?.columnId === col.id
+              const shouldRerender =
+                hasPreview || hasSourceTask || dragState.isDragInProgress
 
-                    return (
-                      <KanbanCard
-                        key={taskDragInfo.key}
-                        task={{ ...task, columnId: col.id }}
+              return (
+                <MemoizedColumn
+                  key={`column-${col?.id || Math.random()}`}
+                  column={col}
+                  isDragging={dragState.isDragInProgress}
+                  hasPreview={hasPreview}
+                  hasSourceTask={hasSourceTask}
+                  onAddTask={handleAddTask}
+                >
+                  <SortableContext
+                    items={columnTaskItems[index]?.taskIds || []}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {shouldRerender ? (
+                      col.tasks?.map((task) => {
+                        const taskDragInfo = getDragStateInfo(
+                          task,
+                          col.id,
+                          dragState
+                        )
+                        return (
+                          <KanbanCard
+                            key={taskDragInfo.key}
+                            task={{ ...task, columnId: col.id }}
+                            onDelete={handleDeleteTask}
+                            disabled={taskDragInfo.isPreview}
+                            isPreview={taskDragInfo.isPreview}
+                            isDraggingToAnotherColumn={
+                              taskDragInfo.isCrossColumnSource
+                            }
+                          />
+                        )
+                      })
+                    ) : (
+                      <MemoizedTaskList
+                        tasks={col.tasks}
+                        columnId={col.id}
                         onDelete={handleDeleteTask}
-                        disabled={taskDragInfo.isPreview}
-                        isPreview={taskDragInfo.isPreview}
-                        isDraggingToAnotherColumn={
-                          taskDragInfo.isCrossColumnSource
-                        }
                       />
-                    )
-                  })}
-                </SortableContext>
-              </MemoizedColumn>
-            ))}
+                    )}
+                  </SortableContext>
+                </MemoizedColumn>
+              )
+            })}
           </SimpleGrid>
 
           <TaskDrawer

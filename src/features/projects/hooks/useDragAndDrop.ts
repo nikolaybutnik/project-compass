@@ -115,20 +115,23 @@ export const useDragAndDrop = (columns: KanbanColumn[] = []) => {
   const draggedTaskForOverlay = useRef<KanbanTask | null>(null)
 
   const taskToColumnMap = useRef(new Map<string, string>()).current
+  const taskIndexMap = useRef(new Map<string, number>()).current
 
   useEffect(() => {
     taskToColumnMap.clear()
+    taskIndexMap.clear()
     columns.forEach((column) => {
-      column.tasks.forEach((task) => {
+      column.tasks.forEach((task, index) => {
         taskToColumnMap.set(task.id, column.id)
+        taskIndexMap.set(task.id, index)
       })
     })
-  }, [columns, taskToColumnMap])
+  }, [columns, taskToColumnMap, taskIndexMap])
 
   const throttledDispatch = useRef(
     throttle((action: DragAction) => {
-      dispatch(action)
-    }, 50)
+      requestAnimationFrame(() => dispatch(action))
+    }, 100)
   ).current
 
   const handleDragStart = (event: DragStartEvent): void => {
@@ -171,7 +174,7 @@ export const useDragAndDrop = (columns: KanbanColumn[] = []) => {
       sourceColumnId,
       targetColumnId,
       draggedOverTaskIndex,
-    } = identifyDragElements(active, over, columns, dragState)
+    } = identifyDragElements(active, over, dragState)
 
     if (!sourceColumnId || !targetColumnId) return
 
@@ -198,7 +201,6 @@ export const useDragAndDrop = (columns: KanbanColumn[] = []) => {
     const { sourceColumnId, targetColumnId } = identifyDragElements(
       active,
       over,
-      columns,
       dragState
     )
 
@@ -268,7 +270,6 @@ export const useDragAndDrop = (columns: KanbanColumn[] = []) => {
   const identifyDragElements = (
     active: Active,
     over: Over | null,
-    columns: KanbanColumn[],
     dragState: DragState
   ): {
     activeTaskId: string
@@ -304,9 +305,7 @@ export const useDragAndDrop = (columns: KanbanColumn[] = []) => {
       targetColumnId = taskToColumnMap.get(overId) || ''
 
       if (targetColumnId) {
-        const column = columns.find((col) => col.id === targetColumnId)
-        draggedOverTaskIndex =
-          column?.tasks.findIndex((task) => task.id === overId) ?? -1
+        draggedOverTaskIndex = taskIndexMap.get(overId) ?? -1
       }
     }
 
