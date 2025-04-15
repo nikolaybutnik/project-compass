@@ -1,13 +1,31 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FloatingChatBubble } from '@/features/chat/components/FloatingChatBubble'
 import { ChatPanel } from '@/features/chat/components/ChatPanel'
 import { useLocation } from 'react-router-dom'
 import { ROUTES } from '@/shared/constants'
 import { ChatMessage } from '@/features/chat/types'
 import { MessageRole } from '@/features/ai/types'
 import { useAI } from '@/features/ai/context/aiContext'
+import {
+  DndContext,
+  useSensors,
+  useSensor,
+  PointerSensor,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import { withMargin } from '../utils/modifiers'
+import { extraMargins } from '../constants'
+import { DraggableChatBubble } from './DraggableChatBubble'
+import { debounce } from 'lodash'
 
 export const ChatContainer: React.FC = () => {
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 10,
+      },
+    })
+  )
+
   const newMessageRef = useRef(false)
   const lastSeenMessageCount = useRef(0)
   const justOpenedRef = useRef(false)
@@ -53,6 +71,28 @@ export const ChatContainer: React.FC = () => {
   useEffect(() => {
     setIsTyping(aiLoading)
   }, [aiLoading])
+
+  useEffect(() => {
+    const updatePositionOnResize = debounce(() => {
+      if (bubbleRef.current) {
+        const rect = bubbleRef.current.getBoundingClientRect()
+        const maxX = window.innerWidth - rect.width - extraMargins.right
+        const maxY = window.innerHeight - rect.height - extraMargins.bottom
+
+        setBubblePosition((prev) => ({
+          x: Math.min(prev.x, maxX),
+          y: Math.min(prev.y, maxY),
+        }))
+      }
+    }, 100)
+
+    updatePositionOnResize()
+    window.addEventListener('resize', updatePositionOnResize)
+    return () => {
+      window.removeEventListener('resize', updatePositionOnResize)
+      updatePositionOnResize.cancel()
+    }
+  }, [bubbleRef, setBubblePosition])
 
   const formattedMessages = useMemo(() => {
     return aiMessages
@@ -121,16 +161,39 @@ export const ChatContainer: React.FC = () => {
     [sendMessage]
   )
 
+  const onDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { delta } = event
+
+      if (bubbleRef.current) {
+        const rect = bubbleRef.current.getBoundingClientRect()
+        const newX = bubblePosition.x - delta.x
+        const newY = bubblePosition.y - delta.y
+        const maxX = window.innerWidth - rect.width - extraMargins.right
+        const maxY = window.innerHeight - rect.height - extraMargins.bottom
+
+        setBubblePosition({
+          x: Math.max(20, Math.min(newX, maxX)),
+          y: Math.max(20, Math.min(newY, maxY)),
+        })
+      }
+    },
+    [bubbleRef, bubblePosition, setBubblePosition]
+  )
+
   if (hideChat) return null
 
   return (
-    <>
-      <FloatingChatBubble
+    <DndContext
+      sensors={sensors}
+      onDragEnd={onDragEnd}
+      modifiers={[withMargin]}
+    >
+      <DraggableChatBubble
         onClick={toggleChat}
         hasUnreadMessages={hasUnreadMessages}
         bubbleRef={bubbleRef}
         bubblePosition={bubblePosition}
-        setBubblePosition={setBubblePosition}
       />
       <ChatPanel
         isOpen={isOpen}
@@ -144,6 +207,6 @@ export const ChatContainer: React.FC = () => {
         bubblePosition={bubblePosition}
         bubbleRef={bubbleRef}
       />
-    </>
+    </DndContext>
   )
 }
