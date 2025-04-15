@@ -291,25 +291,22 @@ export const useDragAndDrop = (columns: KanbanColumn[] = []) => {
       }
     }
 
-    const draggedOverItemId = over?.id?.toString()
+    const overId = over?.id?.toString()
 
-    if (draggedOverItemId?.startsWith('column-')) {
+    if (overId?.startsWith('column-')) {
       // Dragged directly over a column
-      targetColumnId = draggedOverItemId?.replace('column-', '')
-    } else if (draggedOverItemId?.startsWith('preview-')) {
+      targetColumnId = overId?.replace('column-', '')
+    } else if (overId?.startsWith('preview-')) {
       // Dragged over a preview element
       targetColumnId = dragState.preview?.targetColumnId || ''
-    } else if (draggedOverItemId) {
+    } else if (overId) {
       // Dragged over a task
-      targetColumnId = taskToColumnMap.get(draggedOverItemId) || ''
+      targetColumnId = taskToColumnMap.get(overId) || ''
 
       if (targetColumnId) {
-        const targetColumn = columns.find((col) => col.id === targetColumnId)
-        if (targetColumn) {
-          draggedOverTaskIndex = targetColumn.tasks.findIndex(
-            (task) => task.id === draggedOverItemId
-          )
-        }
+        const column = columns.find((col) => col.id === targetColumnId)
+        draggedOverTaskIndex =
+          column?.tasks.findIndex((task) => task.id === overId) ?? -1
       }
     }
 

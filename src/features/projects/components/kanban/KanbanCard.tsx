@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { memo } from 'react'
 import { KanbanTask } from '@/shared/types'
 import {
@@ -22,7 +22,7 @@ interface KanbanCardProps {
   isDraggingToAnotherColumn?: boolean
 }
 
-export const KanbanCard: React.FC<KanbanCardProps> = memo(
+export const KanbanCard = memo(
   ({
     task,
     onDelete,
@@ -30,7 +30,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = memo(
     disabled = false,
     isPreview = false,
     isDraggingToAnotherColumn = false,
-  }) => {
+  }: KanbanCardProps) => {
     const cardBg = useColorModeValue('white', 'gray.600')
     const badgeColorMap = {
       high: 'red',
@@ -50,33 +50,40 @@ export const KanbanCard: React.FC<KanbanCardProps> = memo(
       id: task.id,
     })
 
-    const cssClasses = [
-      isDraggingToAnotherColumn
-        ? 'cross-column-source'
-        : isPreview
-          ? 'preview-card'
-          : '',
+    const cssClasses = useMemo(
+      () =>
+        [
+          isDraggingToAnotherColumn ? 'cross-column-source' : '',
+          isPreview ? 'preview-card' : '',
+          isDragging ? 'is-dragging' : '',
+        ]
+          .filter(Boolean)
+          .join(' '),
+      [isDraggingToAnotherColumn, isPreview, isDragging]
+    )
 
-      isPreview && !isDraggingToAnotherColumn && !isDragging
-        ? 'preview-animation'
-        : '',
+    const cardTransition = isDragging
+      ? transition
+      : `${transition}, border-color 300ms, box-shadow 300ms`
 
-      isDragging ? 'is-dragging' : '',
-    ]
-      .filter(Boolean)
-      .join(' ')
+    const cardStyle = useMemo(
+      () => ({
+        transform: CSS.Transform.toString(transform),
+        transition: cardTransition,
+        zIndex: isDragging ? 999 : 'auto',
+        cursor: isDragOverlay ? 'grabbing' : 'pointer',
+        willChange: 'transform',
+      }),
+      [transform, cardTransition, isDragging, isDragOverlay]
+    )
 
-    const cardStyle = {
-      transform: CSS.Transform.toString(transform),
-      transition: `${transition}, border-color 300ms, box-shadow 300ms`,
-      zIndex: isDragging ? 999 : 'auto',
-      cursor: isDragOverlay ? 'grabbing' : 'pointer',
-    }
-
-    const handleTaskDelete = (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.stopPropagation()
-      onDelete(task.columnId, task.id)
-    }
+    const handleTaskDelete = useCallback(
+      (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation()
+        onDelete(task.columnId, task.id)
+      },
+      [onDelete, task.columnId, task.id]
+    )
 
     return (
       <Box
@@ -102,15 +109,8 @@ export const KanbanCard: React.FC<KanbanCardProps> = memo(
             borderStyle: 'dashed',
             bg: `${cardBg} !important`,
           },
-          '&.preview-animation': {
-            animation: 'fadeIn 0.2s ease-in-out',
-          },
           '&.is-dragging': {
             boxShadow: 'lg',
-          },
-          '@keyframes fadeIn': {
-            '0%': { opacity: 0, transform: 'translateY(3px)' },
-            '100%': { opacity: 1, transform: 'translateY(0)' },
           },
         }}
       >

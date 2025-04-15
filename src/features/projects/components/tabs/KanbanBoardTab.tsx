@@ -125,7 +125,7 @@ export const KanbanBoardTab: React.FC<KanbanBoardTabProps> = memo(
           onDragEnd={handleDragEnd}
           measuring={{
             droppable: {
-              strategy: MeasuringStrategy.Always,
+              strategy: MeasuringStrategy.WhileDragging,
             },
           }}
         >
