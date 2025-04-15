@@ -53,8 +53,7 @@ export function useKanbanBoard(project: Project | undefined) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        delay: 50,
-        tolerance: 5,
+        distance: 10,
       },
     }),
     useSensor(KeyboardSensor, {

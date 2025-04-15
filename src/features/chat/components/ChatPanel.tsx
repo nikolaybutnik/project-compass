@@ -26,6 +26,7 @@ import { ChatMessage } from '@/features/chat/types'
 import { TypingIndicator } from '@/features/chat/components/TypingIndicator'
 import ReactMarkdown from 'react-markdown'
 import { MessageRole } from '@/features/ai/types'
+import { extraMargins } from '../constants'
 
 interface ChatPanelProps {
   isOpen: boolean
@@ -95,7 +96,6 @@ export const ChatPanel = memo(
 
     const panelWidth = isExpanded ? 450 : 320
     const panelHeight = isExpanded ? 550 : 400
-    const extraMargins = { top: 80, right: 20, bottom: 20, left: 20 }
     const gap = 10
 
     const calculatePosition = useCallback(() => {

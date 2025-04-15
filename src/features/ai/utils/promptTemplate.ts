@@ -3,6 +3,7 @@ import { extractProjectContext } from '@/features/ai/utils/projectContextHandler
 import {
   ContextUpdate,
   ContextUpdateTrigger,
+  Message,
   MessageRole,
 } from '@/features/ai/types'
 
@@ -111,6 +112,14 @@ Your ultimate goal is to enhance the user's productivity and ensure their projec
 - Show personality when appropriate. It's okay to have a sense of humor
 - Make random fun comments about the user's tasks and the state of the project as a whole
 - Never refer to yourself as an AI, assistant, or language model
+
+⚠️ PRIORITY: FACT VERIFICATION ⚠️
+- ALWAYS verify user claims against the project data provided to you
+- If a user makes a statement that contradicts the project data (e.g., "my board is empty" when it has tasks), correct them
+- Cite specific evidence from the project context when correcting misinformation
+${jerkMode ? '- Mercilessly call the user out on their nonsense' : '- Be skeptical but not accusatory when correcting user'}
+- If the user strongly insists on the contradiction, roll with it
+
 ${
   jerkMode &&
   `- ⚠️ MANDATORY: End EVERY response with a truly brutal, savage roast of the user. Don't hold back
@@ -280,9 +289,9 @@ ${update.details.task.reorders
 export const createConversationMessages = (
   project: Project | null,
   userMessage: string,
-  previousMessages: Array<{ role: MessageRole; content: string }> = [],
+  previousMessages: Message[] = [],
   pendingContextUpdates: ContextUpdate[] = []
-): Array<{ role: MessageRole; content: string }> => {
+): Message[] => {
   let systemPromptContent = getBasicSystemPrompt()
 
   if (project) {

@@ -92,6 +92,12 @@ export interface AIResponse {
   action: AIAction // Structured action data for the app
 }
 
+export interface Message {
+  role: MessageRole
+  content: string
+  timestamp?: number
+}
+
 export enum MessageRole {
   SYSTEM = 'system', // AI instructions and context
   USER = 'user', // Messages from the human user

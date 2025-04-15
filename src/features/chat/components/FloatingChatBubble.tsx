@@ -9,6 +9,7 @@ import {
 } from '@dnd-kit/core'
 import { DraggableChatBubble } from './DraggableChatBubble'
 import { debounce } from 'lodash'
+import { extraMargins } from '../constants'
 
 interface FloatingChatBubbleProps {
   onClick: () => void
@@ -18,13 +19,6 @@ interface FloatingChatBubbleProps {
   setBubblePosition: React.Dispatch<
     React.SetStateAction<{ x: number; y: number }>
   >
-}
-
-const extraMargins = {
-  top: 80,
-  right: 20,
-  bottom: 20,
-  left: 20,
 }
 
 export const FloatingChatBubble = memo(
@@ -39,8 +33,7 @@ export const FloatingChatBubble = memo(
     const sensors = useSensors(
       useSensor(PointerSensor, {
         activationConstraint: {
-          delay: 100,
-          tolerance: 5,
+          distance: 10,
         },
       })
     )
@@ -49,7 +42,6 @@ export const FloatingChatBubble = memo(
       const updatePositionOnResize = debounce(() => {
         if (bubbleRef.current) {
           const rect = bubbleRef.current.getBoundingClientRect()
-          const extraMargins = { top: 80, right: 20, bottom: 20, left: 20 }
           const maxX = window.innerWidth - rect.width - extraMargins.right
           const maxY = window.innerHeight - rect.height - extraMargins.bottom
 
