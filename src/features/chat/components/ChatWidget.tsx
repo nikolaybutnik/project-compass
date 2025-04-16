@@ -1,10 +1,9 @@
 import { Box, Flex } from '@chakra-ui/react'
-import React from 'react'
+import React, { useMemo } from 'react'
 import { FaComment } from 'react-icons/fa'
 import { ChatWidgetMode, TransitionState } from './ChatWidgetContainer'
 import { chatPanelLarge, chatPanelSmall } from '../constants'
 import { useDraggable } from '@dnd-kit/core'
-import { CSS } from '@dnd-kit/utilities'
 
 interface ChatWidgetProps {
   mode: ChatWidgetMode
@@ -17,6 +16,8 @@ interface ChatWidgetProps {
   onToggleExpand?: () => void
 }
 
+const ANIMATION_DURATION = 200
+
 export const ChatWidget: React.FC<ChatWidgetProps> = ({
   mode,
   transitionState,
@@ -27,75 +28,108 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: 'chat-widget',
   })
-  const getDimensions = () => {
+
+  const dimensions = useMemo(() => {
     switch (mode) {
       case ChatWidgetMode.BUBBLE:
-        return { width: '48px', height: '48px', borderRadius: 'full' }
+        return {
+          width: '48px',
+          height: '48px',
+          clipPath: 'circle(50%)',
+          transform: 'scale(1) translateY(0)',
+          contentOpacity: 1,
+        }
       case ChatWidgetMode.PANEL:
         return {
           width: chatPanelSmall.width,
           height: chatPanelSmall.height,
-          borderRadius: 'md',
+          clipPath: 'inset(0 0 0 0 round 4px)',
+          transform: 'scale(1.25) translateY(-10px)',
+          contentOpacity: 1,
         }
       case ChatWidgetMode.EXPANDED_PANEL:
         return {
           width: chatPanelLarge.width,
           height: chatPanelLarge.height,
-          borderRadius: 'md',
+          clipPath: 'inset(0 0 0 0 round 4px)',
+          transform: 'scale(1.25) translateY(-20px)',
+          contentOpacity: 1,
         }
     }
+  }, [mode])
+
+  const widgetStyle: React.CSSProperties = {
+    position: 'fixed',
+    top: transform ? position.top + transform.y : position.top,
+    left: transform ? position.left + transform.x : position.left,
+    willChange: 'transform, clip-path',
+    ...dimensions,
+    transition:
+      transitionState === TransitionState.TRANSITIONING
+        ? `transform ${ANIMATION_DURATION}ms ease, clip-path ${ANIMATION_DURATION}ms ease`
+        : 'none',
   }
+
   return (
     <Box
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      transform={CSS.Transform.toString(transform)}
-      position='fixed'
-      top={`${position.top}px`}
-      left={`${position.left}px`}
+      style={widgetStyle}
       bg='blue.500'
       color='white'
       boxShadow='lg'
-      transition={
-        transitionState === TransitionState.TRANSITIONING
-          ? 'all 0.35s ease'
-          : 'none'
-      }
       onClick={mode === ChatWidgetMode.BUBBLE ? onToggleMode : undefined}
       cursor={mode === ChatWidgetMode.BUBBLE ? 'pointer' : 'default'}
       zIndex={1000}
-      {...getDimensions()}
     >
-      {mode === ChatWidgetMode.BUBBLE ? (
-        <Flex align='center' justify='center' height='100%'>
-          <FaComment />
-        </Flex>
-      ) : (
-        <Flex direction='column' height='100%'>
-          <Flex
-            p={2}
-            borderBottom='1px solid'
-            borderColor='blue.400'
-            justify='space-between'
-          >
-            <Box>Chat</Box>
-            <Flex>
-              {onToggleExpand && (
+      <Box
+        opacity={dimensions.contentOpacity}
+        transition={
+          transitionState === TransitionState.TRANSITIONING
+            ? `opacity ${ANIMATION_DURATION}ms ease`
+            : 'none'
+        }
+      >
+        {mode === ChatWidgetMode.BUBBLE ? (
+          <Box position='relative' width='100%' height='100%'>
+            <Box
+              position='absolute'
+              width='48px'
+              height='48px'
+              top='0'
+              left='0'
+              display='flex'
+              alignItems='center'
+              justifyContent='center'
+            >
+              <FaComment size={20} />
+            </Box>
+          </Box>
+        ) : (
+          <Flex direction='column' height='100%'>
+            <Flex
+              p={2}
+              borderBottom='1px solid'
+              borderColor='blue.400'
+              justify='space-between'
+            >
+              <Box>Chat</Box>
+              <Flex>
                 <Box as='button' mr={2} onClick={onToggleExpand}>
                   {mode === ChatWidgetMode.PANEL ? '⬆️' : '⬇️'}
                 </Box>
-              )}
-              <Box as='button' onClick={onToggleMode}>
-                ✖️
-              </Box>
+                <Box as='button' onClick={onToggleMode}>
+                  ✖️
+                </Box>
+              </Flex>
+            </Flex>
+            <Flex flex={1} direction='column'>
+              {/* Panel content would go here */}
             </Flex>
           </Flex>
-          <Flex flex={1} direction='column'>
-            {/* Panel content would go here */}
-          </Flex>
-        </Flex>
-      )}
+        )}
+      </Box>
     </Box>
   )
 }

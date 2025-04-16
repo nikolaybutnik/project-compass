@@ -33,6 +33,7 @@ export enum TransitionState {
 
 interface ChatWidgetState {
   mode: ChatWidgetMode
+  previousMode: ChatWidgetMode
   transitionState: TransitionState
   position: {
     // Corresonds to top left corner (anchor point) of the widget
@@ -69,10 +70,11 @@ export const ChatWidgetContainer: React.FC = () => {
   )
 
   const [state, setState] = useState<ChatWidgetState>(() => {
-    // const savedPosition = getSavedWidgetPosition()
+    // const savedPosition = getSavedWidgetPosition() // store in local storage
     const savedPosition = null
     return {
       mode: ChatWidgetMode.BUBBLE,
+      previousMode: ChatWidgetMode.PANEL,
       transitionState: TransitionState.IDLE,
       position: savedPosition || {
         top: window.innerHeight - 48 - extraMargins.bottom,
@@ -92,7 +94,7 @@ export const ChatWidgetContainer: React.FC = () => {
   }, [])
 
   const handleDragStart = useCallback(
-    (event: DragStartEvent) => {
+    (_event: DragStartEvent) => {
       updateWidgetState({ transitionState: TransitionState.DRAGGING })
     },
     [updateWidgetState]
@@ -114,6 +116,40 @@ export const ChatWidgetContainer: React.FC = () => {
     },
     [updateWidgetState, state.position]
   )
+
+  const handleToggleMode = useCallback(() => {
+    if (state.mode === ChatWidgetMode.BUBBLE) {
+      updateWidgetState({
+        mode: state.previousMode,
+        previousMode: ChatWidgetMode.PANEL,
+        transitionState: TransitionState.TRANSITIONING,
+      })
+    } else {
+      updateWidgetState({
+        previousMode: state.mode,
+        mode: ChatWidgetMode.BUBBLE,
+        transitionState: TransitionState.TRANSITIONING,
+      })
+    }
+
+    setTimeout(() => {
+      updateWidgetState({ transitionState: TransitionState.IDLE })
+    }, ANIMATION_DURATION)
+  }, [updateWidgetState, state.mode, state.previousMode])
+
+  const handleToggleExpand = useCallback(() => {
+    updateWidgetState({
+      mode:
+        state.mode === ChatWidgetMode.EXPANDED_PANEL
+          ? ChatWidgetMode.PANEL
+          : ChatWidgetMode.EXPANDED_PANEL,
+      transitionState: TransitionState.TRANSITIONING,
+    })
+
+    setTimeout(() => {
+      updateWidgetState({ transitionState: TransitionState.IDLE })
+    }, ANIMATION_DURATION)
+  }, [updateWidgetState, state.mode])
 
   // const constrainPosition = (position: {top: number, right: number}) => ({
   //   top: Math.max(10, Math.min(window.innerHeight - 100, position.top)),
@@ -380,38 +416,8 @@ export const ChatWidgetContainer: React.FC = () => {
           mode={state.mode}
           transitionState={state.transitionState}
           position={state.position}
-          onToggleMode={() => {
-            // Toggle between bubble and panel
-            updateWidgetState({
-              mode:
-                state.mode === ChatWidgetMode.BUBBLE
-                  ? ChatWidgetMode.PANEL
-                  : ChatWidgetMode.BUBBLE,
-              transitionState: TransitionState.TRANSITIONING,
-            })
-
-            setTimeout(() => {
-              updateWidgetState({ transitionState: TransitionState.IDLE })
-            }, ANIMATION_DURATION)
-          }}
-          onToggleExpand={
-            state.mode !== ChatWidgetMode.BUBBLE
-              ? () => {
-                  // Toggle between panel and expanded panel
-                  updateWidgetState({
-                    mode:
-                      state.mode === ChatWidgetMode.PANEL
-                        ? ChatWidgetMode.EXPANDED_PANEL
-                        : ChatWidgetMode.PANEL,
-                    transitionState: TransitionState.TRANSITIONING,
-                  })
-
-                  setTimeout(() => {
-                    updateWidgetState({ transitionState: TransitionState.IDLE })
-                  }, ANIMATION_DURATION)
-                }
-              : undefined
-          }
+          onToggleMode={handleToggleMode}
+          onToggleExpand={handleToggleExpand}
         />
       )}
     </DndContext>
