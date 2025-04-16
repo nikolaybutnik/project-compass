@@ -11,9 +11,10 @@ import {
   useSensor,
   PointerSensor,
   DragEndEvent,
+  DragStartEvent,
 } from '@dnd-kit/core'
 import { withMargin } from '../utils/modifiers'
-import { extraMargins } from '../constants'
+import { chatPanelLarge, chatPanelSmall, extraMargins } from '../constants'
 import { DraggableChatBubble } from './DraggableChatBubble'
 import { debounce } from 'lodash'
 
@@ -31,6 +32,9 @@ export const ChatContainer: React.FC = () => {
   const justOpenedRef = useRef(false)
   const bubbleRef = useRef<HTMLDivElement | null>(null)
 
+  let initialBubblePosition: { x: number; y: number } = { x: 0, y: 0 }
+  let initialPanelPosition: { x: number; y: number } = { x: 0, y: 0 }
+
   const location = useLocation()
   const { sendMessage, messages: aiMessages, isLoading: aiLoading } = useAI()
 
@@ -39,10 +43,16 @@ export const ChatContainer: React.FC = () => {
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isTyping, setIsTyping] = useState(false)
-  const [bubblePosition, setBubblePosition] = useState({
-    x: 20, // 20px from right
-    y: 20, // 20px from bottom
-  })
+  const [isBubbleVisible, setIsBubbleVisible] = useState(true)
+  const [bubblePosition, setBubblePosition] = useState<{
+    x: number
+    y: number
+  }>(initialBubblePosition)
+  const [panelPosition, setPanelPosition] = useState<{
+    x: number
+    y: number
+  }>(initialPanelPosition)
+  const [activeDragId, setActiveDragId] = useState<string | null>(null)
 
   const hiddenRoutes = [ROUTES.HOME, ROUTES.LOGIN]
 
@@ -55,44 +65,73 @@ export const ChatContainer: React.FC = () => {
     [location.pathname]
   )
 
+  // Initialize bubble and panel positions
   useEffect(() => {
-    if (isOpen && messages.length > 0) {
-      lastSeenMessageCount.current = messages.length
+    if (bubbleRef.current) {
+      const bubbleRect = bubbleRef.current.getBoundingClientRect()
+
+      initialBubblePosition = {
+        x: window.innerWidth - bubbleRect.width - extraMargins.right,
+        y: window.innerHeight - bubbleRect.height - extraMargins.bottom,
+      }
+      setBubblePosition(initialBubblePosition)
+
+      initialPanelPosition = {
+        x: window.innerWidth - chatPanelSmall.width - extraMargins.right,
+        y: window.innerHeight - chatPanelSmall.height - extraMargins.bottom,
+      }
+      setPanelPosition(initialPanelPosition)
     }
-    if (isOpen) {
-      const timer = setTimeout(() => {
-        justOpenedRef.current = false
-      }, 100)
-      return () => clearTimeout(timer)
-    }
-    return
-  }, [isOpen, messages])
+  }, [bubbleRef, setBubblePosition, setPanelPosition])
+
+  useEffect(() => {
+    setIsBubbleVisible(!isOpen)
+  }, [isOpen])
 
   useEffect(() => {
     setIsTyping(aiLoading)
   }, [aiLoading])
 
-  useEffect(() => {
-    const updatePositionOnResize = debounce(() => {
-      if (bubbleRef.current) {
-        const rect = bubbleRef.current.getBoundingClientRect()
-        const maxX = window.innerWidth - rect.width - extraMargins.right
-        const maxY = window.innerHeight - rect.height - extraMargins.bottom
+  // Handle bubble and panel positions if window is resized
+  // useEffect(() => {
+  //   const updatePositionsOnResize = debounce(() => {
+  //     // Handle bubble position constraints
+  //     if (bubbleRef.current) {
+  //       const bubbleRect = bubbleRef.current.getBoundingClientRect()
+  //       const maxBubbleX =
+  //         window.innerWidth - bubbleRect.width - extraMargins.right
+  //       const maxBubbleY =
+  //         window.innerHeight - bubbleRect.height - extraMargins.bottom
 
-        setBubblePosition((prev) => ({
-          x: Math.min(prev.x, maxX),
-          y: Math.min(prev.y, maxY),
-        }))
-      }
-    }, 100)
+  //       setBubblePosition((prev) => ({
+  //         x: Math.min(prev.x, maxBubbleX),
+  //         y: Math.min(prev.y, maxBubbleY),
+  //       }))
+  //     }
 
-    updatePositionOnResize()
-    window.addEventListener('resize', updatePositionOnResize)
-    return () => {
-      window.removeEventListener('resize', updatePositionOnResize)
-      updatePositionOnResize.cancel()
-    }
-  }, [bubbleRef, setBubblePosition])
+  //     // Handle panel position constraints
+  //     const panelWidth = isExpanded
+  //       ? chatPanelLarge.width
+  //       : chatPanelSmall.width
+  //     const panelHeight = isExpanded
+  //       ? chatPanelLarge.height
+  //       : chatPanelSmall.height
+  //     const maxPanelX = window.innerWidth - panelWidth - extraMargins.right
+  //     const maxPanelY = window.innerHeight - panelHeight - extraMargins.bottom
+
+  //     setPanelPosition((prev) => ({
+  //       x: Math.min(prev.x, maxPanelX),
+  //       y: Math.min(prev.y, maxPanelY),
+  //     }))
+  //   }, 100)
+
+  //   updatePositionsOnResize()
+  //   window.addEventListener('resize', updatePositionsOnResize)
+  //   return () => {
+  //     window.removeEventListener('resize', updatePositionsOnResize)
+  //     updatePositionsOnResize.cancel()
+  //   }
+  // }, [bubbleRef, setBubblePosition, setPanelPosition])
 
   const formattedMessages = useMemo(() => {
     return aiMessages
@@ -118,11 +157,11 @@ export const ChatContainer: React.FC = () => {
       })
   }, [aiMessages])
 
+  // Set chat unread indicator
   useEffect(() => {
     if (formattedMessages?.length) {
       setMessages(formattedMessages)
 
-      // If chat is closed and there's a new AI message, show unread indicator
       const lastMessage = aiMessages[aiMessages.length - 1]
       if (
         !isOpen &&
@@ -133,6 +172,58 @@ export const ChatContainer: React.FC = () => {
       }
     }
   }, [formattedMessages, aiMessages, isOpen])
+
+  // Handle clearning of chat unread indicator
+  useEffect(() => {
+    if (isOpen && messages.length > 0) {
+      lastSeenMessageCount.current = messages.length
+    }
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        justOpenedRef.current = false
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+    return
+  }, [isOpen, messages])
+
+  // // Calculate panel position in relation to bubble
+  useEffect(() => {
+    if (!isOpen) return
+
+    // Create a small delay when isExpanded changes
+    if (bubbleRef.current) {
+      console.log('Calculating position, isExpanded:', isExpanded)
+      const bubbleRect = bubbleRef.current.getBoundingClientRect()
+      const panelWidth = isExpanded
+        ? chatPanelLarge.width
+        : chatPanelSmall.width
+      const panelHeight = isExpanded
+        ? chatPanelLarge.height
+        : chatPanelSmall.height
+
+      let panelRight =
+        bubbleRect.right >= extraMargins.left + panelWidth
+          ? bubbleRect.right
+          : extraMargins.left + panelWidth
+      let panelBottom = bubbleRect.bottom
+
+      // Check if panel fits above
+      const panelTop = bubbleRect.bottom - panelHeight
+      if (panelTop <= extraMargins.top) {
+        panelBottom =
+          window.innerHeight -
+          panelHeight -
+          extraMargins.top +
+          bubbleRect.height
+      }
+
+      setPanelPosition({
+        x: panelRight,
+        y: panelBottom,
+      })
+    }
+  }, [isOpen, isExpanded, bubbleRef])
 
   const toggleChat = useCallback(() => {
     const opening = !isOpen
@@ -161,22 +252,39 @@ export const ChatContainer: React.FC = () => {
     [sendMessage]
   )
 
+  const onDragStart = useCallback((event: DragStartEvent) => {
+    setActiveDragId(event.active.id as string)
+  }, [])
+
   const onDragEnd = useCallback(
     (event: DragEndEvent) => {
-      const { delta } = event
-
-      if (bubbleRef.current) {
-        const rect = bubbleRef.current.getBoundingClientRect()
-        const newX = bubblePosition.x - delta.x
-        const newY = bubblePosition.y - delta.y
-        const maxX = window.innerWidth - rect.width - extraMargins.right
-        const maxY = window.innerHeight - rect.height - extraMargins.bottom
+      const { active, delta } = event
+      if (active.id === 'draggable-bubble') {
+        const newX = bubblePosition.x + delta.x
+        const newY = bubblePosition.y + delta.y
 
         setBubblePosition({
-          x: Math.max(20, Math.min(newX, maxX)),
-          y: Math.max(20, Math.min(newY, maxY)),
+          x: Math.floor(newX),
+          y: Math.floor(newY),
         })
+      } else if (active.id === 'draggable-header') {
+        console.log('dragging header')
+        //   // Panel dragging
+        //   const newRight = panelPosition.x - delta.x
+        //   const newBottom = panelPosition.y - delta.y
+        //   // Calculate panel dimensions
+        //   const panelWidth = isExpanded ? 450 : 320
+        //   const panelHeight = isExpanded ? 550 : 400
+        //   // Apply constraints
+        //   const maxRight = window.innerWidth - panelWidth - extraMargins.right
+        //   const maxBottom = window.innerHeight - panelHeight - extraMargins.bottom
+        //   setPanelPosition({
+        //     x: Math.max(extraMargins.right, Math.min(newRight, maxRight)),
+        //     y: Math.max(extraMargins.bottom, Math.min(newBottom, maxBottom)),
+        //   })
       }
+
+      // setActiveDragId(null)
     },
     [bubbleRef, bubblePosition, setBubblePosition]
   )
@@ -186,15 +294,18 @@ export const ChatContainer: React.FC = () => {
   return (
     <DndContext
       sensors={sensors}
+      onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       modifiers={[withMargin]}
     >
-      <DraggableChatBubble
-        onClick={toggleChat}
-        hasUnreadMessages={hasUnreadMessages}
-        bubbleRef={bubbleRef}
-        bubblePosition={bubblePosition}
-      />
+      {isBubbleVisible && (
+        <DraggableChatBubble
+          onClick={toggleChat}
+          hasUnreadMessages={hasUnreadMessages}
+          bubbleRef={bubbleRef}
+          bubblePosition={bubblePosition}
+        />
+      )}
       <ChatPanel
         isOpen={isOpen}
         onClose={toggleChat}
@@ -204,8 +315,7 @@ export const ChatContainer: React.FC = () => {
         onSendMessage={handleSendMessage}
         isTyping={isTyping}
         instantScroll={justOpenedRef.current}
-        bubblePosition={bubblePosition}
-        bubbleRef={bubbleRef}
+        panelPosition={panelPosition}
       />
     </DndContext>
   )

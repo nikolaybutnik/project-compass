@@ -10,23 +10,21 @@ import {
   Box,
   Flex,
   Text,
-  IconButton,
   Input,
   Button,
   VStack,
-  HStack,
   useColorModeValue,
   Code,
   UnorderedList,
   OrderedList,
   ListItem,
 } from '@chakra-ui/react'
-import { FaTimes, FaExpandAlt, FaCompress } from 'react-icons/fa'
 import { ChatMessage } from '@/features/chat/types'
 import { TypingIndicator } from '@/features/chat/components/TypingIndicator'
 import ReactMarkdown from 'react-markdown'
 import { MessageRole } from '@/features/ai/types'
-import { extraMargins } from '../constants'
+import { DraggableChatHeader } from './DraggableChatHeader'
+import { chatPanelLarge, chatPanelSmall } from '../constants'
 
 interface ChatPanelProps {
   isOpen: boolean
@@ -37,8 +35,7 @@ interface ChatPanelProps {
   onSendMessage: (message: string) => void
   isTyping: boolean
   instantScroll?: boolean
-  bubblePosition: { x: number; y: number }
-  bubbleRef: React.RefObject<HTMLDivElement>
+  panelPosition: { x: number; y: number }
 }
 
 export const ChatPanel = memo(
@@ -51,8 +48,7 @@ export const ChatPanel = memo(
     onSendMessage,
     isTyping,
     instantScroll,
-    bubblePosition,
-    bubbleRef,
+    panelPosition,
   }: ChatPanelProps) => {
     const userBgColor = useColorModeValue('blue.100', 'blue.900')
     const aiBgColor = useColorModeValue('gray.200', 'gray.700')
@@ -60,6 +56,7 @@ export const ChatPanel = memo(
     const systemEventTextColor = useColorModeValue('gray.500', 'gray.400')
 
     const [inputValue, setInputValue] = useState('')
+    const [isVisible, setIsVisible] = useState(false)
     const messagesEndRef = useRef<HTMLDivElement>(null)
 
     const scrollToBottom = useCallback(() => {
@@ -76,6 +73,20 @@ export const ChatPanel = memo(
         scrollToBottom()
       }
     }, [messages, isOpen, scrollToBottom])
+
+    useEffect(() => {
+      if (isOpen) {
+        // Delay the appearance
+        const timer = setTimeout(() => {
+          setIsVisible(true)
+        }, 100) //
+
+        return () => clearTimeout(timer)
+      } else {
+        setIsVisible(false)
+      }
+      return
+    }, [isOpen])
 
     const handleSend = useCallback(() => {
       if (inputValue.trim()) {
@@ -94,47 +105,10 @@ export const ChatPanel = memo(
       [handleSend]
     )
 
-    const panelWidth = isExpanded ? 450 : 320
-    const panelHeight = isExpanded ? 550 : 400
-    const gap = 10
-
-    const calculatePosition = useCallback(() => {
-      if (!bubbleRef.current) {
-        return { left: 'auto', top: 'auto', right: '20px', bottom: '80px' } // Fallback
-      }
-
-      const bubbleRect = bubbleRef.current.getBoundingClientRect()
-
-      // Panel’s right aligns with bubble’s right
-      let panelRight = bubblePosition.x // bubblePosition.x is the bubble’s right distance
-      let panelBottom = bubblePosition.y + bubbleRect.height + gap // Prefer above, clear bubble’s top + gap
-
-      // Check if panel fits above (top margin 80px)
-      const panelTop = window.innerHeight - panelBottom - panelHeight
-      if (panelTop < extraMargins.top) {
-        // Flip to below
-        panelBottom = bubblePosition.y - panelHeight - gap // Panel’s top at bubble’s bottom + gap
-      }
-
-      // Clamp to viewport bounds
-      const maxRight = window.innerWidth - panelWidth - extraMargins.right
-      const maxBottom = window.innerHeight - panelHeight - extraMargins.bottom
-
-      panelRight = Math.max(extraMargins.right, Math.min(panelRight, maxRight))
-      panelBottom = Math.max(
-        extraMargins.bottom,
-        Math.min(panelBottom, maxBottom)
-      )
-
-      return {
-        left: 'auto',
-        top: 'auto',
-        right: `${panelRight}px`,
-        bottom: `${panelBottom}px`,
-      }
-    }, [bubblePosition, bubbleRef, isExpanded])
-
-    const panelPosition = calculatePosition()
+    const panelWidth = isExpanded ? chatPanelLarge.width : chatPanelSmall.width
+    const panelHeight = isExpanded
+      ? chatPanelLarge.height
+      : chatPanelSmall.height
 
     const memoizedMessages = useMemo(() => {
       return messages.map((message, index) => (
@@ -200,62 +174,28 @@ export const ChatPanel = memo(
     return (
       <Box
         className='chat-panel'
-        position='fixed'
-        left={panelPosition.left}
-        top={panelPosition.top}
-        right={panelPosition.right}
-        bottom={panelPosition.bottom}
-        width={`${panelWidth}px`}
-        height={`${panelHeight}px`}
-        bg='white'
-        borderRadius='md'
-        boxShadow='xl'
-        zIndex={998}
-        display='flex'
-        flexDirection='column'
-        opacity={1}
-        transform='translateY(0)'
-        transition='all 0.3s ease'
-        animation='slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
-        sx={{
-          '@keyframes slideUp': {
-            '0%': { opacity: 0, transform: 'translateY(50px)' },
-            '100%': { opacity: 1, transform: 'translateY(0)' },
-          },
+        style={{
+          position: 'fixed',
+          left: `${panelPosition.x - panelWidth}px`,
+          top: `${panelPosition.y - panelHeight}px`,
+          width: `${panelWidth}px`,
+          height: `${panelHeight}px`,
+          backgroundColor: 'white',
+          borderRadius: '0.375rem',
+          boxShadow:
+            '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          zIndex: 998,
+          display: 'flex',
+          flexDirection: 'column',
+          opacity: isVisible ? 1 : 0,
+          transition: 'opacity 0.3s ease',
         }}
       >
-        <Flex
-          p={3}
-          borderBottom='1px solid'
-          borderColor='gray.200'
-          alignItems='center'
-          justifyContent='space-between'
-          bg='blue.500'
-          color='white'
-          borderTopRadius='md'
-        >
-          <Text fontWeight='bold'>Vector</Text>
-          <HStack>
-            <IconButton
-              aria-label={isExpanded ? 'Minimize' : 'Expand'}
-              icon={isExpanded ? <FaCompress /> : <FaExpandAlt />}
-              onClick={onExpand}
-              size='sm'
-              variant='ghost'
-              color='white'
-              _hover={{ bg: 'blue.600' }}
-            />
-            <IconButton
-              aria-label='Close chat'
-              icon={<FaTimes />}
-              onClick={onClose}
-              size='sm'
-              variant='ghost'
-              color='white'
-              _hover={{ bg: 'blue.600' }}
-            />
-          </HStack>
-        </Flex>
+        <DraggableChatHeader
+          onClose={onClose}
+          onExpand={onExpand}
+          isExpanded={isExpanded}
+        />
 
         <VStack
           flex={1}

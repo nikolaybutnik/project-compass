@@ -1,6 +1,6 @@
 import React, { memo } from 'react'
 import { useDraggable } from '@dnd-kit/core'
-import { Badge, IconButton } from '@chakra-ui/react'
+import { Box, IconButton } from '@chakra-ui/react'
 import { FaComment } from 'react-icons/fa'
 import { CSS } from '@dnd-kit/utilities'
 
@@ -24,54 +24,60 @@ export const DraggableChatBubble = memo(
       })
 
     return (
-      <IconButton
+      <Box
         ref={(node) => {
           setNodeRef(node)
           ;(bubbleRef as React.MutableRefObject<Element | null>).current = node
         }}
         {...attributes}
         {...listeners}
-        aria-label='Chat with Vector'
-        icon={<FaComment />}
-        onClick={onClick}
         position='fixed'
-        right={`${bubblePosition.x}px`}
-        bottom={`${bubblePosition.y}px`}
+        left={`${bubblePosition.x}px`}
+        top={`${bubblePosition.y}px`}
         zIndex={999}
-        className='chat-bubble'
-        borderRadius='full'
-        colorScheme='blue'
-        size='lg'
-        boxShadow={
-          isDragging
-            ? '0 0 15px -2px rgba(0, 0, 0, 0.25), 6px 6px 10px -5px rgba(0, 0, 0, 0.2), -6px 6px 10px -5px rgba(0, 0, 0, 0.2), 0 -6px 10px -5px rgba(0, 0, 0, 0.2), 6px -6px 10px -5px rgba(0, 0, 0, 0.2), -6px -6px 10px -5px rgba(0, 0, 0, 0.2)'
-            : 'lg'
-        }
-        transform={isDragging ? 'translateY(-3px)' : 'none'}
-        _hover={{ transform: 'scale(1.1)' }}
-        _active={{ bg: 'blue.500', opacity: 0.9 }}
-        transition='opacity 0.2s, box-shadow 0.2s, background 0.2s'
         style={{
           transform: transform ? CSS.Transform.toString(transform) : undefined,
         }}
       >
-        {hasUnreadMessages && (
-          <Badge
-            position='absolute'
-            top='-2px'
-            right='-2px'
-            borderRadius='full'
-            bg='red.500'
-            boxSize='14px'
-            borderWidth='2px'
-            borderColor='white'
-            p={0}
-            display='flex'
-            alignItems='center'
-            justifyContent='center'
-          />
-        )}
-      </IconButton>
+        <IconButton
+          aria-label='Chat with Vector'
+          icon={
+            <>
+              <FaComment />
+              {hasUnreadMessages && (
+                <Box
+                  position='absolute'
+                  top='-2px'
+                  right='-2px'
+                  borderRadius='full'
+                  bg='red.500'
+                  boxSize='14px'
+                  borderWidth='2px'
+                  borderColor='white'
+                  p={0}
+                  display='flex'
+                  alignItems='center'
+                  justifyContent='center'
+                  zIndex={1000}
+                />
+              )}
+            </>
+          }
+          onClick={onClick}
+          borderRadius='full'
+          colorScheme='blue'
+          size='lg'
+          boxShadow={
+            isDragging
+              ? '0 0 15px -2px rgba(0, 0, 0, 0.25), 6px 6px 10px -5px rgba(0, 0, 0, 0.2)'
+              : 'lg'
+          }
+          transform={isDragging ? 'translateY(-3px)' : 'none'}
+          _hover={{ transform: 'scale(1.1)' }}
+          _active={{ bg: 'blue.500', opacity: 0.9 }}
+          transition='transform 0.2s'
+        />
+      </Box>
     )
   }
 )
