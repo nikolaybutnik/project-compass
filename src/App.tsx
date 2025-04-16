@@ -4,7 +4,7 @@ import AppRoutes from './routes'
 import theme from '@//shared/config/theme'
 import { useInitAuth } from '@/shared/store/authStore'
 import { AIProvider } from '@/features/ai/context/aiContext'
-import { ChatContainer } from '@/features/chat/components/ChatContainer'
+import { ChatWidgetContainer } from '@/features/chat/components/ChatWidgetContainer'
 
 function App(): JSX.Element {
   useInitAuth()
@@ -14,7 +14,7 @@ function App(): JSX.Element {
       <BrowserRouter>
         <AIProvider>
           <AppRoutes />
-          <ChatContainer />
+          <ChatWidgetContainer />
         </AIProvider>
       </BrowserRouter>
     </ChakraProvider>
