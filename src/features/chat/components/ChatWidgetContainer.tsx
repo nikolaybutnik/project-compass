@@ -13,7 +13,7 @@ import {
   DragEndEvent,
   DragStartEvent,
 } from '@dnd-kit/core'
-import { withMargin } from '../utils/modifiers'
+import { restrictToWindowOnly } from '../utils/modifiers'
 import { chatPanelLarge, chatPanelSmall, extraMargins } from '../constants'
 import { DraggableChatBubble } from './DraggableChatBubble'
 import { debounce } from 'lodash'
@@ -70,15 +70,14 @@ export const ChatWidgetContainer: React.FC = () => {
   )
 
   const [state, setState] = useState<ChatWidgetState>(() => {
-    // const savedPosition = getSavedWidgetPosition() // store in local storage
-    const savedPosition = null
+    const savedPosition = null // placeholder for local storage
     return {
       mode: ChatWidgetMode.BUBBLE,
       previousMode: ChatWidgetMode.PANEL,
       transitionState: TransitionState.IDLE,
       position: savedPosition || {
-        top: window.innerHeight - 48 - extraMargins.bottom,
-        left: window.innerWidth - 48 - extraMargins.right,
+        top: window.innerHeight - 48,
+        left: window.innerWidth - 48,
       },
       isTyping: false,
       hasUnreadMessages: false,
@@ -407,7 +406,7 @@ export const ChatWidgetContainer: React.FC = () => {
   return (
     <DndContext
       sensors={sensors}
-      modifiers={[withMargin]}
+      modifiers={[restrictToWindowOnly]}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >

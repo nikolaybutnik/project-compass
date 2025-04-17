@@ -1,5 +1,5 @@
 import { Box, Flex } from '@chakra-ui/react'
-import React, { useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef } from 'react'
 import { FaComment } from 'react-icons/fa'
 import { ChatWidgetMode, TransitionState } from './ChatWidgetContainer'
 import { chatPanelLarge, chatPanelSmall } from '../constants'
@@ -25,9 +25,50 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   onToggleMode,
   onToggleExpand,
 }) => {
+  const initialPressCoordinatesRef = useRef<{ x: number; y: number } | null>(
+    null
+  )
+
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: 'chat-widget',
+    data: {
+      position,
+      initialCoordinates: initialPressCoordinatesRef.current,
+    },
   })
+
+  const combinedRef = useCallback(
+    (node: HTMLElement | null) => {
+      setNodeRef(node)
+
+      if (node) {
+        const pointerDownHandler = (e: PointerEvent) => {
+          initialPressCoordinatesRef.current = { x: e.clientX, y: e.clientY }
+        }
+
+        const pointerUpHandler = () => {
+          initialPressCoordinatesRef.current = null
+        }
+
+        node.addEventListener('pointerdown', pointerDownHandler, {
+          passive: true,
+        })
+        node.addEventListener('pointerup', pointerUpHandler, { passive: true })
+        node.addEventListener('pointercancel', pointerUpHandler, {
+          passive: true,
+        })
+
+        return () => {
+          node.removeEventListener('pointerdown', pointerDownHandler)
+          node.removeEventListener('pointerup', pointerUpHandler)
+          node.removeEventListener('pointercancel', pointerUpHandler)
+        }
+      }
+      return
+    },
+
+    [setNodeRef]
+  )
 
   const dimensions = useMemo(() => {
     switch (mode) {
@@ -72,7 +113,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
 
   return (
     <Box
-      ref={setNodeRef}
+      ref={combinedRef}
       {...attributes}
       {...listeners}
       style={widgetStyle}
