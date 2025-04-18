@@ -5,8 +5,8 @@ $blue-400: #60a5fa;
   position: fixed;
   top: var(--top);
   left: var(--left);
-  width: 48px;
-  height: 48px;
+  width: var(--width);
+  height: var(--height);
   clip-path: circle(50%);
   background: $blue-500;
   color: white;
@@ -18,21 +18,15 @@ $blue-400: #60a5fa;
   touch-action: none;
 
   &.bubble {
-    width: 48px;
-    height: 48px;
     clip-path: circle(50%);
   }
 
   &.panel {
-    width: 300px; /* Adjust based on chatPanelSmall.width */
-    height: 400px; /* Adjust based on chatPanelSmall.height */
     clip-path: inset(0 0 0 0 round 4px);
     cursor: default;
   }
 
   &.expandedPanel {
-    width: 500px; /* Adjust based on chatPanelLarge.width */
-    height: 600px; /* Adjust based on chatPanelLarge.height */
     clip-path: inset(0 0 0 0 round 4px);
     cursor: default;
   }

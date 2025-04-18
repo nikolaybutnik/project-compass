@@ -1,9 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ChatPanel } from '@/features/chat/components/ChatPanel'
+import React, { useCallback, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { ROUTES } from '@/shared/constants'
 import { ChatMessage } from '@/features/chat/types'
-import { MessageRole } from '@/features/ai/types'
 import { useAI } from '@/features/ai/context/aiContext'
 import {
   DndContext,
@@ -14,10 +12,9 @@ import {
   DragStartEvent,
 } from '@dnd-kit/core'
 import { restrictToWindowOnly } from '../utils/modifiers'
-import { chatPanelLarge, chatPanelSmall, extraMargins } from '../constants'
-import { DraggableChatBubble } from './DraggableChatBubble'
-import { debounce } from 'lodash'
 import { ChatWidget } from './ChatWidget'
+import { getDimensionsForMode } from '../utils/positioning'
+import { constrainToWindow } from '../utils/positioning'
 
 export enum ChatWidgetMode {
   BUBBLE = 'bubble',
@@ -119,10 +116,15 @@ export const ChatWidgetContainer: React.FC = () => {
 
   const handleToggleMode = useCallback(() => {
     if (state.mode === ChatWidgetMode.BUBBLE) {
+      const targetMode = state.previousMode
+      const dimensions = getDimensionsForMode(targetMode)
+      const newPosition = constrainToWindow(state.position, dimensions)
+
       updateWidgetState({
-        mode: state.previousMode,
+        mode: targetMode,
         previousMode: ChatWidgetMode.PANEL,
         transitionState: TransitionState.TRANSITIONING,
+        position: newPosition,
       })
     } else {
       updateWidgetState({
@@ -135,34 +137,31 @@ export const ChatWidgetContainer: React.FC = () => {
     setTimeout(() => {
       updateWidgetState({ transitionState: TransitionState.IDLE })
     }, ANIMATION_DURATION)
-  }, [updateWidgetState, state.mode, state.previousMode])
+  }, [updateWidgetState, state.mode, state.previousMode, state.position])
 
   const handleToggleExpand = useCallback(() => {
+    const targetMode =
+      state.mode === ChatWidgetMode.EXPANDED_PANEL
+        ? ChatWidgetMode.PANEL
+        : ChatWidgetMode.EXPANDED_PANEL
+    const dimensions = getDimensionsForMode(targetMode)
+    const newPosition = constrainToWindow(state.position, dimensions)
+
     updateWidgetState({
-      mode:
-        state.mode === ChatWidgetMode.EXPANDED_PANEL
-          ? ChatWidgetMode.PANEL
-          : ChatWidgetMode.EXPANDED_PANEL,
+      mode: targetMode,
       transitionState: TransitionState.TRANSITIONING,
+      position: newPosition,
     })
 
     setTimeout(() => {
       updateWidgetState({ transitionState: TransitionState.IDLE })
     }, ANIMATION_DURATION)
-  }, [updateWidgetState, state.mode])
-
-  // const constrainPosition = (position: {top: number, right: number}) => ({
-  //   top: Math.max(10, Math.min(window.innerHeight - 100, position.top)),
-  //   right: Math.max(10, Math.min(window.innerWidth - 80, position.right)),
-  // });
+  }, [updateWidgetState, state.mode, state.position])
 
   // const newMessageRef = useRef(false)
   // const lastSeenMessageCount = useRef(0)
   // const justOpenedRef = useRef(false)
   // const bubbleRef = useRef<HTMLDivElement | null>(null)
-
-  // let initialBubblePosition: { x: number; y: number } = { x: 0, y: 0 }
-  // let initialPanelPosition: { x: number; y: number } = { x: 0, y: 0 }
 
   // const [isOpen, setIsOpen] = useState(false)
   // const [isExpanded, setIsExpanded] = useState(false)
@@ -179,25 +178,6 @@ export const ChatWidgetContainer: React.FC = () => {
   //   y: number
   // }>(initialPanelPosition)
   // const [activeDragId, setActiveDragId] = useState<string | null>(null)
-
-  // // Initialize bubble and panel positions
-  // useEffect(() => {
-  //   if (bubbleRef.current) {
-  //     const bubbleRect = bubbleRef.current.getBoundingClientRect()
-
-  //     initialBubblePosition = {
-  //       x: window.innerWidth - bubbleRect.width - extraMargins.right,
-  //       y: window.innerHeight - bubbleRect.height - extraMargins.bottom,
-  //     }
-  //     setBubblePosition(initialBubblePosition)
-
-  //     initialPanelPosition = {
-  //       x: window.innerWidth - chatPanelSmall.width - extraMargins.right,
-  //       y: window.innerHeight - chatPanelSmall.height - extraMargins.bottom,
-  //     }
-  //     setPanelPosition(initialPanelPosition)
-  //   }
-  // }, [bubbleRef, setBubblePosition, setPanelPosition])
 
   // useEffect(() => {
   //   setIsBubbleVisible(!isOpen)
@@ -365,43 +345,6 @@ export const ChatWidgetContainer: React.FC = () => {
   //     }
   //   },
   //   [sendMessage]
-  // )
-
-  // const onDragStart = useCallback((event: DragStartEvent) => {
-  //   setActiveDragId(event.active.id as string)
-  // }, [])
-
-  // const onDragEnd = useCallback(
-  //   (event: DragEndEvent) => {
-  //     const { active, delta } = event
-  //     if (active.id === 'draggable-bubble') {
-  //       const newX = bubblePosition.x + delta.x
-  //       const newY = bubblePosition.y + delta.y
-
-  //       setBubblePosition({
-  //         x: Math.floor(newX),
-  //         y: Math.floor(newY),
-  //       })
-  //     } else if (active.id === 'draggable-header') {
-  //       console.log('dragging header')
-  //       //   // Panel dragging
-  //       //   const newRight = panelPosition.x - delta.x
-  //       //   const newBottom = panelPosition.y - delta.y
-  //       //   // Calculate panel dimensions
-  //       //   const panelWidth = isExpanded ? 450 : 320
-  //       //   const panelHeight = isExpanded ? 550 : 400
-  //       //   // Apply constraints
-  //       //   const maxRight = window.innerWidth - panelWidth - extraMargins.right
-  //       //   const maxBottom = window.innerHeight - panelHeight - extraMargins.bottom
-  //       //   setPanelPosition({
-  //       //     x: Math.max(extraMargins.right, Math.min(newRight, maxRight)),
-  //       //     y: Math.max(extraMargins.bottom, Math.min(newBottom, maxBottom)),
-  //       //   })
-  //     }
-
-  //     // setActiveDragId(null)
-  //   },
-  //   [bubbleRef, bubblePosition, setBubblePosition]
   // )
 
   return (

@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react'
-import { FaComment } from 'react-icons/fa'
+import { FaComment, FaExpand, FaCompress, FaTimes } from 'react-icons/fa'
 import { ChatWidgetMode, TransitionState } from './ChatWidgetContainer'
 import { chatPanelLarge, chatPanelSmall } from '../constants'
 import { useDraggable } from '@dnd-kit/core'
@@ -46,44 +46,43 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     [isDragging, mode, onToggleMode]
   )
 
-  const customProperties = useMemo(
-    () =>
-      ({
-        '--top': `${position.top + stableTransform.y}px`,
-        '--left': `${position.left + stableTransform.x}px`,
-      }) as React.CSSProperties,
-    [position, stableTransform]
-  )
-
   const dimensions = useMemo(() => {
     switch (mode) {
       case ChatWidgetMode.BUBBLE:
         return {
-          width: '48px',
-          height: '48px',
-          // clipPath: 'circle(50%)',
+          width: 48,
+          height: 48,
         }
       case ChatWidgetMode.PANEL:
         return {
           width: chatPanelSmall.width,
           height: chatPanelSmall.height,
-          // clipPath: 'inset(0 0 0 0 round 4px)',
         }
       case ChatWidgetMode.EXPANDED_PANEL:
         return {
           width: chatPanelLarge.width,
           height: chatPanelLarge.height,
-          // clipPath: 'inset(0 0 0 0 round 4px)',
         }
     }
   }, [mode])
+
+  const dynamicProperties = useMemo(
+    () =>
+      ({
+        '--top': `${position.top + stableTransform.y}px`,
+        '--left': `${position.left + stableTransform.x}px`,
+        '--width': `${dimensions.width}px`,
+        '--height': `${dimensions.height}px`,
+      }) as React.CSSProperties,
+    [position, stableTransform, dimensions]
+  )
 
   return (
     <div
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      style={customProperties}
+      style={dynamicProperties}
       className={classNames(styles.widget, {
         [styles.bubble]: mode === ChatWidgetMode.BUBBLE,
         [styles.panel]: mode === ChatWidgetMode.PANEL,
@@ -91,13 +90,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       })}
       onClick={handleClick}
     >
-      <div
-        className={styles.content}
-        style={{
-          width: dimensions.width,
-          height: dimensions.height,
-        }}
-      >
+      <div className={styles.content}>
         {mode === ChatWidgetMode.BUBBLE ? (
           <div className={styles.iconWrapper}>
             <FaComment size={20} />
@@ -111,10 +104,14 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                   className={styles.controlButton}
                   onClick={onToggleExpand}
                 >
-                  {mode === ChatWidgetMode.PANEL ? '⬆️' : '⬇️'}
+                  {mode === ChatWidgetMode.PANEL ? (
+                    <FaExpand size={20} />
+                  ) : (
+                    <FaCompress size={20} />
+                  )}
                 </button>
                 <button className={styles.controlButton} onClick={onToggleMode}>
-                  ✖️
+                  <FaTimes size={20} />
                 </button>
               </div>
             </div>
