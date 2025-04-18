@@ -1,5 +1,8 @@
 $blue-500: #3b82f6;
 $blue-400: #60a5fa;
+$size-transition-duration: 400ms;
+$content-transition-duration: 300ms;
+$ease-out: cubic-bezier(0.4, 0, 0.2, 1);
 
 .widget {
   position: fixed;
@@ -17,6 +20,20 @@ $blue-400: #60a5fa;
   z-index: 1000;
   touch-action: none;
   display: flex;
+  opacity: 0.7;
+  transform-origin: center;
+
+  &[data-transition='true'] {
+    transition:
+      width $size-transition-duration $ease-out,
+      height $size-transition-duration $ease-out,
+      clip-path $size-transition-duration $ease-out,
+      opacity 200ms $ease-out;
+  }
+
+  &[data-transition='true'] {
+    opacity: 1;
+  }
 
   &.bubble {
     clip-path: circle(50%);
@@ -36,6 +53,12 @@ $blue-400: #60a5fa;
 .content {
   flex: 1;
   border: 2px solid $blue-500;
+  opacity: 0;
+  transition: opacity $content-transition-duration $ease-out 50ms;
+
+  .widget[data-transition='true'] & {
+    opacity: 1;
+  }
 }
 
 .iconWrapper {

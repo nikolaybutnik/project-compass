@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react'
 import { FaComment, FaExpand, FaCompress, FaTimes } from 'react-icons/fa'
-import { ChatWidgetMode, TransitionState } from './ChatWidgetContainer'
+import { ChatWidgetMode } from './ChatWidgetContainer'
 import { chatPanelLarge, chatPanelSmall } from '../constants'
 import { useDraggable } from '@dnd-kit/core'
 import styles from '../styles/chat-widget.module.scss'
@@ -8,7 +8,6 @@ import classNames from 'classnames'
 
 interface ChatWidgetProps {
   mode: ChatWidgetMode
-  transitionState: TransitionState
   position: {
     top: number
     left: number
@@ -82,6 +81,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       ref={setNodeRef}
       {...attributes}
       {...listeners}
+      data-transition={isDragging ? 'false' : 'true'}
       style={dynamicProperties}
       className={classNames(styles.widget, {
         [styles.bubble]: mode === ChatWidgetMode.BUBBLE,

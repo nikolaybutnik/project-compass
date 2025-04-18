@@ -68,6 +68,10 @@ export const ChatWidgetContainer: React.FC = () => {
     })
   )
 
+  const [animationOrigin, setAnimationOrigin] = useState<{
+    x: number
+    y: number
+  } | null>(null)
   const [state, setState] = useState<ChatWidgetState>(() => {
     const savedPosition = null // placeholder for local storage
     return {
@@ -117,6 +121,11 @@ export const ChatWidgetContainer: React.FC = () => {
 
   const handleToggleMode = useCallback(() => {
     if (state.mode === ChatWidgetMode.BUBBLE) {
+      // setAnimationOrigin({
+      //   x: state.position.left,
+      //   y: state.position.top,
+      // })
+
       const targetMode = state.previousMode
       const dimensions = getDimensionsForMode(targetMode)
       const newPosition = constrainToWindow(state.position, dimensions)
@@ -128,18 +137,10 @@ export const ChatWidgetContainer: React.FC = () => {
         position: newPosition,
       })
     } else {
-      const bubbleDimensions = getDimensionsForMode(ChatWidgetMode.BUBBLE)
-      const panelDimensions = getDimensionsForMode(state.mode)
-      const newPosition = {
-        left:
-          state.position.left + panelDimensions.width - bubbleDimensions.width,
-        top: state.position.top,
-      }
       updateWidgetState({
         previousMode: state.mode,
         mode: ChatWidgetMode.BUBBLE,
         transitionState: TransitionState.TRANSITIONING,
-        position: newPosition,
       })
     }
 
@@ -366,7 +367,6 @@ export const ChatWidgetContainer: React.FC = () => {
       {hideChat ? null : (
         <ChatWidget
           mode={state.mode}
-          transitionState={state.transitionState}
           position={state.position}
           onToggleMode={handleToggleMode}
           onToggleExpand={handleToggleExpand}
