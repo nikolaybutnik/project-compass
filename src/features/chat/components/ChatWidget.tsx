@@ -1,5 +1,5 @@
 import { Box, Flex } from '@chakra-ui/react'
-import React, { useCallback, useEffect, useMemo, useRef } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FaComment } from 'react-icons/fa'
 import { ChatWidgetMode, TransitionState } from './ChatWidgetContainer'
 import { chatPanelLarge, chatPanelSmall } from '../constants'
@@ -29,6 +29,8 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     null
   )
 
+  const [element, setElement] = useState<HTMLElement | null>(null)
+
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: 'chat-widget',
     data: {
@@ -36,39 +38,6 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       initialCoordinates: initialPressCoordinatesRef.current,
     },
   })
-
-  const combinedRef = useCallback(
-    (node: HTMLElement | null) => {
-      setNodeRef(node)
-
-      if (node) {
-        const pointerDownHandler = (e: PointerEvent) => {
-          initialPressCoordinatesRef.current = { x: e.clientX, y: e.clientY }
-        }
-
-        const pointerUpHandler = () => {
-          initialPressCoordinatesRef.current = null
-        }
-
-        node.addEventListener('pointerdown', pointerDownHandler, {
-          passive: true,
-        })
-        node.addEventListener('pointerup', pointerUpHandler, { passive: true })
-        node.addEventListener('pointercancel', pointerUpHandler, {
-          passive: true,
-        })
-
-        return () => {
-          node.removeEventListener('pointerdown', pointerDownHandler)
-          node.removeEventListener('pointerup', pointerUpHandler)
-          node.removeEventListener('pointercancel', pointerUpHandler)
-        }
-      }
-      return
-    },
-
-    [setNodeRef]
-  )
 
   const dimensions = useMemo(() => {
     switch (mode) {
@@ -98,6 +67,42 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         }
     }
   }, [mode])
+
+  const combinedRef = useCallback(
+    (node: HTMLElement | null) => {
+      // Update dnd-kit's node ref
+      setNodeRef(node)
+      // Update element ref for event listeners
+      setElement(node)
+    },
+    [setNodeRef]
+  )
+
+  useEffect(() => {
+    if (!element) return
+
+    const pointerDownHandler = (e: PointerEvent) => {
+      initialPressCoordinatesRef.current = { x: e.clientX, y: e.clientY }
+    }
+
+    const pointerUpHandler = () => {
+      initialPressCoordinatesRef.current = null
+    }
+
+    element.addEventListener('pointerdown', pointerDownHandler, {
+      passive: true,
+    })
+    element.addEventListener('pointerup', pointerUpHandler, { passive: true })
+    element.addEventListener('pointercancel', pointerUpHandler, {
+      passive: true,
+    })
+
+    return () => {
+      element.removeEventListener('pointerdown', pointerDownHandler)
+      element.removeEventListener('pointerup', pointerUpHandler)
+      element.removeEventListener('pointercancel', pointerUpHandler)
+    }
+  }, [element])
 
   const widgetStyle: React.CSSProperties = {
     position: 'fixed',
