@@ -98,7 +98,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         ) : (
           <div className={styles.panelContent}>
             <div className={styles.panelHeader}>
-              <span>Chat</span>
+              <span>Vector</span>
               <div className={styles.panelControls}>
                 <button
                   className={styles.controlButton}
@@ -115,9 +115,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 </button>
               </div>
             </div>
-            <div className={styles.panelBody}>
-              {/* Panel content would go here */}
-            </div>
+            <div className={styles.panelBody}>Test Content</div>
           </div>
         )}
       </div>

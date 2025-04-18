@@ -15,6 +15,7 @@ import { restrictToWindowOnly } from '../utils/modifiers'
 import { ChatWidget } from './ChatWidget'
 import { getDimensionsForMode } from '../utils/positioning'
 import { constrainToWindow } from '../utils/positioning'
+import { extraMargins } from '../constants'
 
 export enum ChatWidgetMode {
   BUBBLE = 'bubble',
@@ -74,8 +75,8 @@ export const ChatWidgetContainer: React.FC = () => {
       previousMode: ChatWidgetMode.PANEL,
       transitionState: TransitionState.IDLE,
       position: savedPosition || {
-        top: window.innerHeight - 48,
-        left: window.innerWidth - 48,
+        top: window.innerHeight - 48 - extraMargins.bottom,
+        left: window.innerWidth - 48 - extraMargins.right,
       },
       isTyping: false,
       hasUnreadMessages: false,
@@ -127,10 +128,18 @@ export const ChatWidgetContainer: React.FC = () => {
         position: newPosition,
       })
     } else {
+      const bubbleDimensions = getDimensionsForMode(ChatWidgetMode.BUBBLE)
+      const panelDimensions = getDimensionsForMode(state.mode)
+      const newPosition = {
+        left:
+          state.position.left + panelDimensions.width - bubbleDimensions.width,
+        top: state.position.top,
+      }
       updateWidgetState({
         previousMode: state.mode,
         mode: ChatWidgetMode.BUBBLE,
         transitionState: TransitionState.TRANSITIONING,
+        position: newPosition,
       })
     }
 
