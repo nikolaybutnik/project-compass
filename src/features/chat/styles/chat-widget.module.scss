@@ -1,0 +1,87 @@
+$blue-500: #3b82f6;
+$blue-400: #60a5fa;
+
+.widget {
+  position: fixed;
+  top: var(--top);
+  left: var(--left);
+  width: 48px;
+  height: 48px;
+  clip-path: circle(50%);
+  background: $blue-500;
+  color: white;
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.1),
+    0 1px 3px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  z-index: 1000;
+  touch-action: none;
+
+  &.bubble {
+    width: 48px;
+    height: 48px;
+    clip-path: circle(50%);
+  }
+
+  &.panel {
+    width: 300px; /* Adjust based on chatPanelSmall.width */
+    height: 400px; /* Adjust based on chatPanelSmall.height */
+    clip-path: inset(0 0 0 0 round 4px);
+    cursor: default;
+  }
+
+  &.expandedPanel {
+    width: 500px; /* Adjust based on chatPanelLarge.width */
+    height: 600px; /* Adjust based on chatPanelLarge.height */
+    clip-path: inset(0 0 0 0 round 4px);
+    cursor: default;
+  }
+}
+
+.content {
+  /* No transitions or animations */
+}
+
+.iconWrapper {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panelContent {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.panelHeader {
+  padding: 8px;
+  border-bottom: 1px solid $blue-400;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panelControls {
+  display: flex;
+  align-items: center;
+
+  .controlButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-left: 8px;
+    font-size: 16px;
+  }
+}
+
+.panelBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}

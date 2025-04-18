@@ -64,7 +64,8 @@ export const ChatWidgetContainer: React.FC = () => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 3,
+        delay: 150,
+        tolerance: 5,
       },
     })
   )

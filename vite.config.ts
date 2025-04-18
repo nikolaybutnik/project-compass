@@ -10,6 +10,19 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  css: {
+    modules: {
+      // Generate scoped class names with this pattern
+      generateScopedName: '[name]__[local]___[hash:base64:5]',
+      // By default, .module. in the filename triggers CSS modules
+      localsConvention: 'camelCase',
+    },
+    preprocessorOptions: {
+      scss: {
+        additionalData: '@use "@/styles/_variables.scss" as *;',
+      },
+    },
+  },
   server: {
     port: 3000,
     open: true,

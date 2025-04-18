@@ -11,23 +11,7 @@ export const restrictToWindowOnly: Modifier = (event) => {
     return event.transform
   }
 
-  const { active, activatorEvent, transform, draggingNodeRect } = event
-
-  // First drag detection - store first drag data
-  if (
-    active?.data?.current?.initialCoordinates &&
-    !active.data.current.dragStarted &&
-    activatorEvent
-  ) {
-    active.data.current.dragStarted = true
-
-    // Store initial offset between where user clicked and where drag activated
-    const initialClick = active.data.current.initialCoordinates
-    active.data.current.activationOffset = {
-      x: (activatorEvent as PointerEvent).clientX - initialClick.x,
-      y: (activatorEvent as PointerEvent).clientY - initialClick.y,
-    }
-  }
+  const { active, transform, draggingNodeRect } = event
 
   // Get element dimensions and position
   const width = draggingNodeRect.width
@@ -37,29 +21,23 @@ export const restrictToWindowOnly: Modifier = (event) => {
     top: draggingNodeRect.top,
   }
 
-  // Get activation offset (if available)
-  const offset = active?.data?.current?.activationOffset || { x: 0, y: 0 }
-
   // Calculate current position (with transform)
   const currentX = position.left + transform.x
   const currentY = position.top + transform.y
 
-  // Calculate boundaries - no extra margins
+  // Calculate boundaries
   const minX = 0
   const minY = 0
   const maxX = window.innerWidth - width
   const maxY = window.innerHeight - height
 
-  // Apply constraints to true position (removing activation offset)
-  const trueX = currentX - offset.x
-  const trueY = currentY - offset.y
-
-  const clampedX = Math.max(minX, Math.min(trueX, maxX))
-  const clampedY = Math.max(minY, Math.min(trueY, maxY))
+  // Apply constraints
+  const clampedX = Math.max(minX, Math.min(currentX, maxX))
+  const clampedY = Math.max(minY, Math.min(currentY, maxY))
 
   return {
     ...transform,
-    x: clampedX - position.left + offset.x,
-    y: clampedY - position.top + offset.y,
+    x: clampedX - position.left,
+    y: clampedY - position.top,
   }
 }
