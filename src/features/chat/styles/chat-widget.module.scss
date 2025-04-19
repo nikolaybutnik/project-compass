@@ -111,6 +111,7 @@ $ease-in-out: cubic-bezier(0.4, 0, 0.6, 1);
   box-sizing: border-box;
   opacity: 0;
   transition: opacity $content-transition-duration $ease-in-out;
+  will-change: opacity;
 
   .widget[data-transition='true'] & {
     opacity: 1;
@@ -118,7 +119,7 @@ $ease-in-out: cubic-bezier(0.4, 0, 0.6, 1);
 
   .widget[data-transition='true'].bubble & {
     opacity: 1;
-    transition: opacity $content-transition-duration $ease-in-out;
+    transition: opacity $content-transition-duration linear;
   }
 
   .widget[data-transition='true'][data-direction='closing'][class*='panel'] & {
@@ -141,6 +142,7 @@ $ease-in-out: cubic-bezier(0.4, 0, 0.6, 1);
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: opacity $content-transition-duration linear;
 }
 
 .panelContent {

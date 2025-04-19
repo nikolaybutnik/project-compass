@@ -115,16 +115,14 @@ export const ChatWidgetContainer: React.FC = () => {
       }
 
       setDirection(ChatAnimationDirection.OPENING)
-      setTimeout(() => {
-        updateWidgetState({
-          transitionState: TransitionState.TRANSITIONING,
-          position: newPosition,
-        })
+      updateWidgetState({
+        transitionState: TransitionState.TRANSITIONING,
+        position: newPosition,
+      })
 
-        setTimeout(() => {
-          updateWidgetState({ transitionState: TransitionState.IDLE })
-        }, 300) // Sync with $content-transition-duration
-      }, 20) // 20ms delay to start transition
+      setTimeout(() => {
+        updateWidgetState({ transitionState: TransitionState.IDLE })
+      }, 300) // Sync with $content-transition-duration
     },
     [updateWidgetState, state.position, direction]
   )
