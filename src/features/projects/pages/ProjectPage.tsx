@@ -84,16 +84,16 @@ export const ProjectPage: React.FC = () => {
       project.id === projectContext.id &&
       !hasAutoMessageBeenSent.current
     ) {
-      // const timer = setTimeout(() => {
-      //   sendMessage('[AUTO_STATUS_UPDATE]')
-      //     .then(() => {
-      //       hasAutoMessageBeenSent.current = true
-      //     })
-      //     .catch((error) => {
-      //       console.error('Error sending auto status:', error)
-      //     })
-      // }, 2000)
-      // return () => clearTimeout(timer)
+      const timer = setTimeout(() => {
+        sendMessage('[AUTO_STATUS_UPDATE]')
+          .then(() => {
+            hasAutoMessageBeenSent.current = true
+          })
+          .catch((error) => {
+            console.error('Error sending auto status:', error)
+          })
+      }, 2000)
+      return () => clearTimeout(timer)
     }
 
     return

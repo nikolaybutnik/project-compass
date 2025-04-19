@@ -1,5 +1,6 @@
 $blue-500: #3b82f6;
 $blue-400: #60a5fa;
+$alert: #f31f1f;
 $size-transition-duration: 400ms;
 $content-transition-duration: 300ms;
 $ease-in-out: cubic-bezier(0.4, 0, 0.6, 1);
@@ -181,4 +182,50 @@ $ease-in-out: cubic-bezier(0.4, 0, 0.6, 1);
   background-color: white;
   color: black;
   border-radius: 0 0 4px 4px;
+  overflow: auto;
+}
+
+.chatMessages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.message {
+  margin-bottom: 10px;
+}
+
+.chatInput {
+  display: flex;
+  padding: 10px;
+  border-top: 1px solid #ccc;
+}
+
+.chatInput input {
+  flex: 1;
+  padding: 5px;
+  margin-right: 10px;
+}
+
+.chatInput button {
+  padding: 5px 10px;
+}
+
+.unreadIndicator {
+  position: fixed;
+  top: var(--top);
+  left: var(--left);
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background-color: $alert;
+  border: 1px solid white;
+  z-index: 1001;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 200ms ease-in-out;
+
+  &[data-transition='true'] {
+    opacity: 1;
+  }
 }
