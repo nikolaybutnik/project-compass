@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react'
 import { FaComment, FaExpand, FaCompress, FaTimes } from 'react-icons/fa'
-import { ChatWidgetMode } from './ChatWidgetContainer'
+import { ChatWidgetMode, ChatAnimationDirection } from './ChatWidgetContainer'
 import { chatPanelLarge, chatPanelSmall } from '../constants'
 import { useDraggable } from '@dnd-kit/core'
 import styles from '../styles/chat-widget.module.scss'
@@ -14,6 +14,7 @@ interface ChatWidgetProps {
   }
   onToggleMode: () => void
   onToggleExpand?: () => void
+  direction: ChatAnimationDirection
 }
 
 export const ChatWidget: React.FC<ChatWidgetProps> = ({
@@ -21,6 +22,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   position,
   onToggleMode,
   onToggleExpand,
+  direction,
 }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -82,6 +84,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       {...attributes}
       {...listeners}
       data-transition={isDragging ? 'false' : 'true'}
+      data-direction={direction}
       style={dynamicProperties}
       className={classNames(styles.widget, {
         [styles.bubble]: mode === ChatWidgetMode.BUBBLE,

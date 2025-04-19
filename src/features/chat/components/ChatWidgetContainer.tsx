@@ -29,6 +29,11 @@ export enum TransitionState {
   TRANSITIONING = 'transitioning',
 }
 
+export enum ChatAnimationDirection {
+  OPENING = 'opening',
+  CLOSING = 'closing',
+}
+
 interface ChatWidgetState {
   mode: ChatWidgetMode
   previousMode: ChatWidgetMode
@@ -68,10 +73,9 @@ export const ChatWidgetContainer: React.FC = () => {
     })
   )
 
-  const [animationOrigin, setAnimationOrigin] = useState<{
-    x: number
-    y: number
-  } | null>(null)
+  const [direction, setDirection] = useState<ChatAnimationDirection>(
+    ChatAnimationDirection.OPENING
+  )
   const [state, setState] = useState<ChatWidgetState>(() => {
     const savedPosition = null // placeholder for local storage
     return {
@@ -115,34 +119,29 @@ export const ChatWidgetContainer: React.FC = () => {
         transitionState: TransitionState.IDLE,
         position: newPosition,
       })
+
+      setDirection(ChatAnimationDirection.OPENING)
     },
     [updateWidgetState, state.position]
   )
 
   const handleToggleMode = useCallback(() => {
-    if (state.mode === ChatWidgetMode.BUBBLE) {
-      // setAnimationOrigin({
-      //   x: state.position.left,
-      //   y: state.position.top,
-      // })
+    const isOpening = state.mode === ChatWidgetMode.BUBBLE
+    const targetMode = isOpening ? state.previousMode : ChatWidgetMode.BUBBLE
+    const dimensions = getDimensionsForMode(targetMode)
+    const newPosition = constrainToWindow(state.position, dimensions)
 
-      const targetMode = state.previousMode
-      const dimensions = getDimensionsForMode(targetMode)
-      const newPosition = constrainToWindow(state.position, dimensions)
-
-      updateWidgetState({
-        mode: targetMode,
-        previousMode: ChatWidgetMode.PANEL,
-        transitionState: TransitionState.TRANSITIONING,
-        position: newPosition,
-      })
-    } else {
-      updateWidgetState({
-        previousMode: state.mode,
-        mode: ChatWidgetMode.BUBBLE,
-        transitionState: TransitionState.TRANSITIONING,
-      })
-    }
+    setDirection(
+      isOpening
+        ? ChatAnimationDirection.OPENING
+        : ChatAnimationDirection.CLOSING
+    )
+    updateWidgetState({
+      mode: targetMode,
+      previousMode: isOpening ? ChatWidgetMode.PANEL : state.mode,
+      transitionState: TransitionState.TRANSITIONING,
+      position: newPosition,
+    })
 
     setTimeout(() => {
       updateWidgetState({ transitionState: TransitionState.IDLE })
@@ -370,6 +369,7 @@ export const ChatWidgetContainer: React.FC = () => {
           position={state.position}
           onToggleMode={handleToggleMode}
           onToggleExpand={handleToggleExpand}
+          direction={direction}
         />
       )}
     </DndContext>

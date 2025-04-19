@@ -4,6 +4,26 @@ $size-transition-duration: 400ms;
 $content-transition-duration: 300ms;
 $ease-out: cubic-bezier(0.4, 0, 0.2, 1);
 
+@keyframes closing-clip-path {
+  0% {
+    clip-path: inset(0 0 0 0 round 4px); // Start as panel
+  }
+  70% {
+    clip-path: inset(0 0 0 0 round 4px); // Stay square during most shrink
+  }
+  75% {
+    clip-path: inset(0 0 0 0 round 8px); // Start rounding
+  }
+  90% {
+    clip-path: inset(0 0 0 0 round 14px); // Continue rounding
+  }
+  100% {
+    clip-path: inset(
+      0 0 0 0 round 24px
+    ); // Smoothly become circle (24px = 50% of 48px)
+  }
+}
+
 .widget {
   position: fixed;
   top: var(--top);
@@ -21,21 +41,54 @@ $ease-out: cubic-bezier(0.4, 0, 0.2, 1);
   touch-action: none;
   display: flex;
   opacity: 0.7;
-  transform-origin: center;
+  transform-origin: top left;
 
   &[data-transition='true'] {
     transition:
+      top $size-transition-duration $ease-out,
+      left $size-transition-duration $ease-out,
       width $size-transition-duration $ease-out,
       height $size-transition-duration $ease-out,
-      clip-path $size-transition-duration $ease-out,
       opacity 200ms $ease-out;
   }
 
-  &[data-transition='true'] {
+  &[data-transition='true'][data-direction='opening'] {
     opacity: 1;
+    &.panel,
+    &.expandedPanel {
+      clip-path: inset(0 0 0 0 round 4px);
+      transition:
+        top $size-transition-duration $ease-out,
+        left $size-transition-duration $ease-out,
+        width $size-transition-duration $ease-out,
+        height $size-transition-duration $ease-out,
+        clip-path $size-transition-duration $ease-out,
+        opacity 200ms $ease-out;
+    }
+  }
+
+  &[data-transition='true'][data-direction='closing'] {
+    opacity: 0.7;
+    animation: closing-clip-path $size-transition-duration linear forwards;
   }
 
   &.bubble {
+    clip-path: circle(50%);
+  }
+
+  // Ensure bubble is circular on load and post-drag
+  &[data-transition='true'].bubble {
+    clip-path: circle(50%);
+    transition:
+      top $size-transition-duration $ease-out,
+      left $size-transition-duration $ease-out,
+      width $size-transition-duration $ease-out,
+      height $size-transition-duration $ease-out,
+      opacity 200ms $ease-out;
+  }
+
+  // Ensure bubble stays circular during/post-drag
+  &[data-transition='false'].bubble {
     clip-path: circle(50%);
   }
 
@@ -53,11 +106,22 @@ $ease-out: cubic-bezier(0.4, 0, 0.2, 1);
 .content {
   flex: 1;
   border: 2px solid $blue-500;
+  box-sizing: border-box;
   opacity: 0;
-  transition: opacity $content-transition-duration $ease-out 50ms;
+  transition: opacity 150ms $ease-out 50ms;
 
   .widget[data-transition='true'] & {
     opacity: 1;
+  }
+
+  .widget[data-transition='true'][data-direction='closing'][class*='panel'] & {
+    opacity: 0;
+    transition: opacity 200ms $ease-out; // 200ms for less abruptness
+  }
+
+  .widget[data-transition='true'][data-direction='closing'].bubble & {
+    opacity: 1;
+    transition: opacity 200ms $ease-out 150ms; // 150ms delay to sync with shrink
   }
 }
 
