@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FaComment, FaExpand, FaCompress, FaTimes } from 'react-icons/fa'
 import { ChatWidgetMode, ChatAnimationDirection } from './ChatWidgetContainer'
 import { chatPanelLarge, chatPanelSmall } from '../constants'
@@ -7,6 +7,8 @@ import styles from '../styles/chat-widget.module.scss'
 import classNames from 'classnames'
 import { ChatMessage } from '../types'
 import { MessageRole } from '@/features/ai/types'
+import ReactMarkdown from 'react-markdown'
+
 interface ChatWidgetProps {
   mode: ChatWidgetMode
   position: {
@@ -33,6 +35,10 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   isTyping,
   hasUnreadMessages,
 }) => {
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const prevModeRef = useRef(mode)
+  const isFirstOpenRef = useRef(true)
+
   const [inputText, setInputText] = useState('')
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -46,6 +52,14 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   const stableTransform = useMemo(() => {
     return transform || { x: 0, y: 0 }
   }, [transform])
+
+  // Maybe try passing isOpen form parent component
+  useEffect(() => {
+    //   if (mode !== ChatWidgetMode.BUBBLE && !isFirstOpenRef.current) {
+    //     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    //     isFirstOpenRef.current = true
+    //   } else isFirstOpenRef.current = false
+  }, [mode])
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -158,7 +172,30 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                       data-role={msg.role}
                       className={styles.message}
                     >
-                      {msg.content}
+                      <ReactMarkdown
+                        components={{
+                          p: (props) => (
+                            <p
+                              className={styles.markdownParagraph}
+                              {...props}
+                            />
+                          ),
+                          code: (props) => (
+                            <code className={styles.markdownCode} {...props} />
+                          ),
+                          ul: (props) => (
+                            <ul className={styles.markdownUl} {...props} />
+                          ),
+                          ol: (props) => (
+                            <ol className={styles.markdownOl} {...props} />
+                          ),
+                          li: (props) => (
+                            <li className={styles.markdownLi} {...props} />
+                          ),
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
                     </div>
                   ))}
                   {isTyping && (
@@ -169,13 +206,14 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                       ...
                     </div>
                   )}
+                  <div ref={messagesEndRef} />
                 </div>
                 <div className={styles.chatInput}>
                   <input
                     type='text'
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
-                    onKeyUp={(e) => {
+                    onKeyDown={(e) => {
                       if (
                         e.key === 'Enter' &&
                         !e.shiftKey &&
