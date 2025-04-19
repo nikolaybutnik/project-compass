@@ -32,12 +32,10 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       },
     })
 
-  // Avoids blinking when trnsform is null during cancellations
   const stableTransform = useMemo(() => {
     return transform || { x: 0, y: 0 }
   }, [transform])
 
-  // Gate onClick to avoid drag conflicts
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       if (!isDragging && mode === ChatWidgetMode.BUBBLE) {

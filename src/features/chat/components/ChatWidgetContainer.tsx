@@ -109,20 +109,24 @@ export const ChatWidgetContainer: React.FC = () => {
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { delta } = event
-
       const newPosition = {
         top: Math.max(0, state.position.top + delta.y),
         left: Math.max(0, state.position.left + delta.x),
       }
 
-      updateWidgetState({
-        transitionState: TransitionState.IDLE,
-        position: newPosition,
-      })
-
       setDirection(ChatAnimationDirection.OPENING)
+      setTimeout(() => {
+        updateWidgetState({
+          transitionState: TransitionState.TRANSITIONING,
+          position: newPosition,
+        })
+
+        setTimeout(() => {
+          updateWidgetState({ transitionState: TransitionState.IDLE })
+        }, 300) // Sync with $content-transition-duration
+      }, 20) // 20ms delay to start transition
     },
-    [updateWidgetState, state.position]
+    [updateWidgetState, state.position, direction]
   )
 
   const handleToggleMode = useCallback(() => {
@@ -142,7 +146,6 @@ export const ChatWidgetContainer: React.FC = () => {
       transitionState: TransitionState.TRANSITIONING,
       position: newPosition,
     })
-
     setTimeout(() => {
       updateWidgetState({ transitionState: TransitionState.IDLE })
     }, ANIMATION_DURATION)
@@ -161,7 +164,6 @@ export const ChatWidgetContainer: React.FC = () => {
       transitionState: TransitionState.TRANSITIONING,
       position: newPosition,
     })
-
     setTimeout(() => {
       updateWidgetState({ transitionState: TransitionState.IDLE })
     }, ANIMATION_DURATION)

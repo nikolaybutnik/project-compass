@@ -2,25 +2,23 @@ $blue-500: #3b82f6;
 $blue-400: #60a5fa;
 $size-transition-duration: 400ms;
 $content-transition-duration: 300ms;
-$ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+$ease-in-out: cubic-bezier(0.4, 0, 0.6, 1);
 
 @keyframes closing-clip-path {
   0% {
-    clip-path: inset(0 0 0 0 round 4px); // Start as panel
+    clip-path: inset(0 0 0 0 round 4px);
   }
   70% {
-    clip-path: inset(0 0 0 0 round 4px); // Stay square during most shrink
+    clip-path: inset(0 0 0 0 round 4px);
   }
   75% {
-    clip-path: inset(0 0 0 0 round 8px); // Start rounding
+    clip-path: inset(0 0 0 0 round 8px);
   }
   90% {
-    clip-path: inset(0 0 0 0 round 14px); // Continue rounding
+    clip-path: inset(0 0 0 0 round 14px);
   }
   100% {
-    clip-path: inset(
-      0 0 0 0 round 24px
-    ); // Smoothly become circle (24px = 50% of 48px)
+    clip-path: inset(0 0 0 0 round 24px);
   }
 }
 
@@ -45,11 +43,11 @@ $ease-out: cubic-bezier(0.4, 0, 0.2, 1);
 
   &[data-transition='true'] {
     transition:
-      top $size-transition-duration $ease-out,
-      left $size-transition-duration $ease-out,
-      width $size-transition-duration $ease-out,
-      height $size-transition-duration $ease-out,
-      opacity 200ms $ease-out;
+      top $size-transition-duration $ease-in-out,
+      left $size-transition-duration $ease-in-out,
+      width $size-transition-duration $ease-in-out,
+      height $size-transition-duration $ease-in-out,
+      opacity 200ms $ease-in-out;
   }
 
   &[data-transition='true'][data-direction='opening'] {
@@ -58,12 +56,12 @@ $ease-out: cubic-bezier(0.4, 0, 0.2, 1);
     &.expandedPanel {
       clip-path: inset(0 0 0 0 round 4px);
       transition:
-        top $size-transition-duration $ease-out,
-        left $size-transition-duration $ease-out,
-        width $size-transition-duration $ease-out,
-        height $size-transition-duration $ease-out,
-        clip-path $size-transition-duration $ease-out,
-        opacity 200ms $ease-out;
+        top $size-transition-duration $ease-in-out,
+        left $size-transition-duration $ease-in-out,
+        width $size-transition-duration $ease-in-out,
+        height $size-transition-duration $ease-in-out,
+        clip-path $size-transition-duration $ease-in-out,
+        opacity 200ms $ease-in-out;
     }
   }
 
@@ -84,11 +82,11 @@ $ease-out: cubic-bezier(0.4, 0, 0.2, 1);
     clip-path: circle(50%);
     opacity: 1;
     transition:
-      top $size-transition-duration $ease-out,
-      left $size-transition-duration $ease-out,
-      width $size-transition-duration $ease-out,
-      height $size-transition-duration $ease-out,
-      opacity 200ms $ease-out;
+      top $size-transition-duration $ease-in-out,
+      left $size-transition-duration $ease-in-out,
+      width $size-transition-duration $ease-in-out,
+      height $size-transition-duration $ease-in-out,
+      opacity 200ms $ease-in-out;
   }
 
   &[data-transition='false'].bubble {
@@ -112,20 +110,25 @@ $ease-out: cubic-bezier(0.4, 0, 0.2, 1);
   border: 2px solid $blue-500;
   box-sizing: border-box;
   opacity: 0;
-  transition: opacity 150ms $ease-out 50ms;
+  transition: opacity $content-transition-duration $ease-in-out;
 
   .widget[data-transition='true'] & {
     opacity: 1;
   }
 
+  .widget[data-transition='true'].bubble & {
+    opacity: 1;
+    transition: opacity $content-transition-duration $ease-in-out;
+  }
+
   .widget[data-transition='true'][data-direction='closing'][class*='panel'] & {
     opacity: 0;
-    transition: opacity 200ms $ease-out;
+    transition: opacity 200ms $ease-in-out;
   }
 
   .widget[data-transition='true'][data-direction='closing'].bubble & {
     opacity: 1;
-    transition: opacity 200ms $ease-out 150ms;
+    transition: opacity 200ms $ease-in-out 150ms;
   }
 }
 
