@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { ROUTES } from '@/shared/constants'
 import { ChatMessage } from '@/features/chat/types'
@@ -91,6 +91,13 @@ export const ChatWidgetContainer: React.FC = () => {
       messages: [],
     }
   })
+  const [savedBubblePosition, setSavedBubblePosition] = useState<{
+    top: number
+    left: number
+  }>({
+    top: window.innerHeight - 48 - extraMargins.bottom,
+    left: window.innerWidth - 48 - extraMargins.right,
+  })
 
   const updateWidgetState = useCallback((updates: Partial<ChatWidgetState>) => {
     setState((prevState) => ({
@@ -133,21 +140,33 @@ export const ChatWidgetContainer: React.FC = () => {
     const dimensions = getDimensionsForMode(targetMode)
     const newPosition = constrainToWindow(state.position, dimensions)
 
+    // consideration for later: what to do with the saved position if the user drags the panel?
+    if (isOpening) {
+      setSavedBubblePosition(state.position)
+    }
+
     setDirection(
       isOpening
         ? ChatAnimationDirection.OPENING
         : ChatAnimationDirection.CLOSING
     )
+
     updateWidgetState({
       mode: targetMode,
       previousMode: isOpening ? ChatWidgetMode.PANEL : state.mode,
       transitionState: TransitionState.TRANSITIONING,
-      position: newPosition,
+      position: isOpening ? newPosition : savedBubblePosition,
     })
     setTimeout(() => {
       updateWidgetState({ transitionState: TransitionState.IDLE })
     }, ANIMATION_DURATION)
-  }, [updateWidgetState, state.mode, state.previousMode, state.position])
+  }, [
+    updateWidgetState,
+    savedBubblePosition,
+    state.mode,
+    state.previousMode,
+    state.position,
+  ])
 
   const handleToggleExpand = useCallback(() => {
     const targetMode =
