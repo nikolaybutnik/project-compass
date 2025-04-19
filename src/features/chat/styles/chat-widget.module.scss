@@ -70,15 +70,19 @@ $ease-out: cubic-bezier(0.4, 0, 0.2, 1);
   &[data-transition='true'][data-direction='closing'] {
     opacity: 0.7;
     animation: closing-clip-path $size-transition-duration linear forwards;
+    &.bubble {
+      opacity: 1;
+    }
   }
 
   &.bubble {
     clip-path: circle(50%);
+    opacity: 1;
   }
 
-  // Ensure bubble is circular on load and post-drag
   &[data-transition='true'].bubble {
     clip-path: circle(50%);
+    opacity: 1;
     transition:
       top $size-transition-duration $ease-out,
       left $size-transition-duration $ease-out,
@@ -87,9 +91,9 @@ $ease-out: cubic-bezier(0.4, 0, 0.2, 1);
       opacity 200ms $ease-out;
   }
 
-  // Ensure bubble stays circular during/post-drag
   &[data-transition='false'].bubble {
     clip-path: circle(50%);
+    opacity: 0.7;
   }
 
   &.panel {
@@ -116,12 +120,12 @@ $ease-out: cubic-bezier(0.4, 0, 0.2, 1);
 
   .widget[data-transition='true'][data-direction='closing'][class*='panel'] & {
     opacity: 0;
-    transition: opacity 200ms $ease-out; // 200ms for less abruptness
+    transition: opacity 200ms $ease-out;
   }
 
   .widget[data-transition='true'][data-direction='closing'].bubble & {
     opacity: 1;
-    transition: opacity 200ms $ease-out 150ms; // 150ms delay to sync with shrink
+    transition: opacity 200ms $ease-out 150ms;
   }
 }
 
