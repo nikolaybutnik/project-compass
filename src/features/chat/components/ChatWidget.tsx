@@ -36,10 +36,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   hasUnreadMessages,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const prevModeRef = useRef(mode)
-  const isFirstOpenRef = useRef(true)
 
   const [inputText, setInputText] = useState('')
+  const [allowSmoothScroll, setAllowSmoothScroll] = useState(false)
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -53,13 +52,23 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     return transform || { x: 0, y: 0 }
   }, [transform])
 
-  // Maybe try passing isOpen form parent component
   useEffect(() => {
-    //   if (mode !== ChatWidgetMode.BUBBLE && !isFirstOpenRef.current) {
-    //     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    //     isFirstOpenRef.current = true
-    //   } else isFirstOpenRef.current = false
+    if (mode === ChatWidgetMode.BUBBLE) {
+      setAllowSmoothScroll(false)
+    } else {
+      setTimeout(() => {
+        setAllowSmoothScroll(true)
+      }, 300) // delay to account for open/close animation
+    }
   }, [mode])
+
+  useEffect(() => {
+    if (allowSmoothScroll) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
+    }
+  }, [allowSmoothScroll, messagesEndRef.current, messages])
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {

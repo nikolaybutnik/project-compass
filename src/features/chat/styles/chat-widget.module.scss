@@ -235,16 +235,27 @@ $system-event-bg-color: #ffe77b;
   display: flex;
   padding: 10px;
   border-top: 1px solid #ccc;
-}
 
-.chatInput input {
-  flex: 1;
-  padding: 5px;
-  margin-right: 10px;
-}
+  input {
+    flex: 1;
+    padding: 5px;
+    margin-right: 10px;
 
-.chatInput button {
-  padding: 5px 10px;
+    &:focus {
+      outline: none;
+    }
+  }
+
+  button {
+    padding: 5px 10px;
+    background: $blue-500;
+    color: white;
+    border-radius: 4px;
+
+    &:hover {
+      background: $blue-400;
+    }
+  }
 }
 
 .unreadIndicator {

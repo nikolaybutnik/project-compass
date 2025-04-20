@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { ROUTES } from '@/shared/constants'
 import { ChatMessage } from '@/features/chat/types'
@@ -54,9 +54,6 @@ const ANIMATION_DURATION = 200
 
 export const ChatWidgetContainer: React.FC = () => {
   const newMessageRef = useRef(false)
-  const lastSeenMessageCount = useRef(0)
-  const justOpenedRef = useRef(false)
-  const bubbleRef = useRef<HTMLDivElement | null>(null)
 
   const location = useLocation()
   const { sendMessage, messages: aiMessages, isLoading: aiLoading } = useAI()
