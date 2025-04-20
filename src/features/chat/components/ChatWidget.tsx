@@ -212,7 +212,11 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                       data-role={MessageRole.ASSISTANT}
                       className={styles.message}
                     >
-                      ...
+                      <div className={styles.typingIndicator}>
+                        <div className={styles.dot}></div>
+                        <div className={styles.dot}></div>
+                        <div className={styles.dot}></div>
+                      </div>
                     </div>
                   )}
                   <div ref={messagesEndRef} />

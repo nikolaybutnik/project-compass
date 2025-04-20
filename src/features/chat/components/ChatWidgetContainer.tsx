@@ -264,33 +264,6 @@ export const ChatWidgetContainer: React.FC = () => {
       })
   }, [aiMessages])
 
-  // // Set chat unread indicator
-  // useEffect(() => {
-  //   if (formattedMessages?.length) {
-  //     setMessages(formattedMessages)
-
-  //     const lastMessage = aiMessages[aiMessages.length - 1]
-  //     if (
-  //       !isOpen &&
-  //       lastMessage?.role === MessageRole.ASSISTANT &&
-  //       formattedMessages.length > lastSeenMessageCount.current
-  //     ) {
-  //       setHasUnreadMessages(true)
-  //     }
-  //   }
-  // }, [formattedMessages, aiMessages, isOpen])
-
-  // const toggleChat = useCallback(() => {
-  //   const opening = !isOpen
-  //   setIsOpen(opening)
-
-  //   if (opening) {
-  //     justOpenedRef.current = true
-  //     setHasUnreadMessages(false)
-  //     lastSeenMessageCount.current = messages.length
-  //   }
-  // }, [isOpen, messages.length])
-
   const handleSendMessage = useCallback(
     async (content: string) => {
       try {
