@@ -1,7 +1,7 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { ROUTES } from '@/shared/constants'
-import { ChatMessage } from '@/features/chat/types'
+import { Message as ChatMessage } from '@/features/ai/types'
 import { useAI } from '@/features/ai/context/aiContext'
 import {
   DndContext,
@@ -16,7 +16,8 @@ import { ChatWidget } from './ChatWidget'
 import { getDimensionsForMode } from '../utils/positioning'
 import { constrainToWindow } from '../utils/positioning'
 import { extraMargins } from '../constants'
-import { MessageRole } from '@/features/ai/types'
+import { Message, MessageRole } from '@/features/ai/types'
+import { v4 as uuidv4 } from 'uuid'
 
 export enum ChatWidgetMode {
   BUBBLE = 'bubble',
@@ -54,6 +55,7 @@ const ANIMATION_DURATION = 200
 
 export const ChatWidgetContainer: React.FC = () => {
   const newMessageRef = useRef(false)
+  const lastSeenMessageIdRef = useRef<string | null>(null)
 
   const location = useLocation()
   const { sendMessage, messages: aiMessages, isLoading: aiLoading } = useAI()
@@ -103,6 +105,33 @@ export const ChatWidgetContainer: React.FC = () => {
   })
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false)
 
+  const formattedMessages = useMemo(() => {
+    return aiMessages
+      .filter((msg: Message) => msg.role !== MessageRole.SYSTEM)
+      .map((msg: Message) => {
+        const id = uuidv4()
+        if (
+          msg.role !== MessageRole.EVENT ||
+          !msg.content.includes('===DISPLAY_TEXT===')
+        ) {
+          return {
+            id,
+            role: msg.role,
+            content: msg.content,
+            timestamp: new Date(msg.timestamp || Date.now()),
+          }
+        }
+        const parts = msg.content.split('===DISPLAY_TEXT===')
+        const displayText = parts.length > 1 ? parts[1].trim() : msg.content
+        return {
+          id,
+          role: msg.role,
+          content: displayText,
+          timestamp: new Date(msg.timestamp || Date.now()),
+        }
+      })
+  }, [aiMessages])
+
   const updateWidgetState = useCallback((updates: Partial<ChatWidgetState>) => {
     setState((prevState) => ({
       ...prevState,
@@ -147,6 +176,11 @@ export const ChatWidgetContainer: React.FC = () => {
     if (isOpening) {
       setSavedBubblePosition(state.position)
       setHasUnreadMessages(false)
+
+      if (formattedMessages.length > 0) {
+        lastSeenMessageIdRef.current =
+          formattedMessages[formattedMessages.length - 1].id
+      }
     }
 
     setDirection(
@@ -170,6 +204,7 @@ export const ChatWidgetContainer: React.FC = () => {
     state.mode,
     state.previousMode,
     state.position,
+    formattedMessages,
   ])
 
   const handleToggleExpand = useCallback(() => {
@@ -231,38 +266,25 @@ export const ChatWidgetContainer: React.FC = () => {
   // //   }
   // // }, [bubbleRef, setBubblePosition, setPanelPosition])
 
-  const formattedMessages = useMemo(() => {
-    const lastMessage = aiMessages[aiMessages.length - 1]
-
-    if (
-      state.mode === ChatWidgetMode.BUBBLE &&
-      lastMessage?.role === MessageRole.ASSISTANT
-    ) {
-      setHasUnreadMessages(true)
+  useEffect(() => {
+    if (formattedMessages.length === 0) {
+      return
     }
 
-    return aiMessages
-      .filter((msg) => msg.role !== MessageRole.SYSTEM)
-      .map((msg) => {
-        if (
-          msg.role !== MessageRole.EVENT ||
-          !msg.content.includes('===DISPLAY_TEXT===')
-        ) {
-          return {
-            role: msg.role,
-            content: msg.content,
-            timestamp: new Date(), // For potential later use
-          }
-        }
-        const parts = msg.content.split('===DISPLAY_TEXT===')
-        const displayText = parts.length > 1 ? parts[1].trim() : msg.content
-        return {
-          role: msg.role,
-          content: displayText,
-          timestamp: new Date(),
-        }
-      })
-  }, [aiMessages])
+    const latestMessage = formattedMessages[formattedMessages.length - 1]
+    const latestMessageId = latestMessage.id
+
+    if (latestMessageId !== lastSeenMessageIdRef.current) {
+      lastSeenMessageIdRef.current = latestMessageId
+
+      if (
+        state.mode === ChatWidgetMode.BUBBLE &&
+        latestMessage.role === MessageRole.ASSISTANT
+      ) {
+        setHasUnreadMessages(true)
+      }
+    }
+  }, [formattedMessages, state.mode])
 
   const handleSendMessage = useCallback(
     async (content: string) => {
