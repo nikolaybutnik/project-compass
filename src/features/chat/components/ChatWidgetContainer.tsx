@@ -18,6 +18,7 @@ import { constrainToWindow } from '../utils/positioning'
 import { extraMargins } from '../constants'
 import { Message, MessageRole } from '@/features/ai/types'
 import { v4 as uuidv4 } from 'uuid'
+import { debounce } from 'lodash'
 
 export enum ChatWidgetMode {
   BUBBLE = 'bubble',
@@ -139,6 +140,26 @@ export const ChatWidgetContainer: React.FC = () => {
     }))
   }, [])
 
+  useEffect(() => {
+    const handleResize = debounce(() => {
+      const dimensions = getDimensionsForMode(state.mode)
+      const newPosition = constrainToWindow(state.position, dimensions)
+
+      updateWidgetState({
+        position: newPosition,
+      })
+    }, 100)
+
+    // Run initially to ensure correct positioning
+    handleResize()
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      handleResize.cancel()
+    }
+  }, [state.mode, updateWidgetState])
+
   const handleDragStart = useCallback(
     (_event: DragStartEvent) => {
       updateWidgetState({ transitionState: TransitionState.DRAGGING })
@@ -154,17 +175,24 @@ export const ChatWidgetContainer: React.FC = () => {
         left: Math.max(0, state.position.left + delta.x),
       }
 
-      setDirection(ChatAnimationDirection.OPENING)
-      updateWidgetState({
-        transitionState: TransitionState.TRANSITIONING,
-        position: newPosition,
-      })
+      if (
+        newPosition.top !== state.position.top ||
+        newPosition.left !== state.position.left
+      ) {
+        setDirection(ChatAnimationDirection.OPENING)
+        updateWidgetState({
+          transitionState: TransitionState.TRANSITIONING,
+          position: newPosition,
+        })
 
-      setTimeout(() => {
+        setTimeout(() => {
+          updateWidgetState({ transitionState: TransitionState.IDLE })
+        }, 300) // Sync with $content-transition-duration
+      } else {
         updateWidgetState({ transitionState: TransitionState.IDLE })
-      }, 300) // Sync with $content-transition-duration
+      }
     },
-    [updateWidgetState, state.position, direction]
+    [updateWidgetState, state.position]
   )
 
   const handleToggleMode = useCallback(() => {
@@ -224,47 +252,6 @@ export const ChatWidgetContainer: React.FC = () => {
       updateWidgetState({ transitionState: TransitionState.IDLE })
     }, ANIMATION_DURATION)
   }, [updateWidgetState, state.mode, state.position])
-
-  // // Handle bubble and panel positions if window is resized
-  // // useEffect(() => {
-  // //   const updatePositionsOnResize = debounce(() => {
-  // //     // Handle bubble position constraints
-  // //     if (bubbleRef.current) {
-  // //       const bubbleRect = bubbleRef.current.getBoundingClientRect()
-  // //       const maxBubbleX =
-  // //         window.innerWidth - bubbleRect.width - extraMargins.right
-  // //       const maxBubbleY =
-  // //         window.innerHeight - bubbleRect.height - extraMargins.bottom
-
-  // //       setBubblePosition((prev) => ({
-  // //         x: Math.min(prev.x, maxBubbleX),
-  // //         y: Math.min(prev.y, maxBubbleY),
-  // //       }))
-  // //     }
-
-  // //     // Handle panel position constraints
-  // //     const panelWidth = isExpanded
-  // //       ? chatPanelLarge.width
-  // //       : chatPanelSmall.width
-  // //     const panelHeight = isExpanded
-  // //       ? chatPanelLarge.height
-  // //       : chatPanelSmall.height
-  // //     const maxPanelX = window.innerWidth - panelWidth - extraMargins.right
-  // //     const maxPanelY = window.innerHeight - panelHeight - extraMargins.bottom
-
-  // //     setPanelPosition((prev) => ({
-  // //       x: Math.min(prev.x, maxPanelX),
-  // //       y: Math.min(prev.y, maxPanelY),
-  // //     }))
-  // //   }, 100)
-
-  // //   updatePositionsOnResize()
-  // //   window.addEventListener('resize', updatePositionsOnResize)
-  // //   return () => {
-  // //     window.removeEventListener('resize', updatePositionsOnResize)
-  // //     updatePositionsOnResize.cancel()
-  // //   }
-  // // }, [bubbleRef, setBubblePosition, setPanelPosition])
 
   useEffect(() => {
     if (formattedMessages.length === 0) {

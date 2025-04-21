@@ -16,12 +16,20 @@ export const MessageList = memo(
     const [allowSmoothScroll, setAllowSmoothScroll] = useState(false)
 
     useEffect(() => {
+      let timer: ReturnType<typeof setTimeout> | undefined
+
       if (mode === ChatWidgetMode.BUBBLE) {
         setAllowSmoothScroll(false)
       } else {
-        setTimeout(() => {
+        timer = setTimeout(() => {
           setAllowSmoothScroll(true)
         }, 300) // delay to account for open/close animation
+      }
+
+      return () => {
+        if (timer) {
+          clearTimeout(timer)
+        }
       }
     }, [mode])
 

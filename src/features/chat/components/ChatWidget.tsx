@@ -127,6 +127,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = memo(
               </div>
             ) : (
               <div className={styles.panelContent}>
+                {/* TODO: Make only the header draggable */}
                 <div className={styles.panelHeader}>
                   <span>Vector</span>
                   <div className={styles.panelControls}>
