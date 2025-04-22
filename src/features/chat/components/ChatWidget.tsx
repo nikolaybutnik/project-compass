@@ -1,4 +1,11 @@
-import React, { memo, useCallback, useMemo, useState } from 'react'
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { FaComment, FaExpand, FaCompress, FaTimes } from 'react-icons/fa'
 import { ChatWidgetMode, ChatAnimationDirection } from './ChatWidgetContainer'
 import { chatPanelLarge, chatPanelSmall } from '../constants'
@@ -35,6 +42,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = memo(
     isTyping,
     hasUnreadMessages,
   }) => {
+    const chatMessagesRef = useRef<HTMLDivElement | null>(null)
+    const scrollPositionRef = useRef<number>(0)
+
     const [inputText, setInputText] = useState('')
 
     const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -95,6 +105,21 @@ export const ChatWidget: React.FC<ChatWidgetProps> = memo(
         }) as React.CSSProperties,
       [position, stableTransform]
     )
+
+    // Save scroll position before drag
+    useEffect(() => {
+      if (isDragging && chatMessagesRef.current) {
+        scrollPositionRef.current = chatMessagesRef.current.scrollTop
+      }
+    }, [isDragging])
+
+    // Restore scroll position after drag
+    useEffect(() => {
+      if (!isDragging && chatMessagesRef.current) {
+        const savedScrollTop = scrollPositionRef.current
+        chatMessagesRef.current.scrollTop = savedScrollTop
+      }
+    }, [isDragging])
 
     return (
       <>
@@ -162,6 +187,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = memo(
                     messages={messages}
                     isTyping={isTyping}
                     mode={mode}
+                    chatMessagesRef={chatMessagesRef}
                   />
                   <div className={styles.chatInput}>
                     <input

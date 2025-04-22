@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, RefObject, useEffect, useRef, useState } from 'react'
 import { ChatWidgetMode } from './ChatWidgetContainer'
 import { Message, MessageRole } from '@/features/ai/types'
 import styles from '../styles/chat-widget.module.scss'
@@ -8,10 +8,11 @@ interface MessageListProps {
   messages: Message[]
   isTyping: boolean
   mode: ChatWidgetMode
+  chatMessagesRef?: RefObject<HTMLDivElement>
 }
 
 export const MessageList = memo(
-  ({ messages, isTyping, mode }: MessageListProps) => {
+  ({ messages, isTyping, mode, chatMessagesRef }: MessageListProps) => {
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const [allowSmoothScroll, setAllowSmoothScroll] = useState(false)
 
@@ -71,7 +72,7 @@ export const MessageList = memo(
     )
 
     return (
-      <div className={styles.chatMessages}>
+      <div className={styles.chatMessages} ref={chatMessagesRef}>
         {messages.map((msg) => (
           <MemoizedMessage key={msg.id} message={msg} />
         ))}

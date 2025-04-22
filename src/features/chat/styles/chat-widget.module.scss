@@ -112,9 +112,7 @@ $system-event-bg-color: #ffe77b;
     cursor: default;
   }
 
-  // Disable touch actions in panel body during drag
   &[data-transition='false'] .panelBody,
-  &[data-transition='false'] .chatMessages,
   &[data-transition='false'] .chatInput,
   &[data-transition='false'] .chatInput input,
   &[data-transition='false'] .chatInput button,
@@ -127,7 +125,13 @@ $system-event-bg-color: #ffe77b;
   &[data-transition='false'] .message a {
     touch-action: none !important;
     pointer-events: none !important;
-    overflow: hidden !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+  }
+
+  &[data-transition='false'] .chatMessages {
+    touch-action: none !important;
+    pointer-events: none !important;
     user-select: none !important;
     -webkit-user-select: none !important;
   }
@@ -194,6 +198,10 @@ $system-event-bg-color: #ffe77b;
   cursor: move;
   touch-action: auto;
   pointer-events: auto;
+
+  .widget[data-transition='false'] & {
+    cursor: move !important;
+  }
 }
 
 .panelControls {
@@ -206,6 +214,10 @@ $system-event-bg-color: #ffe77b;
     cursor: pointer;
     margin-left: 8px;
     font-size: 16px;
+
+    &[data-transition='false'] {
+      cursor: pointer !important;
+    }
   }
 }
 
