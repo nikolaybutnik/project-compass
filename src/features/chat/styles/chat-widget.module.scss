@@ -45,6 +45,10 @@ $system-event-bg-color: #ffe77b;
   opacity: 0.7;
   transform-origin: top left;
 
+  &[data-transition='false'] {
+    cursor: move !important;
+  }
+
   &[data-transition='true'] {
     transition:
       top $size-transition-duration $ease-in-out,
@@ -107,6 +111,26 @@ $system-event-bg-color: #ffe77b;
     clip-path: inset(0 0 0 0 round 4px);
     cursor: default;
   }
+
+  // Disable touch actions in panel body during drag
+  &[data-transition='false'] .panelBody,
+  &[data-transition='false'] .chatMessages,
+  &[data-transition='false'] .chatInput,
+  &[data-transition='false'] .chatInput input,
+  &[data-transition='false'] .chatInput button,
+  &[data-transition='false'] .message,
+  &[data-transition='false'] .markdownParagraph,
+  &[data-transition='false'] .markdownCode,
+  &[data-transition='false'] .markdownUl,
+  &[data-transition='false'] .markdownOl,
+  &[data-transition='false'] .markdownLi,
+  &[data-transition='false'] .message a {
+    touch-action: none !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+  }
 }
 
 .content {
@@ -163,6 +187,13 @@ $system-event-bg-color: #ffe77b;
   align-items: center;
   font-size: 18px;
   font-weight: 600;
+  pointer-events: auto !important;
+}
+
+.dragHandle {
+  cursor: move;
+  touch-action: auto;
+  pointer-events: auto;
 }
 
 .panelControls {
@@ -339,13 +370,13 @@ $system-event-bg-color: #ffe77b;
 
 /* Markdown styling */
 .markdownParagraph {
-  font-size: 0.875rem; /* sm in most systems */
-  margin-bottom: 0.5rem; /* equivalent to mb={2} */
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
 }
 
 .markdownCode {
   font-size: 0.875rem;
-  padding: 0.25rem; /* equivalent to p={1} */
+  padding: 0.25rem;
   background-color: rgba(0, 0, 0, 0.06);
   border-radius: 3px;
   font-family: monospace;
@@ -353,14 +384,14 @@ $system-event-bg-color: #ffe77b;
 
 .markdownUl {
   font-size: 0.875rem;
-  padding-left: 1rem; /* equivalent to pl={4} */
-  margin-bottom: 0.5rem; /* equivalent to mb={2} */
+  padding-left: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .markdownOl {
   font-size: 0.875rem;
-  padding-left: 1rem; /* equivalent to pl={4} */
-  margin-bottom: 0.5rem; /* equivalent to mb={2} */
+  padding-left: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .markdownLi {

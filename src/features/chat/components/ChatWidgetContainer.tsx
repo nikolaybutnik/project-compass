@@ -7,10 +7,10 @@ import {
   DndContext,
   useSensors,
   useSensor,
-  PointerSensor,
   DragEndEvent,
   DragStartEvent,
 } from '@dnd-kit/core'
+import { PointerSensor } from '@/shared/utils/customEvents'
 import { restrictToWindowOnly } from '../utils/modifiers'
 import { ChatWidget } from './ChatWidget'
 import { getDimensionsForMode } from '../utils/positioning'

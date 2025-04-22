@@ -108,8 +108,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = memo(
         )}
         <div
           ref={setNodeRef}
-          {...attributes}
-          {...listeners}
+          {...(mode === ChatWidgetMode.BUBBLE
+            ? { ...attributes, ...listeners }
+            : {})}
           data-transition={isDragging ? 'false' : 'true'}
           data-direction={direction}
           style={dynamicWidgetProperties}
@@ -127,11 +128,17 @@ export const ChatWidget: React.FC<ChatWidgetProps> = memo(
               </div>
             ) : (
               <div className={styles.panelContent}>
-                {/* TODO: Make only the header draggable */}
-                <div className={styles.panelHeader}>
+                <div
+                  className={classNames(styles.panelHeader, styles.dragHandle)}
+                  {...(mode === ChatWidgetMode.PANEL ||
+                  mode === ChatWidgetMode.EXPANDED_PANEL
+                    ? { ...attributes, ...listeners }
+                    : {})}
+                >
                   <span>Vector</span>
                   <div className={styles.panelControls}>
                     <button
+                      data-no-dnd='true'
                       className={styles.controlButton}
                       onClick={onToggleExpand}
                     >
@@ -142,6 +149,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = memo(
                       )}
                     </button>
                     <button
+                      data-no-dnd='true'
                       className={styles.controlButton}
                       onClick={onToggleMode}
                     >
