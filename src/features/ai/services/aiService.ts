@@ -18,12 +18,7 @@ import {
 } from '@/features/projects/services/projectsService'
 import { QUERY_KEYS } from '@/shared/store/projectsStore'
 import { QueryClient } from '@tanstack/react-query'
-
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  // TODO: Weigh my options. Do I need to bring up a backend?
-  dangerouslyAllowBrowser: true,
-})
+import apiClient from '@/shared/api/apiClient'
 
 const FALLBACK_MESSAGE = "I've processed your request."
 
@@ -144,18 +139,20 @@ const handleDescriptionUpdateToolCall = async (
   return { success: true }
 }
 
-const requestAiResponse = (
+const requestAiResponse = async (
   messages: ChatCompletionMessageParam[],
   model: string = 'gpt-4o-mini',
   tools = getToolDefinitions(),
   toolChoice: 'auto' | 'none' | 'required' = 'auto'
 ): Promise<ChatCompletion> => {
-  return openai.chat.completions.create({
+  const response = await apiClient.post('/api/ai/chat', {
     model,
     messages,
     tools,
     tool_choice: toolChoice,
   })
+
+  return response.data
 }
 
 const requestPostToolFollowUp = async (

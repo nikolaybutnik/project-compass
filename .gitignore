@@ -44,6 +44,7 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+*.code-workspace
 
 # TypeScript cache
 *.tsbuildinfo
