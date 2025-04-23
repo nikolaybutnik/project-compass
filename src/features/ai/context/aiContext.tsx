@@ -10,11 +10,7 @@ import {
   createConversationMessages,
 } from '@/features/ai/utils/promptTemplate'
 import { Project } from '@/shared/types'
-import {
-  AIResponse,
-  ContextUpdate,
-  ContextUpdateTrigger,
-} from '@/features/ai/types'
+import { AIResponse, ContextUpdate } from '@/features/ai/types'
 import { MessageRole } from '@/features/ai/types'
 import { getChatResponse } from '@/features/ai/services/aiService'
 

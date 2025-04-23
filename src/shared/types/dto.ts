@@ -13,8 +13,9 @@ export type ProjectDto = Omit<Project, 'createdAt' | 'updatedAt'> & {
   updatedAt: WriteTimestamp
 }
 
-export type UserDto = Omit<User, 'lastLogin' | 'createdAt' | 'updatedAt'> & {
-  lastLogin: WriteTimestamp
-  createdAt: WriteTimestamp
-  updatedAt: WriteTimestamp
+export type UserDto = {
+  uid: string
+  email: string
+  displayName: string
+  photoURL: string
 }

@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import { create } from 'zustand'
-import { User as AppUser } from '@/shared/types'
 import { User as FirebaseUser } from 'firebase/auth'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createOrUpdateUser } from '@/features/users/services/usersService'

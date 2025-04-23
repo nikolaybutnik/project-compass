@@ -1,75 +1,29 @@
-import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  serverTimestamp,
-} from 'firebase/firestore'
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { User as FirebaseUser } from 'firebase/auth'
 import { db } from '@/shared/config/firebase'
 import { User as AppUser } from '@/shared/types'
 import { COLLECTIONS } from '@/shared/constants'
 import { UserDto } from '@/shared/types/dto'
-
-const createUserData = (firebaseUser: FirebaseUser): UserDto => ({
-  id: firebaseUser.uid,
-  email: firebaseUser.email,
-  displayName:
-    firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-  photoURL: firebaseUser.photoURL,
-  activeProjectId: null,
-  role: 'user',
-  lastLogin: serverTimestamp(),
-  createdAt: serverTimestamp(),
-  updatedAt: serverTimestamp(),
-  preferences: {
-    theme: 'light',
-    language: 'en',
-  },
-})
+import apiClient from '@/shared/api/apiClient'
 
 export const createOrUpdateUser = async (
   firebaseUser: FirebaseUser
-): Promise<AppUser> => {
+): Promise<AppUser | null> => {
+  if (!firebaseUser) return null
+
   try {
-    const userRef = doc(db, COLLECTIONS.USERS, firebaseUser.uid)
-    const userSnap = await getDoc(userRef)
-
-    if (!userSnap.exists()) {
-      // New user - create full profile
-      const newUserData = createUserData(firebaseUser)
-      await setDoc(userRef, newUserData)
-    } else {
-      // Existing user - only update necessary fields
-      const userData = userSnap?.data() as AppUser
-      const updatedFields: Record<string, any> = {
-        lastLogin: serverTimestamp(),
-      }
-
-      if (userData?.email !== firebaseUser?.email)
-        updatedFields.email = firebaseUser?.email
-      if (
-        firebaseUser?.displayName &&
-        userData?.displayName !== firebaseUser?.displayName
-      )
-        updatedFields.displayName = firebaseUser?.displayName
-      if (userData?.photoURL !== firebaseUser?.photoURL)
-        updatedFields.photoURL = firebaseUser?.photoURL
-
-      if (Object.keys(updatedFields).length > 1)
-        updatedFields.updatedAt = serverTimestamp()
-
-      await updateDoc(userRef, updatedFields)
+    const userData: UserDto = {
+      uid: firebaseUser.uid,
+      email: firebaseUser.email || '',
+      displayName: firebaseUser.displayName || '',
+      photoURL: firebaseUser.photoURL || '',
     }
 
-    const updatedDoc = await getDoc(userRef)
-    if (!updatedDoc?.exists()) {
-      throw new Error('Failed to fetch user data after update')
-    }
+    const response = await apiClient.post('/api/firebase/users', userData)
 
-    return updatedDoc?.data() as AppUser
+    return (response.data as AppUser) || null
   } catch (error) {
-    console.error('Error creating/updating user:', error)
+    console.error('Error syncing user data:', error)
     throw error
   }
 }
