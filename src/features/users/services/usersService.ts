@@ -9,7 +9,9 @@ import apiClient from '@/shared/api/apiClient'
 export const createOrUpdateUser = async (
   firebaseUser: FirebaseUser
 ): Promise<AppUser | null> => {
-  if (!firebaseUser) return null
+  if (!firebaseUser) {
+    throw new Error('Firebase user is required')
+  }
 
   try {
     const userData: UserDto = {
@@ -36,14 +38,9 @@ export const getUser = async (
       throw new Error('User ID is required')
     }
 
-    const userRef = doc(db, COLLECTIONS.USERS, userId)
-    const userSnap = await getDoc(userRef)
+    const response = await apiClient.get(`/api/firebase/users/${userId}`)
 
-    if (!userSnap?.exists()) {
-      return null
-    }
-
-    return userSnap?.data() as AppUser
+    return (response.data as AppUser) || null
   } catch (error) {
     console.error('Error fetching user:', error)
     throw error
