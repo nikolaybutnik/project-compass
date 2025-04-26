@@ -34,9 +34,7 @@ export const getUser = async (
   userId: string | null
 ): Promise<AppUser | null> => {
   try {
-    if (!userId) {
-      throw new Error('User ID is required')
-    }
+    if (!userId) throw new Error('User ID is required')
 
     const response = await apiClient.get(`/api/firebase/users/${userId}`)
 
@@ -50,26 +48,20 @@ export const getUser = async (
 export const updateActiveProjectId = async (
   userId: string,
   projectId: string
-): Promise<AppUser> => {
+): Promise<AppUser | null> => {
   try {
-    const userRef = doc(db, COLLECTIONS.USERS, userId)
-    const userSnap = await getDoc(userRef)
+    if (!userId) throw new Error('User ID is required')
+    if (!projectId) throw new Error('Project ID is required')
 
-    if (!userSnap.exists()) {
-      throw new Error('User not found')
-    }
+    const response = await apiClient.post(
+      `/api/firebase/users/active-project`,
+      {
+        userId,
+        projectId,
+      }
+    )
 
-    const userData = userSnap?.data() as AppUser
-    const updatedUser = {
-      ...userData,
-      activeProjectId: projectId,
-      updatedAt: serverTimestamp(),
-    }
-
-    await updateDoc(userRef, updatedUser)
-
-    const updatedDoc = await getDoc(userRef)
-    return updatedDoc?.data() as AppUser
+    return (response.data as AppUser) || null
   } catch (error) {
     console.error('Error updating active project ID:', error)
     throw error
