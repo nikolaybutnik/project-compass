@@ -18,11 +18,12 @@ export interface User {
 }
 
 // Project interfaces
-export type ProjectStatus =
-  | 'planning'
-  | 'in-progress'
-  | 'completed'
-  | 'archived'
+export enum ProjectStatus {
+  PLANNING = 'planning',
+  IN_PROGRESS = 'in-progress',
+  COMPLETED = 'completed',
+  ARCHIVED = 'archived',
+}
 
 export enum TaskPriority {
   LOW = 'low',
@@ -31,16 +32,18 @@ export enum TaskPriority {
   URGENT = 'urgent',
 }
 
+export interface Kanban {
+  columns: KanbanColumn[]
+  columnLimit?: number
+  totalTaskLimit?: number
+}
+
 export interface Project {
   id: string
   userId: string
   title: string
   description: string
-  kanban: {
-    columns: KanbanColumn[]
-    columnLimit?: number
-    totalTaskLimit?: number
-  }
+  kanban: Kanban
   status: ProjectStatus
   createdAt: Timestamp
   updatedAt: Timestamp

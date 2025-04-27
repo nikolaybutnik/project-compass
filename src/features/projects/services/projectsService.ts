@@ -2,7 +2,6 @@ import {
   collection,
   doc,
   getDoc,
-  setDoc,
   serverTimestamp,
   query,
   where,
@@ -11,86 +10,32 @@ import {
   updateDoc,
 } from 'firebase/firestore'
 import { db } from '@/shared/config/firebase'
-import { AIProjectInstructions, Project, ProjectStatus } from '@/shared/types'
+import { Project, ProjectStatus } from '@/shared/types'
 import { COLLECTIONS } from '@/shared/constants'
-import { v4 as uuidv4 } from 'uuid'
 import { ProjectDto } from '@/shared/types/dto'
-
-const createNewProjectData = (
-  id: string,
-  userId: string,
-  projectData: Partial<Project>,
-  aiInstructions?: AIProjectInstructions
-): ProjectDto => {
-  const defaultKanban: Project['kanban'] = {
-    columns: [
-      {
-        id: uuidv4(),
-        title: 'To Do',
-        tasks: [],
-      },
-      {
-        id: uuidv4(),
-        title: 'In Progress',
-        tasks: [],
-      },
-      {
-        id: uuidv4(),
-        title: 'Completed',
-        tasks: [],
-      },
-    ],
-  }
-
-  let title: string = projectData?.title || ''
-  let kanban: Project['kanban'] = defaultKanban
-  let status: ProjectStatus = 'planning'
-  let description: string = projectData?.description || ''
-
-  if (aiInstructions?.suggestions?.title)
-    title = aiInstructions.suggestions.title
-  if (aiInstructions?.kanban) kanban = aiInstructions.kanban
-  if (aiInstructions?.suggestions?.status)
-    status = aiInstructions.suggestions.status
-  if (aiInstructions?.suggestions?.description)
-    description = aiInstructions.suggestions.description
-
-  return {
-    id,
-    userId,
-    title,
-    description,
-    status,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    kanban,
-  }
-}
+import apiClient from '@/shared/api/apiClient'
 
 export const createProject = async (
   userId: string | undefined,
   projectData: Partial<Project>
 ): Promise<Project> => {
-  if (!userId) {
-    throw new Error('User ID is required')
-  }
+  if (!userId) throw new Error('User ID is required')
+  if (!projectData.title) throw new Error('Project title is required')
 
   try {
-    const projectRef = doc(collection(db, COLLECTIONS.PROJECTS))
-    const newProjectDto = createNewProjectData(
-      projectRef?.id,
+    const newProjectData: ProjectDto = {
       userId,
-      projectData
-    )
-
-    await setDoc(projectRef, newProjectDto)
-
-    const docSnap = await getDoc(projectRef)
-    if (!docSnap?.exists()) {
-      throw new Error('Failed to create project')
+      title: projectData.title,
+      description: projectData.description || '',
+      status: projectData.status || ProjectStatus.PLANNING,
     }
 
-    return docSnap.data() as Project
+    const response = await apiClient.post(
+      '/api/firebase/projects',
+      newProjectData
+    )
+
+    return response.data as Project
   } catch (error) {
     console.error('Error creating project:', error)
     throw error

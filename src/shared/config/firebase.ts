@@ -1,3 +1,5 @@
+// TODO: remove once backend migration is complete
+
 import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
 

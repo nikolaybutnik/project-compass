@@ -1,8 +1,5 @@
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { User as FirebaseUser } from 'firebase/auth'
-import { db } from '@/shared/config/firebase'
 import { User as AppUser } from '@/shared/types'
-import { COLLECTIONS } from '@/shared/constants'
 import { UserDto } from '@/shared/types/dto'
 import apiClient from '@/shared/api/apiClient'
 
