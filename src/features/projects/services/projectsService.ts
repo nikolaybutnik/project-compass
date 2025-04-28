@@ -1,14 +1,4 @@
-import {
-  collection,
-  doc,
-  getDoc,
-  serverTimestamp,
-  query,
-  where,
-  orderBy,
-  getDocs,
-  updateDoc,
-} from 'firebase/firestore'
+import { doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { db } from '@/shared/config/firebase'
 import { Project, ProjectStatus } from '@/shared/types'
 import { COLLECTIONS } from '@/shared/constants'
@@ -44,14 +34,11 @@ export const createProject = async (
 
 export const getProjects = async (userId: string): Promise<Project[]> => {
   try {
-    const projectsQuery = query(
-      collection(db, COLLECTIONS.PROJECTS),
-      where('userId', '==', userId),
-      orderBy('updatedAt', 'desc')
-    )
+    if (!userId) throw new Error('User ID is required')
 
-    const querySnapshot = await getDocs(projectsQuery)
-    return querySnapshot?.docs?.map((doc) => doc?.data() as Project)
+    const response = await apiClient.get(`/api/firebase/projects/${userId}`)
+
+    return response.data as Project[]
   } catch (error) {
     console.error('Error getting user projects:', error)
     throw error

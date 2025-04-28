@@ -12,7 +12,6 @@ import {
 } from '@chakra-ui/react'
 import { Project } from '@/shared/types'
 import { FaEllipsisV } from 'react-icons/fa'
-import { Timestamp } from 'firebase/firestore'
 import { useAuth } from '@/shared/store/authStore'
 
 interface ProjectCardProps {
@@ -37,10 +36,9 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   const getStatusColor = (status: Project['status']) =>
     statusColorMap[status] || 'gray'
 
-  const formatDate = (timestamp: Timestamp): string => {
+  const formatDate = (timestamp: string): string => {
     if (!timestamp) return 'Unknown'
-
-    const date = timestamp?.toDate()
+    const date = new Date(timestamp)
     return date.toLocaleDateString()
   }
 

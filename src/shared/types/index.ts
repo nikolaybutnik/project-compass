@@ -1,5 +1,3 @@
-import { Timestamp } from 'firebase/firestore'
-
 // User interfaces
 export interface User {
   id: string
@@ -8,9 +6,9 @@ export interface User {
   photoURL: string | null
   activeProjectId: string | null
   role: 'admin' | 'user'
-  lastLogin: Timestamp
-  createdAt: Timestamp
-  updatedAt: Timestamp
+  lastLogin: string
+  createdAt: string
+  updatedAt: string
   preferences: {
     theme: 'light' | 'dark'
     language: 'en' | 'es'
@@ -45,8 +43,8 @@ export interface Project {
   description: string
   kanban: Kanban
   status: ProjectStatus
-  createdAt: Timestamp
-  updatedAt: Timestamp
+  createdAt: string
+  updatedAt: string
 }
 
 export interface AIProjectInstructions {
@@ -73,10 +71,10 @@ export interface KanbanTask {
   title: string
   description?: string
   priority?: TaskPriority
-  dueDate?: Timestamp
+  dueDate?: string
   tags?: string[]
-  createdAt: Timestamp
-  updatedAt: Timestamp
+  createdAt: string
+  updatedAt: string
 }
 
 // AI Insight interfaces
@@ -85,7 +83,7 @@ export interface AiInsight {
   title: string
   description: string
   type: 'improvement' | 'feature' | 'pivot' | 'risk' | 'optimization'
-  createdAt: Timestamp
+  createdAt: string
   status: 'new' | 'viewed' | 'implemented' | 'dismissed' | 'saved'
   // Optional suggested tasks based on this insight
   suggestedTasks?: {
